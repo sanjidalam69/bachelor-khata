@@ -87,8 +87,10 @@ class BachelorKhata {
     const isMob = window.innerWidth <= 640;
     const mobLogo = g('mob-logo');
     const themeMob = g('theme-toggle-mob');
+    const profileMob = g('profile-btn-mob');
     if (mobLogo) mobLogo.style.display = isMob ? 'flex' : 'none';
     if (themeMob) themeMob.style.display = isMob ? 'flex' : 'none';
+    if (profileMob) profileMob.style.display = isMob ? 'flex' : 'none';
   }
 
   // ── NAVIGATION ────────────────────────────────────────────────
@@ -1330,6 +1332,13 @@ class BachelorKhata {
       if(photo){ sImg.src=photo; sImg.style.display=''; sTxt.style.display='none'; }
       else { sImg.style.display='none'; sTxt.textContent=initText; sTxt.style.display=''; }
     }
+
+    // Mobile topbar profile button
+    const mImg=g('profile-pic-mob'); const mTxt=g('profile-initials-mob');
+    if(mImg && mTxt){
+      if(photo){ mImg.src=photo; mImg.style.display=''; mTxt.style.display='none'; }
+      else { mImg.style.display='none'; mTxt.textContent=initText; mTxt.style.display=''; }
+    }
     
     // Profile modal
     const pImg=g('p-pic-lg'); const pTxt=g('p-initials-lg');
@@ -1344,6 +1353,7 @@ class BachelorKhata {
 
   bindProfile() {
     g('profile-btn')?.addEventListener('click',()=>this.openModal('m-profile'));
+    g('profile-btn-mob')?.addEventListener('click',()=>this.openModal('m-profile'));
     [g('theme-toggle'),g('theme-toggle-mob'),g('m-more-theme')].forEach(btn=>{btn?.addEventListener('click',()=>{this.data.settings.theme=this.data.settings.theme==='dark'?'light':'dark';this.save('settings');this.applyTheme();this.render();this.toast(`${this.data.settings.theme==='dark'?'ডার্ক':'লাইট'} মোড চালু!`,'success');});});
     g('p-initials')?.addEventListener('input',e=>{
       const v=e.target.value;
