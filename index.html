@@ -778,6 +778,7 @@ tbody tr:last-child td{border-bottom:none}
   <button class="mnbtn" data-page="bazar"><i class="fas fa-cart-shopping"></i><span>বাজার</span></button>
   <button class="mnbtn" data-page="split"><i class="fas fa-users"></i><span>ভাগ</span></button>
   <button class="mnbtn" data-page="reports"><i class="fas fa-chart-line"></i><span>রিপোর্ট</span></button>
+  <button class="mnbtn" id="mob-more-btn"><i class="fas fa-ellipsis"></i><span>আরও</span></button>
 </nav>
 
 <div id="tw"></div>
@@ -981,6 +982,20 @@ tbody tr:last-child td{border-bottom:none}
     <div style="font-size:9px;color:var(--muted);margin-top:4px" id="p-sync-status"></div>
     <div class="div"></div>
     <button class="btn btn-d bfull" id="p-reset"><i class="fas fa-triangle-exclamation"></i> সব ডেটা মুছুন</button>
+  </div>
+</div></div>
+
+<!-- More Menu (mobile only) -->
+<div class="mo" id="m-more"><div class="modal" style="max-width:360px">
+  <div class="mh"><div class="mt">আরও অপশন</div><button class="mc" data-close="m-more"><i class="fas fa-xmark"></i></button></div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn btn-s bfull" style="justify-content:flex-start" onclick="app.closeModal('m-more');app.navigate('accounts')"><i class="fas fa-wallet" style="width:16px"></i> একাউন্ট</button>
+    <button class="btn btn-s bfull" style="justify-content:flex-start" onclick="app.closeModal('m-more');app.navigate('budget')"><i class="fas fa-sliders" style="width:16px"></i> বাজেট</button>
+    <button class="btn btn-s bfull" style="justify-content:flex-start" onclick="app.closeModal('m-more');app.navigate('goals')"><i class="fas fa-bullseye" style="width:16px"></i> লক্ষ্য</button>
+    <button class="btn btn-s bfull" style="justify-content:flex-start" onclick="app.closeModal('m-more');app.navigate('debts')"><i class="fas fa-handshake" style="width:16px"></i> ধার</button>
+    <div class="div"></div>
+    <button class="btn btn-s bfull" style="justify-content:flex-start" onclick="app.closeModal('m-more');app.openModal('m-profile')"><i class="fas fa-user" style="width:16px"></i> প্রোফাইল ও সেটিংস</button>
+    <button class="btn btn-s bfull" style="justify-content:flex-start" id="m-more-theme"><i class="fas fa-moon" id="m-more-theme-icon" style="width:16px"></i> থিম পরিবর্তন</button>
   </div>
 </div></div>
 
