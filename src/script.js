@@ -87,17 +87,14 @@ class BachelorKhata {
     const isMob = window.innerWidth <= 640;
     const mobLogo = g('mob-logo');
     const themeMob = g('theme-toggle-mob');
-    const profileMob = g('profile-btn-mob');
     if (mobLogo) mobLogo.style.display = isMob ? 'flex' : 'none';
     if (themeMob) themeMob.style.display = isMob ? 'flex' : 'none';
-    if (profileMob) profileMob.style.display = isMob ? 'flex' : 'none';
   }
 
   // ── NAVIGATION ────────────────────────────────────────────────
   bindNav() {
     document.querySelectorAll('[data-page]').forEach(b => b.addEventListener('click', () => this.navigate(b.dataset.page)));
     g('quick-add-btn')?.addEventListener('click', () => this.openModal('m-quick'));
-    g('mob-more-btn')?.addEventListener('click', () => this.openModal('m-more'));
   }
 
   navigate(page) {
@@ -373,7 +370,12 @@ class BachelorKhata {
     g(id)?.classList.add('open');
   }
 
-  closeModal(id) { g(id)?.classList.remove('open'); }
+  closeModal(id) { 
+    g(id)?.classList.remove('open'); 
+    if (id === 'm-sync-qr') {
+      this.stopScanner();
+    }
+  }
 
   // ── TRANSACTIONS ──────────────────────────────────────────────
   saveTx() {
@@ -1316,7 +1318,6 @@ class BachelorKhata {
     const icon=`<i class="fas fa-${this.data.settings.theme==='light'?'moon':'sun'}"></i>`;
     const tt=g('theme-toggle'); if(tt)tt.innerHTML=icon;
     const ttm=g('theme-toggle-mob'); if(ttm)ttm.innerHTML=icon;
-    const mtm=g('m-more-theme-icon'); if(mtm)mtm.className=`fas fa-${this.data.settings.theme==='light'?'moon':'sun'}`;
     Object.values(this.charts).forEach(c=>{if(c)c.destroy();});
     this.charts={};
   }
@@ -1332,13 +1333,6 @@ class BachelorKhata {
       if(photo){ sImg.src=photo; sImg.style.display=''; sTxt.style.display='none'; }
       else { sImg.style.display='none'; sTxt.textContent=initText; sTxt.style.display=''; }
     }
-
-    // Mobile topbar profile button
-    const mImg=g('profile-pic-mob'); const mTxt=g('profile-initials-mob');
-    if(mImg && mTxt){
-      if(photo){ mImg.src=photo; mImg.style.display=''; mTxt.style.display='none'; }
-      else { mImg.style.display='none'; mTxt.textContent=initText; mTxt.style.display=''; }
-    }
     
     // Profile modal
     const pImg=g('p-pic-lg'); const pTxt=g('p-initials-lg');
@@ -1353,8 +1347,7 @@ class BachelorKhata {
 
   bindProfile() {
     g('profile-btn')?.addEventListener('click',()=>this.openModal('m-profile'));
-    g('profile-btn-mob')?.addEventListener('click',()=>this.openModal('m-profile'));
-    [g('theme-toggle'),g('theme-toggle-mob'),g('m-more-theme')].forEach(btn=>{btn?.addEventListener('click',()=>{this.data.settings.theme=this.data.settings.theme==='dark'?'light':'dark';this.save('settings');this.applyTheme();this.render();this.toast(`${this.data.settings.theme==='dark'?'ডার্ক':'লাইট'} মোড চালু!`,'success');});});
+    [g('theme-toggle'),g('theme-toggle-mob')].forEach(btn=>{btn?.addEventListener('click',()=>{this.data.settings.theme=this.data.settings.theme==='dark'?'light':'dark';this.save('settings');this.applyTheme();this.render();this.toast(`${this.data.settings.theme==='dark'?'ডার্ক':'লাইট'} মোড চালু!`,'success');});});
     g('p-initials')?.addEventListener('input',e=>{
       const v=e.target.value;
       const trimmed=v.trim();
@@ -1376,62 +1369,176 @@ class BachelorKhata {
 
   // ── CLOUD SYNC & SHARING ───────────────────────────────────────
   bindSync() {
-    g('p-sync-join')?.addEventListener('click', () => this.handleSyncJoin());
+    g('p-sync-btn-create')?.addEventListener('click', () => this.handleSyncCreateUI());
+    g('p-sync-btn-scan')?.addEventListener('click', () => this.handleSyncScanUI());
+    g('p-sync-btn-show-qr')?.addEventListener('click', () => this.handleSyncShowQR());
+    g('p-sync-btn-disconnect')?.addEventListener('click', () => this.handleSyncDisconnect());
     g('p-sync-now')?.addEventListener('click', () => this.handleSyncNow());
     g('header-sync-btn')?.addEventListener('click', () => this.handleSyncNow());
+    g('qr-modal-close')?.addEventListener('click', () => this.closeQRModal());
     this.applySyncUI();
   }
 
   applySyncUI() {
-    const code = this.data.settings.syncCode;
+    const id = this.data.settings.syncId;
     const last = this.data.settings.lastSync;
     
-    const pId = g('p-sync-id');
-    const pJoin = g('p-sync-join');
-    const pNow = g('p-sync-now');
+    const discUI = g('p-sync-disconnected-ui');
+    const connUI = g('p-sync-connected-ui');
+    const codeText = g('p-sync-code-text');
     const hSync = g('header-sync-btn');
     const pStatus = g('p-sync-status');
     
-    if (code) {
-      if (pId) { pId.value = code; pId.readOnly = true; }
-      if (pJoin) { pJoin.textContent = 'লিংক সরান'; pJoin.style.background = 'var(--red)'; }
-      if (pNow) pNow.style.display = '';
+    if (id) {
+      if (discUI) discUI.style.display = 'none';
+      if (connUI) connUI.style.display = 'flex';
+      if (codeText) codeText.textContent = `মেস আইডি: ${id}`;
       if (hSync) hSync.style.display = 'inline-flex';
       if (pStatus) pStatus.textContent = last ? `সর্বশেষ সিঙ্ক: ${last}` : 'সংযুক্ত করা হয়েছে।';
     } else {
-      if (pId) { pId.value = ''; pId.readOnly = false; }
-      if (pJoin) { pJoin.textContent = 'যোগ দিন'; pJoin.style.background = ''; }
-      if (pNow) pNow.style.display = 'none';
+      if (discUI) discUI.style.display = 'flex';
+      if (connUI) connUI.style.display = 'none';
       if (hSync) hSync.style.display = 'none';
       if (pStatus) pStatus.textContent = '';
     }
   }
 
+  compressData() {
+    try {
+      const short = {
+        t: (this.data.transactions || []).map(x => ({
+          i: x.id,
+          y: x.type === 'expense' ? 0 : x.type === 'income' ? 1 : 2,
+          t: x.title,
+          a: x.amount,
+          d: x.date,
+          c: x.accountId,
+          g: x.category,
+          n: x.notes || '',
+          r: x.recurring ? 1 : 0,
+          f: x.recFreq || null,
+          o: x.toAccountId || null
+        })),
+        a: (this.data.accounts || []).map(x => ({
+          i: x.id, n: x.name, y: x.type, b: x.balance, o: x.icon, c: x.color, d: x.notes || ''
+        })),
+        b: (this.data.budgets || []).map(x => ({
+          i: x.id, c: x.category, l: x.limit, s: x.spent || 0, p: x.period
+        })),
+        g: (this.data.goals || []).map(x => ({
+          i: x.id, n: x.name, t: x.target, s: x.saved || 0, d: x.date
+        })),
+        d: (this.data.debts || []).map(x => ({
+          i: x.id, p: x.person, y: x.type, a: x.amount, d: x.date, n: x.notes || '', s: x.status
+        })),
+        m: (this.data.mess || []).map(x => ({
+          i: x.id, t: x.title, a: x.amount, d: x.date, p: x.payerId, m: x.memberIds
+        })),
+        z: (this.data.bazar || []).map(x => ({
+          i: x.id, n: x.name, q: x.qty, p: x.price, d: x.date, s: x.status
+        })),
+        s: (this.data.splits || []).map(x => ({
+          i: x.id, t: x.title, a: x.amount, d: x.date, p: x.payerId, s: x.shares
+        }))
+      };
+      
+      const jsonStr = JSON.stringify(short);
+      const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+      // Convert to URL-safe base64
+      return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    } catch(e) {
+      console.error(e);
+      this.toast('ডেটা কম্প্রেস করতে সমস্যা হয়েছে।', 'error');
+      return null;
+    }
+  }
+
+  decompressData(urlSafeB64) {
+    try {
+      // Restore standard base64 from URL-safe base64
+      let b64 = urlSafeB64.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) {
+        b64 += '=';
+      }
+      
+      const jsonStr = decodeURIComponent(escape(atob(b64)));
+      const short = JSON.parse(jsonStr);
+      const types = ['expense', 'income', 'transfer'];
+      
+      return {
+        transactions: (short.t || []).map(x => ({
+          id: x.i,
+          type: types[x.y] || 'expense',
+          title: x.t,
+          amount: x.a,
+          date: x.d,
+          accountId: x.c,
+          category: x.g,
+          notes: x.n || '',
+          recurring: x.r === 1,
+          recFreq: x.f || null,
+          toAccountId: x.o || null
+        })),
+        accounts: (short.a || []).map(x => ({
+          id: x.i, name: x.n, type: x.y, balance: x.b, icon: x.o, color: x.c, notes: x.d || ''
+        })),
+        budgets: (short.b || []).map(x => ({
+          id: x.i, category: x.c, limit: x.l, spent: x.s || 0, period: x.p
+        })),
+        goals: (short.g || []).map(x => ({
+          id: x.i, name: x.n, target: x.t, saved: x.s || 0, date: x.d
+        })),
+        debts: (short.d || []).map(x => ({
+          id: x.i, person: x.p, type: x.y, amount: x.a, date: x.d, notes: x.n || '', status: x.s
+        })),
+        mess: (short.m || []).map(x => ({
+          id: x.i, title: x.t, amount: x.a, date: x.d, payerId: x.p, memberIds: x.m
+        })),
+        bazar: (short.z || []).map(x => ({
+          id: x.i, name: x.n, qty: x.q, price: x.p, date: x.d, status: x.s
+        })),
+        splits: (short.s || []).map(x => ({
+          id: x.i, title: x.t, amount: x.a, date: x.d, payerId: x.p, shares: x.s
+        }))
+      };
+    } catch(e) {
+      console.error(e);
+      this.toast('ডেটা ডিকম্প্রেস করতে সমস্যা হয়েছে।', 'error');
+      return null;
+    }
+  }
+
   async cloudUpload() {
     const id = this.data.settings.syncId;
-    if(!id) return;
+    if(!id || this.isSyncing) return;
     try {
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
       if(icon) icon.className = 'fas fa-rotate fa-spin';
       
-      const payload = {
-        transactions: this.data.transactions,
-        accounts: this.data.accounts,
-        budgets: this.data.budgets,
-        goals: this.data.goals,
-        debts: this.data.debts,
-        mess: this.data.mess,
-        bazar: this.data.bazar,
-        splits: this.data.splits
-      };
+      const compressedStr = this.compressData();
+      if (!compressedStr) throw new Error("Compression failed");
       
-      const res = await fetch(`https://api.npoint.io/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      // Divide into chunks of 900 characters each to bypass ASP.NET route limit
+      const chunkSize = 900;
+      const chunks = [];
+      for (let i = 0; i < compressedStr.length; i += chunkSize) {
+        chunks.push(compressedStr.substring(i, i + chunkSize));
+      }
+      
+      // Upload chunks to KV store
+      for (let i = 0; i < chunks.length; i++) {
+        const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_data_${id}_${i}?value=${encodeURIComponent(chunks[i])}`, {
+          method: 'POST'
+        });
+        if (!res.ok) throw new Error(`Chunk ${i} upload failed`);
+      }
+      
+      // Save chunk count
+      const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_data_${id}_count?value=${chunks.length}`, {
+        method: 'POST'
       });
-      if (!res.ok) throw new Error("Sync failed");
+      if (!countRes.ok) throw new Error("Count upload failed");
       
       this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       this.save('settings');
@@ -1455,34 +1562,37 @@ class BachelorKhata {
       const icon = syncBtn?.querySelector('i');
       if(icon) icon.className = 'fas fa-rotate fa-spin';
       
-      const res = await fetch(`https://api.npoint.io/${id}`);
-      if (!res.ok) throw new Error("Fetch failed");
-      const remoteData = await res.json();
+      // Read chunk count
+      const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_data_${id}_count`);
+      if (!countRes.ok) throw new Error("Fetch count failed");
       
-      if (remoteData) {
-        if(remoteData.transactions) this.data.transactions = remoteData.transactions;
-        if(remoteData.accounts) this.data.accounts = remoteData.accounts;
-        if(remoteData.budgets) this.data.budgets = remoteData.budgets;
-        if(remoteData.goals) this.data.goals = remoteData.goals;
-        if(remoteData.debts) this.data.debts = remoteData.debts;
-        if(remoteData.mess) this.data.mess = remoteData.mess;
-        if(remoteData.bazar) this.data.bazar = remoteData.bazar;
-        if(remoteData.splits) this.data.splits = remoteData.splits;
+      const rawCount = await countRes.text();
+      let count = 0;
+      if (rawCount && rawCount.trim() !== '' && rawCount !== '""' && rawCount !== 'null') {
+        count = parseInt(JSON.parse(rawCount));
+      }
+      
+      if (count > 0) {
+        // Fetch all chunks concurrently
+        const fetchPromises = [];
+        for (let i = 0; i < count; i++) {
+          fetchPromises.push(
+            fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_data_${id}_${i}`)
+              .then(res => res.json())
+          );
+        }
         
-        this.save('transactions');
-        this.save('accounts');
-        this.save('budgets');
-        this.save('goals');
-        this.save('debts');
-        this.save('mess');
-        this.save('bazar');
-        this.save('splits');
+        const chunks = await Promise.all(fetchPromises);
+        const joinedStr = chunks.join('');
+        const remoteData = this.decompressData(joinedStr);
         
-        this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        this.save('settings');
-        
-        this.applySyncUI();
-        this.render();
+        if (remoteData) {
+          this._applyRemoteData(remoteData);
+          this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          this.save('settings');
+          this.applySyncUI();
+          this.render();
+        }
       }
       
       if(icon) icon.className = 'fas fa-rotate';
@@ -1495,99 +1605,111 @@ class BachelorKhata {
     }
   }
 
-  async handleSyncJoin() {
-    const code = this.data.settings.syncCode;
-    if(code){
-      if(confirm('মেস লিংক সরাতে চান? এর পর থেকে অফলাইনে ডেটা সেভ হবে।')){
-        this.data.settings.syncCode = '';
-        this.data.settings.syncId = '';
-        this.data.settings.lastSync = '';
-        this.save('settings');
-        this.applySyncUI();
-        this.toast('মেস লিংক সফলভাবে সরানো হয়েছে।','info');
-      }
-    } else {
-      const inputVal = g('p-sync-id').value.trim();
-      if(!inputVal){
-        this.toast('মেস শেয়ার কোডটি লিখুন।','error');
-        return;
+  async handleSyncCreateUI() {
+    this.openQRModal();
+    g('qr-modal-title').textContent = 'মেস শেয়ার চালু করুন';
+    
+    // Generate a unique 8-character ID
+    const randomId = Math.random().toString(36).substring(2, 10).toUpperCase();
+    this.data.settings.syncId = randomId;
+    this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    this.save('settings');
+    
+    this.toast('মেস কোড তৈরি হচ্ছে...', 'info');
+    // Upload current local database under this ID
+    await this.cloudUpload();
+    this.applySyncUI();
+    this.toast('মেস শেয়ার সফলভাবে চালু হয়েছে!', 'success');
+    
+    // Display QR of the generated randomId
+    this.handleSyncShowQR();
+  }
+
+  handleSyncShowQR() {
+    const id = this.data.settings.syncId;
+    if (!id) return;
+    
+    this.openQRModal();
+    g('qr-modal-title').textContent = 'মেস শেয়ার QR কোড';
+    g('qr-scan-container').style.display = 'none';
+    g('qr-view-container').style.display = 'flex';
+    
+    // Generate QR using the free public qrserver API
+    g('qr-code-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(id)}`;
+    g('qr-code-string').textContent = `মেস আইডি: ${id}`;
+  }
+
+  handleSyncScanUI() {
+    this.openQRModal();
+    g('qr-modal-title').textContent = 'QR কোড স্ক্যান করুন';
+    g('qr-view-container').style.display = 'none';
+    g('qr-scan-container').style.display = 'flex';
+    g('qr-scan-message').textContent = 'ক্যামেরা চালু করা হচ্ছে...';
+    
+    // Initialize html5-qrcode scanner
+    setTimeout(() => {
+      this.scanner = new Html5Qrcode("qr-reader");
+      this.scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 220 },
+        async (decodedText) => {
+          const cleanedText = decodedText.trim();
+          if (cleanedText) {
+            await this.connectToScannedId(cleanedText);
+          }
+        },
+        (errorMessage) => {
+          // Silent scan errors
+        }
+      ).then(() => {
+        g('qr-scan-message').textContent = 'রুমমেটের মোবাইলের কিউআর কোড স্ক্যান করুন।';
+      }).catch(err => {
+        console.error(err);
+        g('qr-scan-message').textContent = 'ক্যামেরা চালু করতে ব্যর্থ হয়েছে। পারমিশন চেক করুন।';
+      });
+    }, 300);
+  }
+
+  async connectToScannedId(scannedId) {
+    // Stop the scanner first
+    await this.stopScanner();
+    
+    this.toast('মেস ডেটা লোড করা হচ্ছে...', 'info');
+    try {
+      // Test fetch count first to verify validity of the scanned ID
+      const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_data_${scannedId}_count`);
+      if (!countRes.ok) throw new Error("Invalid ID");
+      
+      const rawCount = await countRes.text();
+      if (!rawCount || rawCount.trim() === '' || rawCount === '""' || rawCount === 'null') {
+        throw new Error("Empty count");
       }
       
-      this.toast('কোড চেক করা হচ্ছে...','info');
-      try {
-        const kvRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_sync_${inputVal}`);
-        if (!kvRes.ok) throw new Error("KV fetch failed");
+      if (confirm('মেস কিউআর কোড স্ক্যান সম্পন্ন হয়েছে! আপনি কি এই ডেটা লোড করতে চান? আপনার বর্তমান সমস্ত লোকাল ডেটা মুছে নতুন ডেটা দিয়ে রিপ্লেস হবে!')) {
+        this.data.settings.syncId = scannedId;
+        this.save('settings');
         
-        let binId = await kvRes.json();
-        if (binId) binId = binId.trim();
-        
-        if (binId && binId !== "" && binId !== "null") {
-          // Found matching npoint ID! Join it
-          this.toast('মেসে যোগ দেওয়া হচ্ছে...','info');
-          const res = await fetch(`https://api.npoint.io/${binId}`);
-          if (!res.ok) throw new Error("Fetch failed");
-          const remoteData = await res.json();
-          
-          if (confirm(`"${inputVal}" মেসটি পাওয়া গেছে! যোগ দিতে চান? আপনার বর্তমান সমস্ত লোকাল ডেটা মুছে শেয়ার করা মেসের ডেটা লোড করা হবে!`)) {
-            this.data.settings.syncCode = inputVal;
-            this.data.settings.syncId = binId;
-            this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            this.save('settings');
-            
-            if (remoteData && Object.keys(remoteData).length > 0) {
-              if(remoteData.transactions) this.data.transactions = remoteData.transactions;
-              if(remoteData.accounts) this.data.accounts = remoteData.accounts;
-              if(remoteData.budgets) this.data.budgets = remoteData.budgets;
-              if(remoteData.goals) this.data.goals = remoteData.goals;
-              if(remoteData.debts) this.data.debts = remoteData.debts;
-              if(remoteData.mess) this.data.mess = remoteData.mess;
-              if(remoteData.bazar) this.data.bazar = remoteData.bazar;
-              if(remoteData.splits) this.data.splits = remoteData.splits;
-              
-              this.save('transactions');
-              this.save('accounts');
-              this.save('budgets');
-              this.save('goals');
-              this.save('debts');
-              this.save('mess');
-              this.save('bazar');
-              this.save('splits');
-            }
-            
-            this.applySyncUI();
-            this.render();
-            this.toast('সফলভাবে শেয়ার মেসে যোগ দিয়েছেন!','success');
-          }
-        } else {
-          // Brand new custom code
-          const userBinId = prompt(`"${inputVal}" কোডটি নতুন! এটি প্রথমবার চালু করার জন্য অনুগ্রহ করে npoint.io থেকে একটি ফ্রী বিন আইডি (যেমন: 4a9f83) দিন। (পরবর্তীতে রুমমেটদের আর এটি দিতে হবে না, সরাসরি এই কাস্টম কোড লিখলেই হবে)`);
-          if (!userBinId) return;
-          
-          const cleanBinId = userBinId.trim();
-          this.toast('কোড রেজিস্টার হচ্ছে...','info');
-          
-          const checkRes = await fetch(`https://api.npoint.io/${cleanBinId}`);
-          if(!checkRes.ok) {
-            this.toast('ভুল বিন আইডি! আবার চেষ্টা করুন।','error');
-            return;
-          }
-          
-          // Map the custom code to this npoint bin ID
-          await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_sync_${inputVal}/${cleanBinId}`, { method: 'POST' });
-          
-          this.data.settings.syncCode = inputVal;
-          this.data.settings.syncId = cleanBinId;
-          this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          this.save('settings');
-          
-          this.applySyncUI();
-          this.cloudUpload(); // Upload local data to initialize the new npoint bin
-          this.toast('মেস কোড সফলভাবে সেটআপ হয়েছে!','success');
-        }
-      } catch(err) {
-        console.error(err);
-        this.toast('সিঙ্ক সংযোগ করা যায়নি।','error');
+        await this.cloudDownload();
+        this.applySyncUI();
+        this.closeQRModal();
+        this.toast('সফলভাবে শেয়ার মেসে যোগ দিয়েছেন!', 'success');
+      } else {
+        this.closeQRModal();
       }
+    } catch(err) {
+      console.error(err);
+      this.toast('মেস কানেক্ট করতে ব্যর্থ হয়েছে। কিউআর কোডটি সঠিক কিনা যাচাই করুন।', 'error');
+      this.closeQRModal();
+    }
+  }
+
+  handleSyncDisconnect() {
+    if (confirm('মেস লিংক সরাতে চান? এর পর থেকে অফলাইনে ডেটা সেভ হবে।')) {
+      this.data.settings.syncId = '';
+      this.data.settings.lastSync = '';
+      this.save('settings');
+      this.applySyncUI();
+      this.toast('মেস লিংক সফলভাবে সরানো হয়েছে।', 'info');
     }
   }
 
@@ -1596,6 +1718,26 @@ class BachelorKhata {
     await this.cloudDownload();
     await this.cloudUpload();
     this.toast('সিঙ্ক সম্পন্ন হয়েছে! ✓','success');
+  }
+
+  openQRModal() {
+    g('m-sync-qr').classList.add('open');
+  }
+
+  async closeQRModal() {
+    await this.stopScanner();
+    g('m-sync-qr').classList.remove('open');
+  }
+
+  async stopScanner() {
+    if (this.scanner) {
+      try {
+        await this.scanner.stop();
+      } catch (e) {
+        // Already stopped or not started
+      }
+      this.scanner = null;
+    }
   }
 
   // ── EXPORT CSV ────────────────────────────────────────────────
