@@ -1580,8 +1580,8 @@ class BachelorKhata {
   async handleJoinRoom() {
     const codeInput = g('join-room-code');
     const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
-    if(!code || code.length !== 6) {
-      this.toast('দয়া করে ৬ অক্ষরের সঠিক কোডটি দিন।', 'error');
+    if(!code || code.length < 6) {
+      this.toast('দয়া করে সঠিক মেস কোডটি দিন।', 'error');
       return;
     }
     await this.connectToRoomId(code);
