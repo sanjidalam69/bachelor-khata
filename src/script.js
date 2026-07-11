@@ -72,25 +72,20 @@ class BachelorKhata {
     this.bindCalendar();
     this.bindBazar();
     this.processRecurring();
-    this.checkResponsive();
-    window.addEventListener('resize', () => this.checkResponsive());
     const today = new Date().toISOString().split('T')[0];
     ['f-date','q-date','me-date','sp-date'].forEach(id => { const el = g(id); if(el) el.value = today; });
     this.bindSync();
     if(this.data.settings.syncId) {
       this.cloudDownload().catch(err => console.error("Initial sync error:", err));
     }
+    // Auto-refresh active roommates every 60 seconds
+    setInterval(() => {
+      if (this.data.settings.syncId) {
+        this.syncActiveRoommates().catch(() => {});
+      }
+    }, 60000);
     this.render();
   }
-
-  checkResponsive() {
-    const isMob = window.innerWidth <= 640;
-    const mobLogo = g('mob-logo');
-    const themeMob = g('theme-toggle-mob');
-    if (mobLogo) mobLogo.style.display = isMob ? 'flex' : 'none';
-    if (themeMob) themeMob.style.display = isMob ? 'flex' : 'none';
-  }
-
   // ── NAVIGATION ────────────────────────────────────────────────
   bindNav() {
     document.querySelectorAll('[data-page]').forEach(b => b.addEventListener('click', () => this.navigate(b.dataset.page)));
@@ -170,7 +165,7 @@ class BachelorKhata {
 
   // ── CATEGORIES ────────────────────────────────────────────────
   INCOME_CATS = ['বেতন/বৃত্তি','ফ্রিল্যান্স','পার্টটাইম','পারিবারিক','বোনাস','অন্যান্য আয়'];
-  EXPENSE_CATS = ['মেস/খাবার','বাজার','রুম ভাড়া','বিদ্যুৎ বিল','মোবাইল রিচার্জ','ইন্টারনেট','যাতায়াত','পড়াশোনা','বই/ফটোকপি','ওষুধ','পোশাক','বিনোদন','লন্ড্রি','সেলুন','চা/নাস্তা','রেস্তোরাঁ','অন্যান্য'];
+  EXPENSE_CATS = ['মেস','খাবার','বাজার','রুম ভাড়া','বিদ্যুৎ বিল','মোবাইল রিচার্জ','ইন্টারনেট','যাতায়াত','পড়াশোনা','বই/ফটোকপি','ওষুধ','পোশাক','বিনোদন','লন্ড্রি','সেলুন','চা/নাস্তা','রেস্তোরাঁ','অন্যান্য'];
 
   fillCat(id, type) {
     const el = g(id); if (!el) return;
@@ -664,10 +659,10 @@ class BachelorKhata {
   }
 
   addBazarItem() {
-    const name=g('bz-name').value.trim(); const qty=g('bz-qty').value.trim(); const price=parseFloat(g('bz-price').value)||0; const prio=g('bz-prio').value;
+    const name=g('bz-name').value.trim(); const qty=g('bz-qty').value.trim(); const prio=g('bz-prio').value;
     if(!name){this.toast('পণ্যের নাম দিন।','error');return;}
-    this.data.bazar.push({id:this.uid(),name,qty,price,prio,done:false,addedAt:new Date().toISOString()});
-    this.save('bazar'); g('bz-name').value=''; g('bz-qty').value=''; g('bz-price').value=''; this.toast(`${name} যোগ হয়েছে!`,'success'); this.renderBazar();
+    this.data.bazar.push({id:this.uid(),name,qty,price:0,prio,done:false,addedAt:new Date().toISOString()});
+    this.save('bazar'); g('bz-name').value=''; g('bz-qty').value=''; this.toast(`${name} যোগ হয়েছে!`,'success'); this.renderBazar();
   }
 
   toggleBazar(id) {
@@ -676,14 +671,14 @@ class BachelorKhata {
 
   openBazarEdit(id) {
     const item=this.data.bazar.find(b=>b.id===id); if(!item) return;
-    g('baz-id').value=id; g('baz-name').value=item.name; g('baz-qty').value=item.qty||''; g('baz-price').value=item.price||'';
+    g('baz-id').value=id; g('baz-name').value=item.name; g('baz-qty').value=item.qty||'';
     this.openModal('m-bazar');
   }
 
   saveBazarEdit() {
     const id=g('baz-id').value; if(!id) return;
-    const name=g('baz-name').value.trim(); const qty=g('baz-qty').value.trim(); const price=parseFloat(g('baz-price').value)||0;
-    this.data.bazar=this.data.bazar.map(b=>b.id===id?{...b,name,qty,price}:b);
+    const name=g('baz-name').value.trim(); const qty=g('baz-qty').value.trim();
+    this.data.bazar=this.data.bazar.map(b=>b.id===id?{...b,name,qty,price:0}:b);
     this.save('bazar'); this.closeModal('m-bazar'); this.toast('আপডেট হয়েছে!','success'); this.renderBazar();
   }
 
@@ -849,7 +844,7 @@ class BachelorKhata {
   }
 
   catEmoji(cat) {
-    const m={'মেস/খাবার':'🍛','বাজার':'🛒','রুম ভাড়া':'🏠','বিদ্যুৎ বিল':'💡','মোবাইল রিচার্জ':'📱','ইন্টারনেট':'📶','যাতায়াত':'🚗','পড়াশোনা':'📚','বই/ফটোকপি':'📑','ওষুধ':'💊','পোশাক':'👔','বিনোদন':'🎮','লন্ড্রি':'👕','সেলুন':'✂️','চা/নাস্তা':'☕','রেস্তোরাঁ':'🍽️','অন্যান্য':'📂','বেতন/বৃত্তি':'💰','ফ্রিল্যান্স':'💻','পার্টটাইম':'⏰','পারিবারিক':'👨‍👩‍👦','বোনাস':'🎁','অন্যান্য আয়':'💵','ট্রান্সফার':'⇄','Transfer':'⇄'};
+    const m={'মেস':'🏢','খাবার':'🍛','বাজার':'🛒','রুম ভাড়া':'🏠','বিদ্যুৎ বিল':'💡','মোবাইল রিচার্জ':'📱','ইন্টারনেট':'📶','যাতায়াত':'🚗','পড়াশোনা':'📚','বই/ফটোকপি':'📑','ওষুধ':'💊','পোশাক':'👔','বিনোদন':'🎮','লন্ড্রি':'👕','সেলুন':'✂️','চা/নাস্তা':'☕','রেস্তোরাঁ':'🍽️','অন্যান্য':'📂','বেতন/বৃত্তি':'💰','ফ্রিল্যান্স':'💻','পার্টটাইম':'⏰','পারিবারিক':'👨‍👩‍👦','বোনাস':'🎁','অন্যান্য আয়':'💵','ট্রান্সফার':'⇄','Transfer':'⇄'};
     return m[cat]||'📂';
   }
 
@@ -1055,12 +1050,16 @@ class BachelorKhata {
         const outAmt=mOutPocket[m.id]||0;
         const diff=(depAmt+outAmt)-share;
         const clr=['#f97316','#3b82f6','#10b981','#a855f7','#f43f5e'][i%5];
+        
+        const isActive = (this.activeRoommates || []).some(u => u && u.name && u.name.trim().toLowerCase() === m.name.trim().toLowerCase());
+        const activeIndicator = isActive ? ' <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:var(--green,#10b981);box-shadow:0 0 5px var(--green,#10b981);margin-left:5px" title="অনলাইন"></span>' : '';
+
         return `<div class="mess-member">
           <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
             <div class="mess-av" style="background:${clr}">${m.name[0]}</div>
             <div style="flex:1;min-width:0">
               <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-size:13px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${m.name}</span>
+                <span style="font-size:13px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;display:inline-flex;align-items:center">${m.name}${activeIndicator}</span>
                 <button onclick="app.editMessMember('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:9px" title="সম্পাদনা"><i class="fas fa-pen"></i></button>
                 <button onclick="app.deleteMessMember('${m.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:9px;opacity:0.6" title="মুছুন"><i class="fas fa-trash"></i></button>
               </div>
@@ -1128,8 +1127,7 @@ class BachelorKhata {
     if(filter==='pending')items=items.filter(b=>!b.done);
     else if(filter==='done')items=items.filter(b=>b.done);
     const total=this.data.bazar.length; const done=this.data.bazar.filter(b=>b.done).length;
-    const estCost=this.data.bazar.reduce((s,b)=>s+(b.price||0),0);
-    setText('bz-total-items',total); setText('bz-done-items',done); setText('bz-est-cost',this.fmt(estCost));
+    setText('bz-total-items',total); setText('bz-done-items',done);
     const list=g('bazar-list'); const empty=g('bazar-empty'); if(!list) return;
     if(!items.length){list.innerHTML='';empty.style.display='';}
     else{
@@ -1137,12 +1135,11 @@ class BachelorKhata {
       const prioOrder={high:0,mid:1,low:2};
       const sorted=[...items].sort((a,b)=>prioOrder[a.prio]-prioOrder[b.prio]);
       list.innerHTML=sorted.map(item=>{
-        const prioIco={high:'🔴',mid:'🟡',low:'🟢'}[item.prio]||'⚪';
+        const pr = item.prio || 'low';
         return `<div class="bitem${item.done?' done':''}">
           <input type="checkbox" ${item.done?'checked':''} onchange="app.toggleBazar('${item.id}')">
-          <span style="font-size:14px">${prioIco}</span>
+          <span class="prio-dot ${pr}"></span>
           <div style="flex:1;min-width:0"><div class="bitem-name" style="font-size:13px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${item.name}</div>${item.qty?`<div style="font-size:10px;color:var(--muted)">${item.qty}</div>`:''}</div>
-          ${item.price?`<div style="font-size:12px;font-weight:800;color:var(--p);white-space:nowrap;font-family:'Hind Siliguri',sans-serif">${this.fmt(item.price)}</div>`:''}
           <button onclick="app.openBazarEdit('${item.id}')" class="btn btn-s bsm bico"><i class="fas fa-pen" style="font-size:9px"></i></button>
         </div>`;
       }).join('');
@@ -1288,7 +1285,42 @@ class BachelorKhata {
     const first=new Date(this.calYear,this.calMonth,1).getDay();
     const dim=new Date(this.calYear,this.calMonth+1,0).getDate();
     const today=new Date(); const byDate={};
-    this.data.transactions.forEach(t=>{if(!t.date)return;const d=new Date(t.date);if(d.getUTCMonth()!==this.calMonth||d.getUTCFullYear()!==this.calYear)return;const k=d.getUTCDate();if(!byDate[k])byDate[k]={income:0,expense:0};if(t.type==='income')byDate[k].income+=t.amount;else if(t.type==='expense')byDate[k].expense+=t.amount;});
+    
+    const getK = (dateStr) => {
+        if(!dateStr) return null;
+        const d = new Date(dateStr);
+        if(dateStr.includes('T')) {
+            if(d.getMonth()!==this.calMonth||d.getFullYear()!==this.calYear)return null;
+            return d.getDate();
+        } else {
+            if(d.getUTCMonth()!==this.calMonth||d.getUTCFullYear()!==this.calYear)return null;
+            return d.getUTCDate();
+        }
+    };
+
+    this.data.transactions.forEach(t=>{
+      const k = getK(t.date);
+      if(!k)return;
+      if(!byDate[k])byDate[k]={income:0,expense:0};
+      if(t.type==='income')byDate[k].income+=t.amount;
+      else if(t.type==='expense')byDate[k].expense+=t.amount;
+    });
+    
+    (this.data.mess?.entries||[]).forEach(t=>{
+      const k = getK(t.date);
+      if(!k)return;
+      if(!byDate[k])byDate[k]={income:0,expense:0};
+      if(t.type==='deposit')byDate[k].income+=t.amount;
+      else if(t.type==='expense')byDate[k].expense+=t.amount;
+    });
+
+    (this.data.bazar||[]).forEach(t=>{
+      const k = getK(t.addedAt);
+      if(!k)return;
+      if(!byDate[k])byDate[k]={income:0,expense:0};
+      byDate[k].expense+=1;
+    });
+
     let html='';
     for(let i=0;i<first;i++)html+=`<div class="cd cx"></div>`;
     for(let day=1;day<=dim;day++){
@@ -1302,10 +1334,46 @@ class BachelorKhata {
 
   showCalDay(day) {
     const detail=g('cal-detail'); if(!detail) return;
-    const tx=this.data.transactions.filter(t=>{if(!t.date)return false;const d=new Date(t.date);return d.getUTCDate()===day&&d.getUTCMonth()===this.calMonth&&d.getUTCFullYear()===this.calYear;});
-    if(!tx.length){detail.style.display='none';return;}
+    
+    const matchYMD = (dateStr) => {
+      if(!dateStr) return false;
+      const d = new Date(dateStr);
+      if (dateStr.includes('T')) {
+         return d.getDate()===day && d.getMonth()===this.calMonth && d.getFullYear()===this.calYear;
+      } else {
+         return d.getUTCDate()===day && d.getUTCMonth()===this.calMonth && d.getUTCFullYear()===this.calYear;
+      }
+    };
+
+    const tx = this.data.transactions.filter(t => matchYMD(t.date));
+    const me = (this.data.mess?.entries||[]).filter(t => matchYMD(t.date));
+    const bz = (this.data.bazar||[]).filter(t => matchYMD(t.addedAt));
+
     detail.style.display='';
-    detail.innerHTML=`<div style="font-size:11px;font-weight:800;color:var(--head);margin-bottom:6px;font-family:'Hind Siliguri',sans-serif">${this.calYear}-${String(this.calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}</div>`+tx.map(t=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px"><span style="font-family:'Hind Siliguri',sans-serif">${this.catEmoji(t.category)} ${t.title}</span><span style="font-weight:800;color:${t.type==='income'?'var(--green)':'var(--red)'};">${t.type==='income'?'+':'-'}${this.fmt(t.amount)}</span></div>`).join('');
+    
+    let html = `<div style="font-size:13px;font-weight:800;color:var(--p);margin-bottom:8px;font-family:'Hind Siliguri',sans-serif;border-bottom:1px solid var(--border);padding-bottom:6px">${this.calYear}-${String(this.calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')} তারিখের বিস্তারিত</div>`;
+    
+    if (!tx.length && !bz.length && !me.length) {
+      html += `<div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:center;padding:14px 0">কোন কাজ বা লেনদেন নেই</div>`;
+    } else {
+      if (tx.length) {
+        html += `<div style="font-size:10px;font-weight:800;color:var(--muted);margin-top:10px;margin-bottom:4px;text-transform:uppercase">ব্যক্তিগত লেনদেন</div>`;
+        html += tx.map(t=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--border);font-size:12px"><span style="font-family:'Hind Siliguri',sans-serif">${this.catEmoji(t.category)} ${t.title}</span><span style="font-weight:800;color:${t.type==='income'?'var(--green)':'var(--red)'};">${t.type==='income'?'+':'-'}${this.fmt(t.amount)}</span></div>`).join('');
+      }
+      if (me.length) {
+        html += `<div style="font-size:10px;font-weight:800;color:var(--muted);margin-top:10px;margin-bottom:4px;text-transform:uppercase">মেসের হিসাব</div>`;
+        html += me.map(t=>{
+            const m = (this.data.mess?.members||[]).find(x=>x.id===t.payerId);
+            const mName = m ? m.name : (t.payerId==='mess-fund' ? 'মেস ফান্ড' : 'অজানা');
+            return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--border);font-size:12px"><span style="font-family:'Hind Siliguri',sans-serif">🍽️ ${mName} (${t.type==='deposit'?'জমা':'খরচ'})</span><span style="font-weight:800;color:${t.type==='deposit'?'var(--green)':'var(--red)'};">${this.fmt(t.amount)}</span></div>`;
+        }).join('');
+      }
+      if (bz.length) {
+        html += `<div style="font-size:10px;font-weight:800;color:var(--muted);margin-top:10px;margin-bottom:4px;text-transform:uppercase">বাজার তালিকা</div>`;
+        html += bz.map(t=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--border);font-size:12px"><span style="font-family:'Hind Siliguri',sans-serif">${t.done?'✅':'🛒'} ${t.name}</span><span style="font-weight:800;color:var(--muted);">${t.qty||''}</span></div>`).join('');
+      }
+    }
+    detail.innerHTML = html;
   }
 
   // ── THEME & PROFILE ───────────────────────────────────────────
@@ -1394,6 +1462,7 @@ class BachelorKhata {
       if (codeText) codeText.textContent = id;
       if (hSync) hSync.style.display = 'inline-flex';
       if (pStatus) pStatus.textContent = last ? `সর্বশেষ সিঙ্ক: ${last}` : 'সংযুক্ত করা হয়েছে।';
+      this.syncActiveRoommates().catch(() => {});
     } else {
       if (discUI) discUI.style.display = 'flex';
       if (connUI) connUI.style.display = 'none';
@@ -1412,7 +1481,7 @@ class BachelorKhata {
           i: x.id, n: x.name
         })),
         z: (this.data.bazar || []).map(x => ({
-          i: x.id, n: x.name, q: x.qty, p: x.price, d: x.date, s: x.status
+          i: x.id, n: x.name, q: x.qty, p: x.prio || 'low', d: x.done ? 1 : 0, a: x.addedAt || ''
         }))
       };
       
@@ -1448,13 +1517,60 @@ class BachelorKhata {
           }))
         },
         bazar: (short.z || []).map(x => ({
-          id: x.i, name: x.n, qty: x.q, price: x.p, date: x.d, status: x.s
+          id: x.i, name: x.n, qty: x.q, price: 0, prio: x.p || 'low', done: x.d === 1, addedAt: x.a || ''
         }))
       };
     } catch(e) {
       console.error(e);
       this.toast('ডেটা ডিকম্প্রেস করতে সমস্যা হয়েছে।', 'error');
       return null;
+    }
+  }
+
+  async syncActiveRoommates() {
+    const id = this.data.settings.syncId;
+    if (!id) return;
+    try {
+      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_active_devices_${id}`);
+      let list = [];
+      if (res.ok) {
+        const text = await res.json();
+        if (text && text !== '""' && text !== 'null') {
+          list = JSON.parse(text);
+        }
+      }
+      
+      const now = Date.now();
+      // Keep only active users from the last 15 minutes
+      const activeWindow = 15 * 60 * 1000;
+      list = list.filter(u => u && u.name && (now - u.time < activeWindow));
+      
+      // Update/add current user
+      const myName = this.data.settings.initials || 'SA';
+      const myEntry = list.find(u => u.name === myName);
+      if (myEntry) {
+        myEntry.time = now;
+      } else {
+        list.push({ name: myName, time: now });
+      }
+      
+      // Save back to server
+      await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_active_devices_${id}?value=${encodeURIComponent(JSON.stringify(list))}`, {
+        method: 'POST'
+      });
+      
+      // Render active users list in UI
+      const countEl = g('p-active-count');
+      const listEl = g('p-active-list');
+      if (countEl) countEl.textContent = list.length;
+      if (listEl) {
+        listEl.innerHTML = list.map(u => {
+          const isMe = u.name === myName;
+          return `<span class="badge ${isMe ? 'bg' : 'bp'}" style="font-family:'Hind Siliguri',sans-serif">${u.name}${isMe ? ' (তুমি)' : ''}</span>`;
+        }).join('');
+      }
+    } catch (e) {
+      console.error("Active roommates sync failed:", e);
     }
   }
 
@@ -1537,14 +1653,19 @@ class BachelorKhata {
         const remoteData = this.decompressData(joinedStr);
         
         if (remoteData) {
-          if (remoteData.mess) this.data.mess = remoteData.mess;
-          if (remoteData.bazar) this.data.bazar = remoteData.bazar;
-          this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          this.save('settings');
-          this.save('mess');
-          this.save('bazar');
-          this.applySyncUI();
-          this.render();
+          this.isSyncing = true;
+          try {
+            if (remoteData.mess) this.data.mess = remoteData.mess;
+            if (remoteData.bazar) this.data.bazar = remoteData.bazar;
+            this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            this.save('settings');
+            this.save('mess');
+            this.save('bazar');
+            this.applySyncUI();
+            this.render();
+          } finally {
+            this.isSyncing = false;
+          }
         }
       }
       
@@ -1628,8 +1749,26 @@ class BachelorKhata {
     if(btn) { btn.disabled = false; btn.textContent = 'যুক্ত হোন'; }
   }
 
-  handleSyncDisconnect() {
+  async handleSyncDisconnect() {
     if (confirm('মেস লিংক সরাতে চান? এর পর থেকে অফলাইনে ডেটা সেভ হবে।')) {
+      const id = this.data.settings.syncId;
+      const myName = this.data.settings.initials || 'SA';
+      if (id) {
+        try {
+          const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_active_devices_${id}`);
+          if (res.ok) {
+            const text = await res.json();
+            if (text && text !== '""' && text !== 'null') {
+              let list = JSON.parse(text);
+              list = list.filter(u => u && u.name && u.name !== myName);
+              await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_active_devices_${id}?value=${encodeURIComponent(JSON.stringify(list))}`, {
+                method: 'POST'
+              });
+            }
+          }
+        } catch(e) {}
+      }
+      
       this.data.settings.syncId = '';
       this.data.settings.lastSync = '';
       this.save('settings');
