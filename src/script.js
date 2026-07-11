@@ -372,9 +372,6 @@ class BachelorKhata {
 
   closeModal(id) { 
     g(id)?.classList.remove('open'); 
-    if (id === 'm-sync-qr') {
-      this.stopScanner();
-    }
   }
 
   // ── TRANSACTIONS ──────────────────────────────────────────────
@@ -1370,12 +1367,14 @@ class BachelorKhata {
   // ── CLOUD SYNC & SHARING ───────────────────────────────────────
   bindSync() {
     g('p-sync-btn-create')?.addEventListener('click', () => this.handleSyncCreateUI());
-    g('p-sync-btn-scan')?.addEventListener('click', () => this.handleSyncScanUI());
-    g('p-sync-btn-show-qr')?.addEventListener('click', () => this.handleSyncShowQR());
+    g('p-sync-btn-scan')?.addEventListener('click', () => this.openModal('m-join-room'));
+    g('join-room-btn')?.addEventListener('click', () => this.handleJoinRoom());
+    g('p-sync-btn-copy')?.addEventListener('click', () => this.handleCopyCode());
     g('p-sync-btn-disconnect')?.addEventListener('click', () => this.handleSyncDisconnect());
     g('p-sync-now')?.addEventListener('click', () => this.handleSyncNow());
     g('header-sync-btn')?.addEventListener('click', () => this.handleSyncNow());
-    g('qr-modal-close')?.addEventListener('click', () => this.closeQRModal());
+    g('mess-sync-btn')?.addEventListener('click', () => this.openModal('m-group-sync'));
+    g('bazar-sync-btn')?.addEventListener('click', () => this.openModal('m-group-sync'));
     this.applySyncUI();
   }
 
@@ -1392,7 +1391,7 @@ class BachelorKhata {
     if (id) {
       if (discUI) discUI.style.display = 'none';
       if (connUI) connUI.style.display = 'flex';
-      if (codeText) codeText.textContent = `মেস আইডি: ${id}`;
+      if (codeText) codeText.textContent = id;
       if (hSync) hSync.style.display = 'inline-flex';
       if (pStatus) pStatus.textContent = last ? `সর্বশেষ সিঙ্ক: ${last}` : 'সংযুক্ত করা হয়েছে।';
     } else {
@@ -1406,39 +1405,14 @@ class BachelorKhata {
   compressData() {
     try {
       const short = {
-        t: (this.data.transactions || []).map(x => ({
-          i: x.id,
-          y: x.type === 'expense' ? 0 : x.type === 'income' ? 1 : 2,
-          t: x.title,
-          a: x.amount,
-          d: x.date,
-          c: x.accountId,
-          g: x.category,
-          n: x.notes || '',
-          r: x.recurring ? 1 : 0,
-          f: x.recFreq || null,
-          o: x.toAccountId || null
+        m_entries: (this.data.mess.entries || []).map(x => ({
+          i: x.id, y: x.type, t: x.title, a: x.amount, d: x.date, p: x.payerId, c: x.category
         })),
-        a: (this.data.accounts || []).map(x => ({
-          i: x.id, n: x.name, y: x.type, b: x.balance, o: x.icon, c: x.color, d: x.notes || ''
-        })),
-        b: (this.data.budgets || []).map(x => ({
-          i: x.id, c: x.category, l: x.limit, s: x.spent || 0, p: x.period
-        })),
-        g: (this.data.goals || []).map(x => ({
-          i: x.id, n: x.name, t: x.target, s: x.saved || 0, d: x.date
-        })),
-        d: (this.data.debts || []).map(x => ({
-          i: x.id, p: x.person, y: x.type, a: x.amount, d: x.date, n: x.notes || '', s: x.status
-        })),
-        m: (this.data.mess || []).map(x => ({
-          i: x.id, t: x.title, a: x.amount, d: x.date, p: x.payerId, m: x.memberIds
+        m_members: (this.data.mess.members || []).map(x => ({
+          i: x.id, n: x.name
         })),
         z: (this.data.bazar || []).map(x => ({
           i: x.id, n: x.name, q: x.qty, p: x.price, d: x.date, s: x.status
-        })),
-        s: (this.data.splits || []).map(x => ({
-          i: x.id, t: x.title, a: x.amount, d: x.date, p: x.payerId, s: x.shares
         }))
       };
       
@@ -1463,42 +1437,18 @@ class BachelorKhata {
       
       const jsonStr = decodeURIComponent(escape(atob(b64)));
       const short = JSON.parse(jsonStr);
-      const types = ['expense', 'income', 'transfer'];
       
       return {
-        transactions: (short.t || []).map(x => ({
-          id: x.i,
-          type: types[x.y] || 'expense',
-          title: x.t,
-          amount: x.a,
-          date: x.d,
-          accountId: x.c,
-          category: x.g,
-          notes: x.n || '',
-          recurring: x.r === 1,
-          recFreq: x.f || null,
-          toAccountId: x.o || null
-        })),
-        accounts: (short.a || []).map(x => ({
-          id: x.i, name: x.n, type: x.y, balance: x.b, icon: x.o, color: x.c, notes: x.d || ''
-        })),
-        budgets: (short.b || []).map(x => ({
-          id: x.i, category: x.c, limit: x.l, spent: x.s || 0, period: x.p
-        })),
-        goals: (short.g || []).map(x => ({
-          id: x.i, name: x.n, target: x.t, saved: x.s || 0, date: x.d
-        })),
-        debts: (short.d || []).map(x => ({
-          id: x.i, person: x.p, type: x.y, amount: x.a, date: x.d, notes: x.n || '', status: x.s
-        })),
-        mess: (short.m || []).map(x => ({
-          id: x.i, title: x.t, amount: x.a, date: x.d, payerId: x.p, memberIds: x.m
-        })),
+        mess: {
+          entries: (short.m_entries || []).map(x => ({
+            id: x.i, type: x.y, title: x.t, amount: x.a, date: x.d, payerId: x.p, category: x.c
+          })),
+          members: (short.m_members || []).map(x => ({
+            id: x.i, name: x.n
+          }))
+        },
         bazar: (short.z || []).map(x => ({
           id: x.i, name: x.n, qty: x.q, price: x.p, date: x.d, status: x.s
-        })),
-        splits: (short.s || []).map(x => ({
-          id: x.i, title: x.t, amount: x.a, date: x.d, payerId: x.p, shares: x.s
         }))
       };
     } catch(e) {
@@ -1587,9 +1537,12 @@ class BachelorKhata {
         const remoteData = this.decompressData(joinedStr);
         
         if (remoteData) {
-          this._applyRemoteData(remoteData);
+          if (remoteData.mess) this.data.mess = remoteData.mess;
+          if (remoteData.bazar) this.data.bazar = remoteData.bazar;
           this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           this.save('settings');
+          this.save('mess');
+          this.save('bazar');
           this.applySyncUI();
           this.render();
         }
@@ -1606,78 +1559,50 @@ class BachelorKhata {
   }
 
   async handleSyncCreateUI() {
-    this.openQRModal();
-    g('qr-modal-title').textContent = 'মেস শেয়ার চালু করুন';
-    
-    // Generate a unique 8-character ID
-    const randomId = Math.random().toString(36).substring(2, 10).toUpperCase();
-    this.data.settings.syncId = randomId;
-    this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    this.save('settings');
-    
-    this.toast('মেস কোড তৈরি হচ্ছে...', 'info');
-    // Upload current local database under this ID
-    await this.cloudUpload();
-    this.applySyncUI();
-    this.toast('মেস শেয়ার সফলভাবে চালু হয়েছে!', 'success');
-    
-    // Display QR of the generated randomId
-    this.handleSyncShowQR();
+    if(confirm('নতুন মেস তৈরি করলে আপনার বর্তমান ডেটা ক্লাউডে আপলোড হবে। নিশ্চিত?')) {
+      // Generate a unique 6-character ID
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let randomId = '';
+      for(let i=0; i<6; i++) randomId += chars.charAt(Math.floor(Math.random() * chars.length));
+      
+      this.data.settings.syncId = randomId;
+      this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this.save('settings');
+      
+      this.toast('মেস কোড তৈরি হচ্ছে...', 'info');
+      // Upload current local database under this ID
+      await this.cloudUpload();
+      this.applySyncUI();
+      this.toast('মেস সফলভাবে তৈরি হয়েছে! রুমমেটদের কোডটি দিন।', 'success');
+    }
   }
 
-  handleSyncShowQR() {
+  async handleJoinRoom() {
+    const codeInput = g('join-room-code');
+    const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
+    if(!code || code.length !== 6) {
+      this.toast('দয়া করে ৬ অক্ষরের সঠিক কোডটি দিন।', 'error');
+      return;
+    }
+    await this.connectToRoomId(code);
+  }
+
+  handleCopyCode() {
     const id = this.data.settings.syncId;
-    if (!id) return;
-    
-    this.openQRModal();
-    g('qr-modal-title').textContent = 'মেস শেয়ার QR কোড';
-    g('qr-scan-container').style.display = 'none';
-    g('qr-view-container').style.display = 'flex';
-    
-    // Generate QR using the free public qrserver API
-    g('qr-code-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(id)}`;
-    g('qr-code-string').textContent = `মেস আইডি: ${id}`;
-  }
-
-  handleSyncScanUI() {
-    this.openQRModal();
-    g('qr-modal-title').textContent = 'QR কোড স্ক্যান করুন';
-    g('qr-view-container').style.display = 'none';
-    g('qr-scan-container').style.display = 'flex';
-    g('qr-scan-message').textContent = 'ক্যামেরা চালু করা হচ্ছে...';
-    
-    // Initialize html5-qrcode scanner
-    setTimeout(() => {
-      this.scanner = new Html5Qrcode("qr-reader");
-      this.scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 220 },
-        async (decodedText) => {
-          const cleanedText = decodedText.trim();
-          if (cleanedText) {
-            await this.connectToScannedId(cleanedText);
-          }
-        },
-        (errorMessage) => {
-          // Silent scan errors
-        }
-      ).then(() => {
-        g('qr-scan-message').textContent = 'রুমমেটের মোবাইলের কিউআর কোড স্ক্যান করুন।';
-      }).catch(err => {
-        console.error(err);
-        g('qr-scan-message').textContent = 'ক্যামেরা চালু করতে ব্যর্থ হয়েছে। পারমিশন চেক করুন।';
+    if(id) {
+      navigator.clipboard.writeText(id).then(() => {
+        this.toast('কোড কপি করা হয়েছে!', 'success');
       });
-    }, 300);
+    }
   }
 
-  async connectToScannedId(scannedId) {
-    // Stop the scanner first
-    await this.stopScanner();
-    
+  async connectToRoomId(roomId) {
     this.toast('মেস ডেটা লোড করা হচ্ছে...', 'info');
+    const btn = g('join-room-btn');
+    if(btn) { btn.disabled = true; btn.textContent = 'অপেক্ষা করুন...'; }
     try {
       // Test fetch count first to verify validity of the scanned ID
-      const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_data_${scannedId}_count`);
+      const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_data_${roomId}_count`);
       if (!countRes.ok) throw new Error("Invalid ID");
       
       const rawCount = await countRes.text();
@@ -1685,22 +1610,22 @@ class BachelorKhata {
         throw new Error("Empty count");
       }
       
-      if (confirm('মেস কিউআর কোড স্ক্যান সম্পন্ন হয়েছে! আপনি কি এই ডেটা লোড করতে চান? আপনার বর্তমান সমস্ত লোকাল ডেটা মুছে নতুন ডেটা দিয়ে রিপ্লেস হবে!')) {
-        this.data.settings.syncId = scannedId;
+      if (confirm('মেস কোড পাওয়া গেছে! আপনি কি এই ডেটা লোড করতে চান? আপনার বর্তমান সমস্ত লোকাল ডেটা মুছে যাবে!')) {
+        this.data.settings.syncId = roomId;
         this.save('settings');
         
         await this.cloudDownload();
         this.applySyncUI();
-        this.closeQRModal();
+        this.closeModal('m-join-room');
         this.toast('সফলভাবে শেয়ার মেসে যোগ দিয়েছেন!', 'success');
       } else {
-        this.closeQRModal();
+        this.closeModal('m-join-room');
       }
     } catch(err) {
       console.error(err);
-      this.toast('মেস কানেক্ট করতে ব্যর্থ হয়েছে। কিউআর কোডটি সঠিক কিনা যাচাই করুন।', 'error');
-      this.closeQRModal();
+      this.toast('মেস পাওয়া যায়নি। কোডটি সঠিক কিনা যাচাই করুন।', 'error');
     }
+    if(btn) { btn.disabled = false; btn.textContent = 'যুক্ত হোন'; }
   }
 
   handleSyncDisconnect() {
@@ -1720,26 +1645,6 @@ class BachelorKhata {
     this.toast('সিঙ্ক সম্পন্ন হয়েছে! ✓','success');
   }
 
-  openQRModal() {
-    g('m-sync-qr').classList.add('open');
-  }
-
-  async closeQRModal() {
-    await this.stopScanner();
-    g('m-sync-qr').classList.remove('open');
-  }
-
-  async stopScanner() {
-    if (this.scanner) {
-      try {
-        await this.scanner.stop();
-      } catch (e) {
-        // Already stopped or not started
-      }
-      this.scanner = null;
-    }
-  }
-
   // ── EXPORT CSV ────────────────────────────────────────────────
   exportCSV() {
     const headers=['তারিখ','বিবরণ','ধরন','ক্যাটাগরি','একাউন্ট','পরিমাণ','নোট','ট্যাগ'];
@@ -1757,8 +1662,11 @@ class BachelorKhata {
     const wrap=g('tw'); if(!wrap) return;
     const el=document.createElement('div'); el.className='toast';
     const icons={info:'fa-info-circle',success:'fa-circle-check',error:'fa-circle-exclamation',warning:'fa-triangle-exclamation'};
-    const colors={info:'#818cf8',success:'#34d399',error:'#fb7185',warning:'#fbbf24'};
-    el.innerHTML=`<i class="fas ${icons[type]||'fa-info-circle'}" style="color:${colors[type]};font-size:13px;flex-shrink:0"></i><span style="font-family:'Hind Siliguri',sans-serif">${msg}</span>`;
+    const bgColors={info:'#3b82f6',success:'#10b981',error:'#f43f5e',warning:'#f59e0b'};
+    el.style.background = bgColors[type] || bgColors.info;
+    el.style.color = '#fff';
+    el.style.border = 'none';
+    el.innerHTML=`<i class="fas ${icons[type]||'fa-info-circle'}" style="color:#fff;font-size:16px;flex-shrink:0"></i><span style="font-family:'Hind Siliguri',sans-serif;font-size:13px;font-weight:600">${msg}</span>`;
     wrap.appendChild(el); setTimeout(()=>el.classList.add('show'),15);
     setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),500);},3500);
   }

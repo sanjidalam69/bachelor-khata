@@ -344,9 +344,6 @@ tbody tr:last-child td{border-bottom:none}
       <button class="nbtn" data-page="debts" title="ধার"><i class="fas fa-handshake"></i><span>ধার</span></button>
       <button class="nbtn" data-page="reports" title="রিপোর্ট"><i class="fas fa-chart-line"></i><span>রিপোর্ট</span></button>
     </nav>
-    <div class="sidebar-bot">
-      <button class="ib" id="theme-toggle" title="থিম পরিবর্তন"><i class="fas fa-moon"></i></button>
-    </div>
   </aside>
 
   <!-- ════ MAIN ════ -->
@@ -361,7 +358,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="tbar-right">
         <button class="ib" id="header-sync-btn" title="ক্লাউড সিঙ্ক" style="display:none;width:34px;height:34px;font-size:12px;align-items:center;justify-content:center"><i class="fas fa-rotate"></i></button>
         <button class="btn btn-p bsm" id="quick-add-btn"><i class="fas fa-plus"></i> যোগ</button>
-        <button class="ib" id="theme-toggle-mob" title="থিম" style="display:none"><i class="fas fa-moon"></i></button>
+        <button class="ib" id="theme-toggle" title="থিম পরিবর্তন" style="width:34px;height:34px;font-size:14px;background:var(--surface2);border:none"><i class="fas fa-moon"></i></button>
         <button class="av" id="profile-btn" title="প্রোফাইল"><img id="profile-pic" src="" alt="" style="display:none"><span id="profile-initials">SA</span></button>
       </div>
     </header>
@@ -551,6 +548,7 @@ tbody tr:last-child td{border-bottom:none}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
         <div><div class="sec-title" style="font-size:17px">🍛 মেস হিসাব</div><div class="sec-sub" style="margin-bottom:0">সবার খরচ একসাথে হিসাব রাখুন</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-s bsm" id="mess-sync-btn"><i class="fas fa-cloud"></i> গ্রুপ সিঙ্ক</button>
           <button class="btn btn-s bsm" id="add-mess-member-btn"><i class="fas fa-user-plus"></i> সদস্য যোগ</button>
           <button class="btn btn-p" id="add-mess-entry-btn"><i class="fas fa-plus"></i> খরচ যোগ</button>
         </div>
@@ -598,6 +596,7 @@ tbody tr:last-child td{border-bottom:none}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
         <div><div class="sec-title" style="font-size:17px">🛒 বাজার লিস্ট</div><div class="sec-sub" style="margin-bottom:0">বাজারের হিসাব রাখুন</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-s bsm" id="bazar-sync-btn"><i class="fas fa-cloud"></i> গ্রুপ সিঙ্ক</button>
           <button class="btn btn-s bsm" id="clear-done-btn"><i class="fas fa-broom"></i> সম্পন্ন মুছুন</button>
           <button class="btn btn-p" id="add-bazar-btn"><i class="fas fa-plus"></i> আইটেম যোগ</button>
         </div>
@@ -972,24 +971,30 @@ tbody tr:last-child td{border-bottom:none}
     <label class="btn btn-s bfull" style="cursor:pointer"><i class="fas fa-upload"></i> ছবি আপলোড<input type="file" id="p-avatar" accept="image/*" style="display:none"></label>
     <button class="btn btn-d bfull" id="p-rm-photo"><i class="fas fa-trash"></i> ছবি সরান</button>
     <div class="div"></div>
-    <div style="font-size:12px;font-weight:800;color:var(--head);margin-bottom:6px;font-family:'Hind Siliguri',sans-serif">📡 মেস শেয়ার ও ক্লাউড সিঙ্ক</div>
-    
+    <button class="btn btn-d bfull" id="p-reset"><i class="fas fa-triangle-exclamation"></i> সব ডেটা মুছুন</button>
+  </div>
+</div></div>
+
+<!-- Group Sync Modal -->
+<div class="mo" id="m-group-sync"><div class="modal" style="max-width:340px">
+  <div class="mh"><div class="mt">গ্রুপ সিঙ্ক (মেস ও বাজার)</div><button class="mc" data-close="m-group-sync"><i class="fas fa-xmark"></i></button></div>
+  <div style="display:flex;flex-direction:column;gap:12px">
     <!-- Sync Not Connected state UI -->
     <div id="p-sync-disconnected-ui" style="display:flex;flex-direction:column;gap:8px">
       <div style="font-size:10px;color:var(--muted);line-height:1.4;font-family:'Hind Siliguri',sans-serif">
-        মেসের রুমমেটদের সাথে যুক্ত হতে কিউআর কোড স্ক্যান করুন অথবা নিজের জন্য একটি নতুন কোড তৈরি করুন।
+        মেস ও বাজারের হিসাব বন্ধুদের সাথে সিঙ্ক করতে একটি কোড তৈরি করুন অথবা কোড দিয়ে মেসে যোগ দিন।
       </div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-p" id="p-sync-btn-create" style="flex:1;font-size:12px"><i class="fas fa-qrcode"></i> QR তৈরি করুন</button>
-        <button class="btn btn-g" id="p-sync-btn-scan" style="flex:1;font-size:12px"><i class="fas fa-camera"></i> QR স্ক্যান করুন</button>
+        <button class="btn btn-p" id="p-sync-btn-create" style="flex:1;font-size:12px"><i class="fas fa-plus"></i> নতুন মেস তৈরি করুন</button>
+        <button class="btn btn-g" id="p-sync-btn-scan" style="flex:1;font-size:12px"><i class="fas fa-sign-in-alt"></i> মেসে যোগ দিন</button>
       </div>
     </div>
 
     <!-- Sync Connected state UI -->
     <div id="p-sync-connected-ui" style="display:none;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;justify-content:between;padding:8px;background:var(--border);border-radius:var(--rs)">
-        <div style="font-size:11px;font-weight:700;color:var(--head)" id="p-sync-code-text">আইডি: -</div>
-        <button class="btn btn-s bsm" id="p-sync-btn-show-qr" style="padding:4px 8px;font-size:10px"><i class="fas fa-qrcode"></i> QR দেখান</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surface2);border-radius:var(--rs);border:1px dashed rgba(139,92,246,0.4)">
+        <div><div style="font-size:10px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আপনার মেসের কোড:</div><div style="font-size:22px;font-weight:900;color:var(--p);letter-spacing:4px" id="p-sync-code-text">------</div></div>
+        <button class="ib" id="p-sync-btn-copy" title="কপি করুন"><i class="fas fa-copy"></i></button>
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-d" id="p-sync-btn-disconnect" style="flex:1;font-size:12px">লিংক সরান</button>
@@ -998,37 +1003,18 @@ tbody tr:last-child td{border-bottom:none}
     </div>
     
     <div style="font-size:9.5px;color:var(--muted);margin-top:2px" id="p-sync-status"></div>
-    <div class="div"></div>
-    <button class="btn btn-d bfull" id="p-reset"><i class="fas fa-triangle-exclamation"></i> সব ডেটা মুছুন</button>
   </div>
 </div></div>
 
-<!-- QR Sync Modal -->
-<div class="mo" id="m-sync-qr"><div class="modal" style="max-width:340px">
-  <div class="mh"><div class="mt" id="qr-modal-title">মেস শেয়ার ও সিঙ্ক</div><button class="mc" id="qr-modal-close"><i class="fas fa-xmark"></i></button></div>
-  <div style="display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;padding:10px 0" id="qr-modal-body">
-    
-    <!-- View QR View -->
-    <div id="qr-view-container" style="display:none;flex-direction:column;align-items:center;gap:12px;text-align:center">
-      <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">অন্য রুমমেটদের এই কিউআর কোডটি স্ক্যান করতে বলুন।</div>
-      <div id="qr-code-img-wrapper" style="padding:10px;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center">
-        <img id="qr-code-img" src="" alt="QR Code" style="width:200px;height:200px">
-      </div>
-      <div style="font-size:10px;color:var(--muted);word-break:break-all;max-height:60px;overflow-y:auto;width:100%" id="qr-code-string"></div>
-    </div>
-
-    <!-- Scan QR Scanner View -->
-    <div id="qr-scan-container" style="display:none;flex-direction:column;align-items:center;gap:10px;width:100%">
-      <div style="font-size:11.5px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:center">রুমমেটের মোবাইলের কিউআর কোডটি ক্যামেরার সামনে ধরুন।</div>
-      <div id="qr-reader" style="width:100%;max-width:280px;background:#000;border-radius:8px;overflow:hidden;border:2px solid var(--border)"></div>
-      <div id="qr-scan-message" style="font-size:11px;color:var(--muted)">ক্যামেরা চালু করা হচ্ছে...</div>
-    </div>
-
+<!-- Join Room Modal -->
+<div class="mo" id="m-join-room"><div class="modal" style="max-width:340px">
+  <div class="mh"><div class="mt">মেসে যোগ দিন</div><button class="mc" data-close="m-join-room"><i class="fas fa-xmark"></i></button></div>
+  <div style="display:flex;flex-direction:column;gap:12px;text-align:center">
+    <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আপনার রুমমেটের তৈরি করা ৬ অক্ষরের মেস কোডটি এখানে লিখুন।</div>
+    <input type="text" class="inp" id="join-room-code" placeholder="যেমন: A7B2X9" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800">
   </div>
+  <div class="mf"><button class="btn btn-s" data-close="m-join-room" style="flex:1">বাতিল</button><button class="btn btn-p" id="join-room-btn" style="flex:1">যুক্ত হোন</button></div>
 </div></div>
-
-<!-- QR scanner library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="./src/script.js"></script>
 </body>
 </html>
