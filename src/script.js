@@ -91,9 +91,7 @@ class BachelorKhata {
     this.bindChat();
     if(this.data.settings.syncId) {
       this.cloudDownload().catch(err => console.error("Initial sync error:", err));
-      this.initNotifications().then(() => {
-        this.startBackgroundChatPoll();
-      });
+      this.startBackgroundChatPoll();
     }
     // Auto-refresh active roommates and data every 10 seconds
     setInterval(() => {
@@ -106,123 +104,15 @@ class BachelorKhata {
     this.render();
   }
 
-  async initNotifications() {
-    const LN = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications;
-    if (!LN) return;
-
-    try {
-      const perm = await LN.requestPermissions();
-      console.log('Notification permission:', JSON.stringify(perm));
-
-      // Create high-importance channel
-      if (LN.createChannel) {
-        await LN.createChannel({
-          id: 'bachelor_khata_chat',
-          name: 'Chat Messages',
-          description: 'Notifications for new chat messages from Bachelor Khata',
-          importance: 5,
-          visibility: 1,
-          sound: 'default',
-          vibration: true,
-          lights: true,
-          lightColor: '#38bdf8'
-        });
-        console.log('Notification channel created: bachelor_khata_chat');
-      }
-    } catch (e) {
-      console.error('initNotifications error:', JSON.stringify(e));
-    }
-  }
-  
   startBackgroundChatPoll() {
     if (!this.data.settings.syncId) return;
     if (this.chatPollInterval) clearInterval(this.chatPollInterval);
     
-    this.lastNotifiedChatCount = undefined;
-    this.checkBackgroundNotifications();
-    
     this.chatPollInterval = setInterval(() => {
-      this.checkBackgroundNotifications();
-    }, 8000);
-  }
-
-  async checkBackgroundNotifications() {
-    const syncId = this.data.settings.syncId;
-    if (!syncId) return;
-
-    try {
-      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${syncId}`);
-      if (res.ok) {
-        const text = await res.text();
-        let msgs = [];
-        if (text && text !== '""' && text !== 'null' && text.trim() !== '') {
-          try {
-            let parsed = JSON.parse(text);
-            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-            if (Array.isArray(parsed)) {
-              msgs = parsed.filter(m => m && typeof m === 'object');
-            }
-          } catch(err) {
-            msgs = [];
-          }
-        }
-
-        const currentCount = msgs.length;
-        
-        // If user is actively viewing chat screen, just update screen and don't notify
-        if (this.page === 'chat' && !document.hidden) {
-          this.chatMsgsCount = currentCount;
-          localStorage.setItem('bk_chat_read', currentCount.toString());
-          this.lastNotifiedChatCount = currentCount;
-          this.renderChatMessages(msgs);
-          return;
-        }
-
-        // Initialize baseline if not set yet
-        if (this.lastNotifiedChatCount === undefined) {
-          this.lastNotifiedChatCount = currentCount;
-          return;
-        }
-
-        // Check if there are new messages
-        if (currentCount > this.lastNotifiedChatCount) {
-          const newMsgs = msgs.slice(this.lastNotifiedChatCount);
-          const myInitials = this.data.settings.initials || 'SA';
-          const remoteMsgs = newMsgs.filter(m => m.sender && m.sender !== myInitials);
-          
-          if (remoteMsgs.length > 0) {
-            const lastMsg = remoteMsgs[remoteMsgs.length - 1];
-            const decodedText = this._decodeMsg(lastMsg.text);
-            this.showLocalNotification(lastMsg.sender, decodedText);
-          }
-          this.lastNotifiedChatCount = currentCount;
-        }
+      if (this.page === 'chat') {
+        this.cloudDownloadChat(true);
       }
-    } catch(e) {
-      console.error("Background notification poll failed:", e);
-    }
-  }
-
-  showLocalNotification(sender, text) {
-    const LN = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications;
-    if (!LN) return;
-
-    const notifId = Math.floor(Math.random() * 10000) + 1;
-    LN.schedule({
-      notifications: [{
-        id: notifId,
-        title: `${sender} — ব্যাচেলর খাতা`,
-        body: text || '(নতুন মেসেজ)',
-        channelId: 'bachelor_khata_chat',
-        smallIcon: 'ic_notification',
-        sound: 'default',
-        extra: { sender, text }
-      }]
-    }).then(() => {
-      console.log('Notification sent id=' + notifId);
-    }).catch(e => {
-      console.error('Notification error:', JSON.stringify(e));
-    });
+    }, 8000);
   }
 
   // Helper: safely parse chat data from server (handles double-quoted strings, corrupted data)
@@ -1927,9 +1817,7 @@ class BachelorKhata {
       await this.cloudUpload();
       this.applySyncUI();
       this.toast('মেস সফলভাবে তৈরি হয়েছে! রুমমেটদের কোডটি দিন।', 'success');
-      this.initNotifications().then(() => {
-        this.startBackgroundChatPoll();
-      });
+      this.startBackgroundChatPoll();
     }
   }
 
@@ -1974,9 +1862,7 @@ class BachelorKhata {
         this.applySyncUI();
         this.closeModal('m-join-room');
         this.toast('সফলভাবে শেয়ার মেসে যোগ দিয়েছেন!', 'success');
-        this.initNotifications().then(() => {
-          this.startBackgroundChatPoll();
-        });
+        this.startBackgroundChatPoll();
       } else {
         this.closeModal('m-join-room');
       }
