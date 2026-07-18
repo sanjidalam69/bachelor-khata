@@ -1,6 +1,6 @@
 # 📒 Bachelor Khata (ব্যাচেলর খাতা)
 
-Bachelor Khata is a premium, modern, and fully responsive web application designed for students and bachelors living in messes, hostels, or shared apartments. It helps you manage your personal finances, track mess expenses, calculate shared bazar costs, set financial goals, track debts, and visualize monthly spending patterns.
+Bachelor Khata is a premium, modern, and fully responsive web & mobile application designed for students and bachelors living in messes, hostels, or shared apartments. It helps you manage your personal finances, track mess expenses, calculate shared bazar costs, set financial goals, track debts, and visualize monthly spending patterns.
 
 Live demo hosted on GitHub Pages: [sanjidalam69.github.io](https://sanjidalam69.github.io)
 
@@ -8,38 +8,44 @@ Live demo hosted on GitHub Pages: [sanjidalam69.github.io](https://sanjidalam69.
 
 ## 🚀 Key Features
 
-*   **📊 Comprehensive Dashboard**: View total balance, monthly income/expense trends, and savings rate.
+*   **📊 Comprehensive Dashboard**: View total balance, monthly income/expense trends, and savings rate with a highly polished UI.
 *   **🍽️ Shared Mess Manager**: Track mess member deposits, overall mess expenses, and instantly calculate individual share amounts.
-*   **🛒 Bazar List**: Separate bazar items tracking with automatic Done status and quantities.
+*   **🛒 Bazar List**: Separate bazar items tracking with automatic Done status, quantities, and categorized items.
 *   **👥 Real-Time Cloud Sync**: Join a mess/room via a unique room code. Changes are instantly synchronized across roommates.
 *   **📅 Interactive Calendar**: View all transactions, bazar updates, and mess expenses on a responsive monthly calendar.
 *   **💰 Personal Finance**: Multi-account support, custom category tagging, budgets, and savings goals.
 *   **📈 Rich Analytics**: Categories donut charts, weekly spending insights, and responsive 12-month trends.
-*   **🌓 Dark/Light Theme**: Sleek Cyberpunk Slate & Electric Sky-Blue dark theme, and an elegant Slate-Cyan light theme.
-*   **📱 Fully Mobile Responsive**: Scrollable bottom navigation, optimized font size readability for Bengali text, and lightweight animations optimized for maximum mobile FPS.
+*   **🌓 Pro-Level Themes**: Sleek 'Deep Slate & Electric Sky-Blue' dark theme, and an elegant 'Soft Gray & Solid White' modern light theme.
+*   **📱 Native Mobile App**: Fully integrated with Capacitor to build directly to Android via Android Studio.
+*   **✨ Smooth Animations**: Optimized 60FPS CSS hardware-accelerated animations across tabs, modals, buttons, and toast notifications.
 
 ---
 
 ## 🛠️ Tech Stack
 
-*   **Frontend**: Vanilla HTML5, Vanilla CSS3 (custom responsive design variables, no bulky frameworks), Vanilla JavaScript (ES6+ object-oriented).
-*   **Libraries**: [Chart.js](https://www.chartjs.org/) (for interactive charts), FontAwesome (for modern icons), Google Fonts (Inter & Hind Siliguri).
-*   **Sync Backend**: npoint JSON cloud database sync.
+*   **Frontend Web**: Vanilla HTML5, Vanilla CSS3 (custom responsive design variables, glassmorphism), Vanilla JavaScript (ES6+).
+*   **Mobile Wrapper**: Capacitor (`@capacitor/core`, `@capacitor/android`) for native Android builds.
+*   **Libraries**: [Chart.js](https://www.chartjs.org/) (interactive charts), FontAwesome (modern icons), Google Fonts (Inter & Hind Siliguri).
 
 ---
 
-## 📦 How to Run Locally
+## 📦 How to Build the Mobile App (Android)
 
-Since this is built with pure vanilla technologies, running it is extremely simple:
+The project is already configured with Capacitor. To build the Android app:
 
-1.  **Clone the Repository**:
-    ```bash
-    git clone https://github.com/your-username/bachelor-khata.git
-    cd bachelor-khata
-    ```
-2.  **Open in Browser**:
-    *   Simply double-click `index.html` to run.
-    *   Alternatively, run it using a local development server (e.g., Live Server in VS Code, or Python `python -m http.server 8000`).
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+2. **Sync Web Assets to Android**:
+   ```bash
+   npx cap sync android
+   ```
+3. **Open Android Studio & Build**:
+   ```bash
+   npx cap open android
+   ```
+   *From Android Studio, you can run the app on an emulator or build the APK.*
 
 ---
 
@@ -47,37 +53,29 @@ Since this is built with pure vanilla technologies, running it is extremely simp
 
 ```text
 bachelor-khata/
-├── index.html         # Main application layout, styles, and modals
-├── src/
-│   └── script.js      # App logic, calculation engines, Chart.js integrations, and sync service
-└── README.md          # Project documentation
+├── android/           # Generated Android Studio Project
+├── capacitor.config.ts# Capacitor configuration
+├── package.json       # Node dependencies for mobile wrapper
+└── www/               # Core Web Application Assets
+    ├── index.html     # Main app layout, styles, and modals
+    ├── README.md      # Documentation (You are here)
+    └── src/
+        └── script.js  # App logic, Chart.js integrations, and sync service
 ```
-
----
-
-## 🌐 Deploying to GitHub Pages
-
-To host this project on GitHub Pages:
-
-1.  Create a new public repository on GitHub.
-2.  Push your code to the `main` branch.
-3.  Go to **Settings** > **Pages** in your repository.
-4.  Under **Build and deployment**, set Source to **Deploy from a branch** and select `main` (or `root`).
-5.  Click **Save**. Your app will be live at `https://your-username.github.io/bachelor-khata/` in a few minutes!
 
 ---
 
 ### 🇧🇩 ব্যাচেলর খাতা - বাংলা বিবরণী
 
-ব্যাচেলর খাতা একটি আধুনিক এবং অত্যন্ত রেস্পন্সিভ বাজেট ট্র্যাকিং ওয়েব অ্যাপ্লিকেশন, যা বিশেষভাবে মেস, হোস্টেল বা শেয়ার্ড অ্যাপার্টমেন্টে থাকা ব্যাচেলর ও শিক্ষার্থীদের হিসাব-নিকাশ সহজ করতে তৈরি। 
+ব্যাচেলর খাতা একটি আধুনিক এবং অত্যন্ত রেস্পন্সিভ বাজেট ট্র্যাকিং অ্যাপ্লিকেশন, যা বিশেষভাবে মেস, হোস্টেল বা শেয়ার্ড অ্যাপার্টমেন্টে থাকা ব্যাচেলর ও শিক্ষার্থীদের হিসাব-নিকাশ সহজ করতে তৈরি। 
 
 **মূল সুবিধাসমূহ:**
 *   ব্যক্তিগত ও মেসের খরচ হিসাব আলাদা ট্র্যাকিং।
-*   মেস মেম্বারদের মিল রেট, ডেপোজিট এবং খরচ ভাগাভাগির হিসাব।
+*   মেস মেম্বারদের মিল রেট, ডেপোজিট এবং বাজার খরচের সুন্দর হিসাব।
 *   রুমমেটদের সাথে মেস কোডের মাধ্যমে রিয়েল-টাইম ক্লাউড সিঙ্ক।
-*   আকর্ষণীয় ডার্ক নিয়ন এবং আরামদায়ক লাইট থিম।
-*   ক্যালেন্ডারে ক্লিক করে প্রতিদিনের বাজারের বিবরণ দেখা।
-*   মোবাইল স্ক্রিনে চমৎকার রেস্পন্সিভনেস এবং স্মুথ অ্যানিমেশন।
+*   প্রো-লেভেল ডার্ক ও লাইট থিম, সাথে স্মুথ ট্রানজিশন অ্যানিমেশন।
+*   সরাসরি অ্যান্ড্রয়েড অ্যাপ হিসেবে বিল্ড করার সুবিধা (Capacitor)।
+*   মোবাইল স্ক্রিনে চমৎকার রেস্পন্সিভনেস এবং স্মুথ টাচ রেস্পন্স।
 
 ---
 Developed by pair-programming with Antigravity AI. Licensed under the MIT License.

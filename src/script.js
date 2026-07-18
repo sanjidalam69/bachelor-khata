@@ -14,7 +14,7 @@ class BachelorKhata {
     this.tags = [];
     this.spMembers = [];
     this.activeMessSubtab = 'summary';
-    this.lang = localStorage.getItem('bk_lang') || 'bn';
+    this.lang = 'bn';
 
     this.data = {
       transactions: JSON.parse(localStorage.getItem('bk_tx')   || '[]'),
@@ -43,7 +43,17 @@ class BachelorKhata {
     }
 
     // Ensure mess structure
-    if (!this.data.mess.members) this.data.mess = { members: [], entries: [] };
+    if (!this.data.mess.members) {
+      this.data.mess.members = [];
+      this.data.mess.entries = [];
+    }
+    if (!this.data.mess.subcategories) {
+      this.data.mess.subcategories = {
+        "বাজার": ["সবজি", "ফল", "মাছ", "মাংস", "পেঁয়াজ", "মরিচ", "আলু", "হলুদ"],
+        "অন্যান্য": []
+      };
+      this.save('mess');
+    }
 
     this.init();
   }
@@ -81,12 +91,13 @@ class BachelorKhata {
     if(this.data.settings.syncId) {
       this.cloudDownload().catch(err => console.error("Initial sync error:", err));
     }
-    // Auto-refresh active roommates every 60 seconds
+    // Auto-refresh active roommates and data every 10 seconds
     setInterval(() => {
       if (this.data.settings.syncId) {
         this.syncActiveRoommates().catch(() => {});
+        this.cloudDownload(true).catch(() => {});
       }
-    }, 60000);
+    }, 10000);
     this.translatePage();
     this.render();
   }
@@ -257,6 +268,10 @@ class BachelorKhata {
     document.querySelectorAll('[data-metype]').forEach(b => {
       b.addEventListener('click', () => this.toggleMessEntryType(b.dataset.metype));
     });
+    g('me-cat')?.addEventListener('change', () => this.updateSubcatDropdown(g('me-cat').value));
+    g('me-add-subcat-btn')?.addEventListener('click', () => this.handleAddSubcat());
+    g('me-del-subcat-btn')?.addEventListener('click', () => this.handleDeleteSubcat());
+    g('me-subcat')?.addEventListener('change', () => this.updateSubcatDeleteButton());
 
     // Budget
     g('add-budget-btn')?.addEventListener('click', () => this.openModal('m-budget'));
@@ -563,7 +578,9 @@ class BachelorKhata {
         }else{
           g('me-amount').value=e.amount;
           g('me-payer').value=e.payerId;
-          g('me-cat').value=e.category||'অন্যান্য';
+          const resolvedCat = this.resolveLegacyCat(e.category)||'অন্যান্য';
+          g('me-cat').value=resolvedCat;
+          this.updateSubcatDropdown(resolvedCat, e.subcategory||'');
         }
       }
     }
@@ -572,6 +589,7 @@ class BachelorKhata {
       g('me-title').value='';
       g('me-amount').value='';
       g('me-date').value=new Date().toISOString().split('T')[0];
+      this.updateSubcatDropdown(g('me-cat').value, '');
     }
     this.openModal('m-mess-entry');
   }
@@ -639,8 +657,9 @@ class BachelorKhata {
       const amount =parseFloat(g('me-amount').value)||0;
       const payerId=g('me-payer').value;
       const cat    =g('me-cat').value;
+      const subcat =g('me-subcat')?.value || '';
       if(!title||!amount||!payerId){this.toast('সব ঘর পূরণ করুন।','error');return;}
-      const entry={id:id||this.uid(),type:'expense',title,amount,date,payerId,category:cat};
+      const entry={id:id||this.uid(),type:'expense',title,amount,date,payerId,category:cat,subcategory:subcat};
       if(id){
         this.data.mess.entries=this.data.mess.entries.map(e=>e.id===id?entry:e);
         this.toast('আপডেট হয়েছে!','success');
@@ -1138,7 +1157,7 @@ class BachelorKhata {
           <td style="font-size:10px;color:var(--muted);white-space:nowrap">${e.date}</td>
           <td>
             <div style="font-size:12px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${e.title}</div>
-            <div style="font-size:9px;color:var(--muted)">${isDep?this.t('deposit_to_fund'):this.tCat(e.category)}</div>
+            <div style="font-size:9px;color:var(--muted)">${isDep?this.t('deposit_to_fund'):(this.tCat(e.category)+(e.subcategory?` • ${e.subcategory}`:''))}</div>
           </td>
           <td style="font-size:11px;color:var(--text);font-family:'Hind Siliguri',sans-serif">${payerName}</td>
           <td style="text-align:right;font-size:12px;font-weight:800;color:${color};white-space:nowrap">${isDep?'+':''}${this.fmt(e.amount)}</td>
@@ -1479,7 +1498,6 @@ class BachelorKhata {
 
   bindProfile() {
     g('profile-btn')?.addEventListener('click',()=>this.openModal('m-profile'));
-    g('lang-toggle')?.addEventListener('click',()=>this.toggleLang());
     [g('theme-toggle'),g('theme-toggle-mob')].forEach(btn=>{btn?.addEventListener('click',()=>{this.data.settings.theme=this.data.settings.theme==='dark'?'light':'dark';this.save('settings');this.applyTheme();this.render();this.toast(`${this.data.settings.theme==='dark'?'ডার্ক':'লাইট'} মোড চালু!`,'success');});});
     g('p-initials')?.addEventListener('input',e=>{
       const v=e.target.value;
@@ -1543,11 +1561,12 @@ class BachelorKhata {
     try {
       const short = {
         m_entries: (this.data.mess.entries || []).map(x => ({
-          i: x.id, y: x.type, t: x.title, a: x.amount, d: x.date, p: x.payerId, c: x.category
+          i: x.id, y: x.type, t: x.title, a: x.amount, d: x.date, p: x.payerId, c: x.category, sc: x.subcategory || ''
         })),
         m_members: (this.data.mess.members || []).map(x => ({
           i: x.id, n: x.name
         })),
+        m_subcats: this.data.mess.subcategories || {},
         z: (this.data.bazar || []).map(x => ({
           i: x.id, n: x.name, q: x.qty, p: x.prio || 'low', d: x.done ? 1 : 0, a: x.addedAt || ''
         }))
@@ -1578,11 +1597,12 @@ class BachelorKhata {
       return {
         mess: {
           entries: (short.m_entries || []).map(x => ({
-            id: x.i, type: x.y, title: x.t, amount: x.a, date: x.d, payerId: x.p, category: x.c
+            id: x.i, type: x.y, title: x.t, amount: x.a, date: x.d, payerId: x.p, category: x.c, subcategory: x.sc || ''
           })),
           members: (short.m_members || []).map(x => ({
             id: x.i, name: x.n
-          }))
+          })),
+          subcategories: short.m_subcats || {}
         },
         bazar: (short.z || []).map(x => ({
           id: x.i, name: x.n, qty: x.q, price: 0, prio: x.p || 'low', done: x.d === 1, addedAt: x.a || ''
@@ -1642,13 +1662,13 @@ class BachelorKhata {
     }
   }
 
-  async cloudUpload() {
+  async cloudUpload(silent = false) {
     const id = this.data.settings.syncId;
     if(!id || this.isSyncing) return;
     try {
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
-      if(icon) icon.className = 'fas fa-rotate fa-spin';
+      if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
       
       const compressedStr = this.compressData();
       if (!compressedStr) throw new Error("Compression failed");
@@ -1678,23 +1698,23 @@ class BachelorKhata {
       this.save('settings');
       this.applySyncUI();
       
-      if(icon) icon.className = 'fas fa-rotate';
+      if(icon && !silent) icon.className = 'fas fa-rotate';
     } catch(err) {
       console.error(err);
-      this.toast('ক্লাউডে ডেটা আপলোড করা যায়নি।','error');
+      if(!silent) this.toast('ক্লাউডে ডেটা আপলোড করা যায়নি।','error');
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
-      if(icon) icon.className = 'fas fa-rotate';
+      if(icon && !silent) icon.className = 'fas fa-rotate';
     }
   }
 
-  async cloudDownload() {
+  async cloudDownload(silent = false) {
     const id = this.data.settings.syncId;
     if(!id) return;
     try {
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
-      if(icon) icon.className = 'fas fa-rotate fa-spin';
+      if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
       
       // Read chunk count
       const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_data_${id}_count`);
@@ -1737,13 +1757,13 @@ class BachelorKhata {
         }
       }
       
-      if(icon) icon.className = 'fas fa-rotate';
+      if(icon && !silent) icon.className = 'fas fa-rotate';
     } catch(err) {
       console.error(err);
-      this.toast('ক্লাউড থেকে ডেটা ডাউনলোড করা যায়নি।','error');
+      if(!silent) this.toast('ক্লাউড থেকে ডেটা ডাউনলোড করা যায়নি।','error');
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
-      if(icon) icon.className = 'fas fa-rotate';
+      if(icon && !silent) icon.className = 'fas fa-rotate';
     }
   }
 
@@ -2531,8 +2551,113 @@ class BachelorKhata {
     return dict[this.lang]?.[key] || key;
   }
 
+  resolveLegacyCat(cat) {
+    const legacyMap = {
+      'cat_bazar': 'বাজার',
+      'cat_gas': 'গ্যাস',
+      'cat_elec': 'বিদ্যুৎ',
+      'cat_water': 'পানি',
+      'cat_wifi': 'ওয়াইফাই',
+      'cat_rent': 'বাসা ভাড়া',
+      'cat_maid': 'বুয়া/খালা',
+      'cat_cook': 'রান্না',
+      'cat_clean': 'পরিষ্কার',
+      'cat_other': 'অন্যান্য',
+      'বাজার': 'বাজার',
+      'গ্যাস': 'গ্যাস',
+      'বিদ্যুৎ': 'বিদ্যুৎ',
+      'পানি': 'পানি',
+      'ওয়াইফাই': 'ওয়াইফাই',
+      'বাসা ভা঱া': 'বাসা ভাড়া',
+      'বুয়া/খালা': 'বুয়া/খালা',
+      'রান্না': 'রান্না',
+      'পরিষ্কার': 'পরিষ্কার',
+      'অন্যান্য': 'অন্যান্য'
+    };
+    return legacyMap[cat] || cat;
+  }
+
+  updateSubcatDropdown(cat, selectedVal = '') {
+    const subcatG = g('me-subcat-g');
+    const subcatSelect = g('me-subcat');
+    if (!subcatG || !subcatSelect) return;
+
+    const resolvedCat = this.resolveLegacyCat(cat);
+    
+    // We support subcategories if we have list defined in this.data.mess.subcategories
+    const list = this.data.mess.subcategories?.[resolvedCat];
+    if (list) {
+      subcatG.style.display = '';
+      subcatSelect.innerHTML = `<option value="">--- নির্বাচন করুন (ঐচ্ছিক) ---</option>` +
+        list.map(s => `<option value="${s}">${s}</option>`).join('');
+      subcatSelect.value = selectedVal;
+      this.updateSubcatDeleteButton();
+    } else {
+      subcatG.style.display = 'none';
+      subcatSelect.innerHTML = '';
+      const delBtn = g('me-del-subcat-btn');
+      if (delBtn) delBtn.style.display = 'none';
+    }
+  }
+
+  updateSubcatDeleteButton() {
+    const subcatSelect = g('me-subcat');
+    const delBtn = g('me-del-subcat-btn');
+    if (!subcatSelect || !delBtn) return;
+    
+    const val = subcatSelect.value;
+    if (val && val !== "") {
+      delBtn.style.display = '';
+    } else {
+      delBtn.style.display = 'none';
+    }
+  }
+
+  handleAddSubcat() {
+    const cat = this.resolveLegacyCat(g('me-cat').value);
+    if (!cat) return;
+    
+    const newSubcat = prompt('নতুন উপ-ক্যাটাগরির নাম লিখুন:');
+    if (!newSubcat) return;
+    const trimmed = newSubcat.trim();
+    if (!trimmed) return;
+    
+    this.data.mess.subcategories = this.data.mess.subcategories || {};
+    this.data.mess.subcategories[cat] = this.data.mess.subcategories[cat] || [];
+    
+    if (this.data.mess.subcategories[cat].includes(trimmed)) {
+      this.toast('এই উপ-ক্যাটাগরি ইতিমধ্যে রয়েছে!', 'error');
+      return;
+    }
+    
+    this.data.mess.subcategories[cat].push(trimmed);
+    this.save('mess');
+    this.toast('নতুন উপ-ক্যাটাগরি যোগ হয়েছে!', 'success');
+    this.updateSubcatDropdown(cat, trimmed);
+  }
+
+  handleDeleteSubcat() {
+    const cat = this.resolveLegacyCat(g('me-cat').value);
+    const subcatSelect = g('me-subcat');
+    if (!cat || !subcatSelect) return;
+    
+    const val = subcatSelect.value;
+    if (!val) return;
+    
+    if (!confirm(`"${val}" উপ-ক্যাটাগরির নাম মুছে ফেলতে চান?`)) return;
+    
+    this.data.mess.subcategories = this.data.mess.subcategories || {};
+    if (this.data.mess.subcategories[cat]) {
+      this.data.mess.subcategories[cat] = this.data.mess.subcategories[cat].filter(s => s !== val);
+      this.save('mess');
+      this.toast('উপ-ক্যাটাগরি মুছে ফেলা হয়েছে!', 'info');
+      this.updateSubcatDropdown(cat, '');
+    }
+  }
+
   tCat(cat) {
-    if (this.lang === 'bn') return cat;
+    const resolvedCat = this.resolveLegacyCat(cat);
+    if (this.lang === 'bn') return resolvedCat;
     const catMap = {
       // Mess Categories
       'মেস': 'Mess',
@@ -2567,7 +2692,7 @@ class BachelorKhata {
       'অন্যান্য আয়': 'Other Income',
       'ট্রান্সফার': 'Transfer'
     };
-    return catMap[cat] || cat;
+    return catMap[resolvedCat] || resolvedCat;
   }
 
   tAccName(name) {
@@ -2582,20 +2707,22 @@ class BachelorKhata {
 
   translatePage() {
     // 1. Translate elements with .i18n class
-    document.querySelectorAll('.i18n').forEach(el => {
-      const key = el.dataset.key;
-      const text = this.t(key);
-      if (text) {
-        const icon = el.querySelector('i');
-        if (icon) {
-          el.innerHTML = '';
-          el.appendChild(icon);
-          el.appendChild(document.createTextNode(' ' + text));
-        } else {
-          el.textContent = text;
+    if (this.lang !== 'bn') {
+      document.querySelectorAll('.i18n').forEach(el => {
+        const key = el.dataset.key;
+        const text = this.t(key);
+        if (text && text !== key) {
+          const icon = el.querySelector('i');
+          if (icon) {
+            el.innerHTML = '';
+            el.appendChild(icon);
+            el.appendChild(document.createTextNode(' ' + text));
+          } else {
+            el.textContent = text;
+          }
         }
-      }
-    });
+      });
+    }
 
     // 2. Update language toggle pill — highlight the ACTIVE language
     const enLabel = g('lang-en-label');
@@ -2713,14 +2840,6 @@ class BachelorKhata {
         b.title = this.t(titleKey);
       }
     });
-  }
-
-  toggleLang() {
-    this.lang = this.lang === 'bn' ? 'en' : 'bn';
-    localStorage.setItem('bk_lang', this.lang);
-    this.translatePage();
-    this.navigate(this.page);
-    this.toast(this.lang === 'bn' ? 'ভাষা পরিবর্তন করে বাংলা করা হয়েছে!' : 'Language changed to English!', 'success');
   }
 }
 
