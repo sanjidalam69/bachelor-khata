@@ -26,6 +26,7 @@ class BachelorKhata {
       bazar:        JSON.parse(localStorage.getItem('bk_bazar')|| '[]'),
       splits:       JSON.parse(localStorage.getItem('bk_split')|| '[]'),
       settings:     JSON.parse(localStorage.getItem('bk_set')  || '{"initials":"SA","theme":"dark"}'),
+      lastReadChatCount: parseInt(localStorage.getItem('bk_chat_read') || '0', 10)
     };
 
     if (!this.data.settings.syncId) this.data.settings.syncId = '';
@@ -90,6 +91,12 @@ class BachelorKhata {
     this.bindChat();
     if(this.data.settings.syncId) {
       this.cloudDownload().catch(err => console.error("Initial sync error:", err));
+      this.startBackgroundChatPoll();
+      
+      // Request Notification Permissions on Android
+      if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
+        window.Capacitor.Plugins.LocalNotifications.requestPermissions();
+      }
     }
     // Auto-refresh active roommates and data every 10 seconds
     setInterval(() => {
@@ -101,6 +108,71 @@ class BachelorKhata {
     this.translatePage();
     this.render();
   }
+  
+  startBackgroundChatPoll() {
+    if (!this.data.settings.syncId) return;
+    if (this.chatPollInterval) clearInterval(this.chatPollInterval);
+    
+    this.lastNotifiedChatCount = this.data.lastReadChatCount || 0;
+    
+    // Check right away on load
+    this.checkUnreadChat();
+    
+    this.chatPollInterval = setInterval(() => {
+      if (this.page === 'chat') {
+        this.cloudDownloadChat(true);
+      } else {
+        this.checkUnreadChat();
+      }
+    }, 8000);
+  }
+
+  async checkUnreadChat() {
+    try {
+      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${this.data.settings.syncId}`);
+      if (res.ok) {
+        const text = await res.json();
+        if (text && text !== '""' && text !== 'null') {
+          const msgs = JSON.parse(text);
+          if (msgs.length > (this.data.lastReadChatCount || 0)) {
+            const dBadge = g('nav-chat-badge-d');
+            const mBadge = g('nav-chat-badge-m');
+            if (dBadge) dBadge.style.display = 'block';
+            if (mBadge) mBadge.style.display = 'block';
+            
+            // Check for notifications
+            if (msgs.length > this.lastNotifiedChatCount) {
+               const unreadMsgs = msgs.slice(this.lastNotifiedChatCount);
+               const myInitials = this.data.settings.initials || 'SA';
+               const newRemoteMsgs = unreadMsgs.filter(m => m.sender !== myInitials);
+               
+               if (newRemoteMsgs.length > 0) {
+                 if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
+                    const lastMsg = newRemoteMsgs[newRemoteMsgs.length - 1];
+                    const b64DecodeUnicode = (str) => {
+                       try { return decodeURIComponent(escape(atob(str))); }
+                       catch(e) { return str; }
+                    };
+                    const decodedText = lastMsg.text ? b64DecodeUnicode(lastMsg.text) : '';
+                    
+                    window.Capacitor.Plugins.LocalNotifications.schedule({
+                      notifications: [{
+                        title: lastMsg.sender + ' (ব্যাচেলর খাতা)',
+                        body: decodedText,
+                        id: Math.floor(Math.random() * 100000),
+                        schedule: { at: new Date(Date.now() + 100) }
+                      }]
+                    }).catch(e => console.log('Notification error:', e));
+                 }
+               }
+               this.lastNotifiedChatCount = msgs.length;
+            }
+          }
+        }
+      }
+    } catch(e) {}
+  }
+
   // ── NAVIGATION ────────────────────────────────────────────────
   bindNav() {
     document.querySelectorAll('[data-page]').forEach(b => b.addEventListener('click', () => this.navigate(b.dataset.page)));
@@ -108,9 +180,15 @@ class BachelorKhata {
   }
 
   navigate(page) {
-    if (page !== 'chat' && this.chatPollInterval) {
-      clearInterval(this.chatPollInterval);
-      this.chatPollInterval = null;
+    if (page === 'chat') {
+      const dBadge = g('nav-chat-badge-d');
+      const mBadge = g('nav-chat-badge-m');
+      if (dBadge) dBadge.style.display = 'none';
+      if (mBadge) mBadge.style.display = 'none';
+      if (this.chatMsgsCount !== undefined) {
+        this.data.lastReadChatCount = this.chatMsgsCount;
+        this.saveData();
+      }
     }
     this.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1920,18 +1998,7 @@ class BachelorKhata {
     g('chat-active-panel').style.display = 'flex';
 
     this.cloudDownloadChat();
-
-    // Start polling every 6 seconds to fetch new messages
-    if (!this.chatPollInterval) {
-      this.chatPollInterval = setInterval(() => {
-        if (this.page === 'chat') {
-          this.cloudDownloadChat(true); // silent download
-        } else {
-          clearInterval(this.chatPollInterval);
-          this.chatPollInterval = null;
-        }
-      }, 6000);
-    }
+    this.startBackgroundChatPoll();
   }
 
   renderChat() {
@@ -1955,6 +2022,13 @@ class BachelorKhata {
         if (text && text !== '""' && text !== 'null') {
           msgs = JSON.parse(text);
         }
+        
+        this.chatMsgsCount = msgs.length;
+        if (this.page === 'chat') {
+           this.data.lastReadChatCount = msgs.length;
+           this.saveData();
+        }
+        
         this.renderChatMessages(msgs);
       }
 
@@ -1979,7 +2053,13 @@ class BachelorKhata {
 
     const myInitials = this.data.settings.initials || 'SA';
 
+    const b64DecodeUnicode = (str) => {
+      try { return decodeURIComponent(escape(atob(str))); }
+      catch(e) { return str; }
+    };
+
     container.innerHTML = msgs.map(m => {
+      const decodedText = m.text ? b64DecodeUnicode(m.text) : '';
       const isMe = m.sender === myInitials;
       const clr = isMe ? 'linear-gradient(135deg, #38bdf8, #0ea5e9)' : 'var(--surface2)';
       const align = isMe ? 'flex-end' : 'flex-start';
@@ -1988,11 +2068,13 @@ class BachelorKhata {
       const border = isMe ? 'none' : '1px solid var(--border)';
       
       // Reply preview in bubble
+      // Reply preview in bubble
       let replyHtml = '';
       if (m.replyTo) {
+        const replyDecodedText = m.replyTo.text ? b64DecodeUnicode(m.replyTo.text) : '';
         replyHtml = `
           <div style="background:rgba(0,0,0,0.1);padding:6px;border-radius:6px;font-size:10px;border-left:2px solid ${isMe ? '#fff' : 'var(--p)'};margin-bottom:6px;opacity:0.9">
-            <span style="font-weight:800;color:${isMe ? '#fff' : 'var(--p)'}">${m.replyTo.sender}</span>: ${m.replyTo.text}
+            <span style="font-weight:800;color:${isMe ? '#fff' : 'var(--p)'}">${m.replyTo.sender}</span>: ${replyDecodedText}
           </div>
         `;
       }
@@ -2000,15 +2082,15 @@ class BachelorKhata {
       const senderHtml = isMe ? '' : `<div style="font-size:9.5px;font-weight:800;color:var(--muted);margin-bottom:2px;margin-left:4px">${m.sender}</div>`;
 
       return `
-        <div style="align-self:${align};display:flex;flex-direction:column;max-width:80%;position:relative" class="chat-msg-wrapper" data-msg-id="${m.id}" data-sender="${m.sender}" data-text="${m.text.replace(/"/g, '&quot;')}">
+        <div style="align-self:${align};display:flex;flex-direction:column;max-width:80%;position:relative" class="chat-msg-wrapper" data-msg-id="${m.id}" data-sender="${m.sender}" data-text="${decodedText.replace(/"/g, '&quot;')}">
           ${senderHtml}
           <div style="background:${clr};color:${color};border:${border};border-radius:${borderRad};padding:8px 12px;font-size:12.5px;box-shadow:0 2px 4px rgba(0,0,0,0.05);position:relative">
             ${replyHtml}
-            <div style="font-family:'Hind Siliguri',sans-serif;line-height:1.5;word-break:break-word">${m.text}</div>
+            <div style="font-family:'Hind Siliguri',sans-serif;line-height:1.5;word-break:break-word">${decodedText}</div>
             <div style="font-size:8px;color:${isMe ? 'rgba(255,255,255,0.7)' : 'var(--muted)'};text-align:right;margin-top:4px;font-weight:700">${m.time}</div>
           </div>
           <!-- Reply action button -->
-          <button class="ib chat-bubble-reply-btn" onclick="app.setChatReply('${m.id}', '${m.sender}', '${m.text.replace(/'/g, "\\'")}')" style="position:absolute;top:50%;transform:translateY(-50%);${isMe ? 'left:-28px' : 'right:-28px'};width:20px;height:20px;font-size:9px;color:var(--muted);display:none;background:var(--surface);border-radius:50%;border:1px solid var(--border)" title="রিপ্লাই"><i class="fas fa-reply"></i></button>
+          <button class="ib chat-bubble-reply-btn" onclick="app.setChatReply('${m.id}', '${m.sender}', '${decodedText.replace(/'/g, "\\'")}')" style="position:absolute;top:50%;transform:translateY(-50%);${isMe ? 'left:-28px' : 'right:-28px'};width:20px;height:20px;font-size:9px;color:var(--muted);display:none;background:var(--surface);border-radius:50%;border:1px solid var(--border)" title="রিপ্লাই"><i class="fas fa-reply"></i></button>
         </div>
       `;
     }).join('');
@@ -2057,12 +2139,17 @@ class BachelorKhata {
 
     const myInitials = this.data.settings.initials || 'SA';
 
+    const b64EncodeUnicode = (str) => {
+      try { return btoa(unescape(encodeURIComponent(str))); }
+      catch(e) { return str; }
+    };
+
     const newMsg = {
       id: this.uid(),
       sender: myInitials,
-      text: text,
+      text: b64EncodeUnicode(text),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-      replyTo: replyId ? { id: replyId, sender: replySender, text: replyText } : null
+      replyTo: replyId ? { id: replyId, sender: replySender, text: b64EncodeUnicode(replyText) } : null
     };
 
     input.value = '';
