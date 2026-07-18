@@ -91,12 +91,9 @@ class BachelorKhata {
     this.bindChat();
     if(this.data.settings.syncId) {
       this.cloudDownload().catch(err => console.error("Initial sync error:", err));
-      this.startBackgroundChatPoll();
-      
-      // Request Notification Permissions on Android
-      if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
-        window.Capacitor.Plugins.LocalNotifications.requestPermissions();
-      }
+      this.initNotifications().then(() => {
+        this.startBackgroundChatPoll();
+      });
     }
     // Auto-refresh active roommates and data every 10 seconds
     setInterval(() => {
@@ -108,69 +105,145 @@ class BachelorKhata {
     this.translatePage();
     this.render();
   }
+
+  async initNotifications() {
+    const LN = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications;
+    if (!LN) return;
+
+    try {
+      const perm = await LN.requestPermissions();
+      console.log('Notification permission:', JSON.stringify(perm));
+
+      // Create high-importance channel
+      if (LN.createChannel) {
+        await LN.createChannel({
+          id: 'bachelor_khata_chat',
+          name: 'Chat Messages',
+          description: 'Notifications for new chat messages from Bachelor Khata',
+          importance: 5,
+          visibility: 1,
+          sound: 'default',
+          vibration: true,
+          lights: true,
+          lightColor: '#38bdf8'
+        });
+        console.log('Notification channel created: bachelor_khata_chat');
+      }
+    } catch (e) {
+      console.error('initNotifications error:', JSON.stringify(e));
+    }
+  }
   
   startBackgroundChatPoll() {
     if (!this.data.settings.syncId) return;
     if (this.chatPollInterval) clearInterval(this.chatPollInterval);
     
-    this.lastNotifiedChatCount = this.data.lastReadChatCount || 0;
-    
-    // Check right away on load
-    this.checkUnreadChat();
+    this.lastNotifiedChatCount = undefined;
+    this.checkBackgroundNotifications();
     
     this.chatPollInterval = setInterval(() => {
-      if (this.page === 'chat') {
-        this.cloudDownloadChat(true);
-      } else {
-        this.checkUnreadChat();
-      }
+      this.checkBackgroundNotifications();
     }, 8000);
   }
 
-  async checkUnreadChat() {
+  async checkBackgroundNotifications() {
+    const syncId = this.data.settings.syncId;
+    if (!syncId) return;
+
     try {
-      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${this.data.settings.syncId}`);
+      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${syncId}`);
       if (res.ok) {
-        const text = await res.json();
-        if (text && text !== '""' && text !== 'null') {
-          const msgs = JSON.parse(text);
-          if (msgs.length > (this.data.lastReadChatCount || 0)) {
-            const dBadge = g('nav-chat-badge-d');
-            const mBadge = g('nav-chat-badge-m');
-            if (dBadge) dBadge.style.display = 'block';
-            if (mBadge) mBadge.style.display = 'block';
-            
-            // Check for notifications
-            if (msgs.length > this.lastNotifiedChatCount) {
-               const unreadMsgs = msgs.slice(this.lastNotifiedChatCount);
-               const myInitials = this.data.settings.initials || 'SA';
-               const newRemoteMsgs = unreadMsgs.filter(m => m.sender !== myInitials);
-               
-               if (newRemoteMsgs.length > 0) {
-                 if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
-                    const lastMsg = newRemoteMsgs[newRemoteMsgs.length - 1];
-                    const b64DecodeUnicode = (str) => {
-                       try { return decodeURIComponent(escape(atob(str))); }
-                       catch(e) { return str; }
-                    };
-                    const decodedText = lastMsg.text ? b64DecodeUnicode(lastMsg.text) : '';
-                    
-                    window.Capacitor.Plugins.LocalNotifications.schedule({
-                      notifications: [{
-                        title: lastMsg.sender + ' (ব্যাচেলর খাতা)',
-                        body: decodedText,
-                        id: Math.floor(Math.random() * 100000),
-                        schedule: { at: new Date(Date.now() + 100) }
-                      }]
-                    }).catch(e => console.log('Notification error:', e));
-                 }
-               }
-               this.lastNotifiedChatCount = msgs.length;
+        const text = await res.text();
+        let msgs = [];
+        if (text && text !== '""' && text !== 'null' && text.trim() !== '') {
+          try {
+            let parsed = JSON.parse(text);
+            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+            if (Array.isArray(parsed)) {
+              msgs = parsed.filter(m => m && typeof m === 'object');
             }
+          } catch(err) {
+            msgs = [];
           }
         }
+
+        const currentCount = msgs.length;
+        
+        // If user is actively viewing chat screen, just update screen and don't notify
+        if (this.page === 'chat' && !document.hidden) {
+          this.chatMsgsCount = currentCount;
+          localStorage.setItem('bk_chat_read', currentCount.toString());
+          this.lastNotifiedChatCount = currentCount;
+          this.renderChatMessages(msgs);
+          return;
+        }
+
+        // Initialize baseline if not set yet
+        if (this.lastNotifiedChatCount === undefined) {
+          this.lastNotifiedChatCount = currentCount;
+          return;
+        }
+
+        // Check if there are new messages
+        if (currentCount > this.lastNotifiedChatCount) {
+          const newMsgs = msgs.slice(this.lastNotifiedChatCount);
+          const myInitials = this.data.settings.initials || 'SA';
+          const remoteMsgs = newMsgs.filter(m => m.sender && m.sender !== myInitials);
+          
+          if (remoteMsgs.length > 0) {
+            const lastMsg = remoteMsgs[remoteMsgs.length - 1];
+            const decodedText = this._decodeMsg(lastMsg.text);
+            this.showLocalNotification(lastMsg.sender, decodedText);
+          }
+          this.lastNotifiedChatCount = currentCount;
+        }
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error("Background notification poll failed:", e);
+    }
+  }
+
+  showLocalNotification(sender, text) {
+    const LN = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications;
+    if (!LN) return;
+
+    const notifId = Math.floor(Math.random() * 10000) + 1;
+    LN.schedule({
+      notifications: [{
+        id: notifId,
+        title: `${sender} — ব্যাচেলর খাতা`,
+        body: text || '(নতুন মেসেজ)',
+        channelId: 'bachelor_khata_chat',
+        smallIcon: 'ic_notification',
+        sound: 'default',
+        extra: { sender, text }
+      }]
+    }).then(() => {
+      console.log('Notification sent id=' + notifId);
+    }).catch(e => {
+      console.error('Notification error:', JSON.stringify(e));
+    });
+  }
+
+  // Helper: safely parse chat data from server (handles double-quoted strings, corrupted data)
+  _parseChatData(text) {
+    if (!text || text === '""' || text === 'null' || text.trim() === '') return [];
+    try {
+      let parsed = JSON.parse(text);
+      // Server sometimes wraps value in extra quotes
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+      if (Array.isArray(parsed)) return parsed.filter(m => m && typeof m === 'object');
+      return [];
+    } catch(e) {
+      return [];
+    }
+  }
+
+  // Helper: decode text that may be Base64 encoded or raw
+  _decodeMsg(str) {
+    if (!str) return '';
+    try { return decodeURIComponent(escape(atob(str))); }
+    catch(e) { return str; }
   }
 
   // ── NAVIGATION ────────────────────────────────────────────────
@@ -180,16 +253,6 @@ class BachelorKhata {
   }
 
   navigate(page) {
-    if (page === 'chat') {
-      const dBadge = g('nav-chat-badge-d');
-      const mBadge = g('nav-chat-badge-m');
-      if (dBadge) dBadge.style.display = 'none';
-      if (mBadge) mBadge.style.display = 'none';
-      if (this.chatMsgsCount !== undefined) {
-        this.data.lastReadChatCount = this.chatMsgsCount;
-        this.saveData();
-      }
-    }
     this.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nbtn,.mnbtn').forEach(b => b.classList.remove('active'));
@@ -1700,7 +1763,7 @@ class BachelorKhata {
       const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_active_devices_${id}`);
       let list = [];
       if (res.ok) {
-        const text = await res.json();
+        const text = await res.text();
         if (text && text !== '""' && text !== 'null') {
           list = JSON.parse(text);
         }
@@ -1722,7 +1785,8 @@ class BachelorKhata {
       
       // Save back to server
       await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_active_devices_${id}?value=${encodeURIComponent(JSON.stringify(list))}`, {
-        method: 'POST'
+        method: 'POST',
+        body: ''
       });
       
       // Render active users list in UI
@@ -1761,14 +1825,16 @@ class BachelorKhata {
       // Upload chunks to KV store
       for (let i = 0; i < chunks.length; i++) {
         const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_data_${id}_${i}?value=${encodeURIComponent(chunks[i])}`, {
-          method: 'POST'
+          method: 'POST',
+          body: ''
         });
         if (!res.ok) throw new Error(`Chunk ${i} upload failed`);
       }
       
       // Save chunk count
       const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_data_${id}_count?value=${chunks.length}`, {
-        method: 'POST'
+        method: 'POST',
+        body: ''
       });
       if (!countRes.ok) throw new Error("Count upload failed");
       
@@ -1861,6 +1927,9 @@ class BachelorKhata {
       await this.cloudUpload();
       this.applySyncUI();
       this.toast('মেস সফলভাবে তৈরি হয়েছে! রুমমেটদের কোডটি দিন।', 'success');
+      this.initNotifications().then(() => {
+        this.startBackgroundChatPoll();
+      });
     }
   }
 
@@ -1905,6 +1974,9 @@ class BachelorKhata {
         this.applySyncUI();
         this.closeModal('m-join-room');
         this.toast('সফলভাবে শেয়ার মেসে যোগ দিয়েছেন!', 'success');
+        this.initNotifications().then(() => {
+          this.startBackgroundChatPoll();
+        });
       } else {
         this.closeModal('m-join-room');
       }
@@ -1923,12 +1995,13 @@ class BachelorKhata {
         try {
           const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_active_devices_${id}`);
           if (res.ok) {
-            const text = await res.json();
+            const text = await res.text();
             if (text && text !== '""' && text !== 'null') {
               let list = JSON.parse(text);
               list = list.filter(u => u && u.name && u.name !== myName);
               await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_active_devices_${id}?value=${encodeURIComponent(JSON.stringify(list))}`, {
-                method: 'POST'
+                method: 'POST',
+                body: ''
               });
             }
           }
@@ -1988,14 +2061,16 @@ class BachelorKhata {
 
   initChat() {
     const syncId = this.data.settings.syncId;
+    const notSynced = g('chat-not-synced');
+    const panel = g('chat-active-panel');
     if (!syncId) {
-      g('chat-not-synced').style.display = 'flex';
-      g('chat-active-panel').style.display = 'none';
+      if (notSynced) notSynced.style.display = 'flex';
+      if (panel) panel.style.display = 'none';
       return;
     }
 
-    g('chat-not-synced').style.display = 'none';
-    g('chat-active-panel').style.display = 'flex';
+    if (notSynced) notSynced.style.display = 'none';
+    if (panel) panel.style.display = 'flex';
 
     this.cloudDownloadChat();
     this.startBackgroundChatPoll();
@@ -2017,16 +2092,28 @@ class BachelorKhata {
 
       const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${syncId}`);
       if (res.ok) {
-        const text = await res.json();
+        const text = await res.text();
         let msgs = [];
-        if (text && text !== '""' && text !== 'null') {
-          msgs = JSON.parse(text);
+        if (text && text !== '""' && text !== 'null' && text.trim() !== '') {
+          try {
+            let parsed = JSON.parse(text);
+            // Server sometimes wraps value in extra quotes, decode if needed
+            if (typeof parsed === 'string') {
+              parsed = JSON.parse(parsed);
+            }
+            if (Array.isArray(parsed)) {
+              msgs = parsed.filter(m => m && typeof m === 'object');
+            }
+          } catch(err) {
+            console.error("Corrupted chat data:", err);
+            msgs = [];
+          }
         }
         
         this.chatMsgsCount = msgs.length;
         if (this.page === 'chat') {
            this.data.lastReadChatCount = msgs.length;
-           this.saveData();
+           localStorage.setItem('bk_chat_read', msgs.length.toString());
         }
         
         this.renderChatMessages(msgs);
@@ -2046,21 +2133,17 @@ class BachelorKhata {
     const container = g('chat-messages-container');
     if (!container) return;
 
-    if (msgs.length === 0) {
+    if (!msgs || msgs.length === 0) {
       container.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11px;margin-top:20px;font-family:'Hind Siliguri',sans-serif">কোনো বার্তা নেই। প্রথম বার্তাটি লিখুন!</div>`;
       return;
     }
 
     const myInitials = this.data.settings.initials || 'SA';
 
-    const b64DecodeUnicode = (str) => {
-      try { return decodeURIComponent(escape(atob(str))); }
-      catch(e) { return str; }
-    };
-
-    container.innerHTML = msgs.map(m => {
-      const decodedText = m.text ? b64DecodeUnicode(m.text) : '';
-      const isMe = m.sender === myInitials;
+    container.innerHTML = msgs.filter(m => m && typeof m === 'object').map(m => {
+      const decodedText = this._decodeMsg(m.text);
+      const senderName = m.sender || 'Unknown';
+      const isMe = senderName === myInitials;
       const clr = isMe ? 'linear-gradient(135deg, #38bdf8, #0ea5e9)' : 'var(--surface2)';
       const align = isMe ? 'flex-end' : 'flex-start';
       const borderRad = isMe ? '16px 16px 2px 16px' : '16px 16px 16px 2px';
@@ -2068,29 +2151,33 @@ class BachelorKhata {
       const border = isMe ? 'none' : '1px solid var(--border)';
       
       // Reply preview in bubble
-      // Reply preview in bubble
       let replyHtml = '';
-      if (m.replyTo) {
-        const replyDecodedText = m.replyTo.text ? b64DecodeUnicode(m.replyTo.text) : '';
+      if (m.replyTo && typeof m.replyTo === 'object') {
+        const replyDecodedText = this._decodeMsg(m.replyTo.text);
+        const replySender = m.replyTo.sender || 'Unknown';
         replyHtml = `
           <div style="background:rgba(0,0,0,0.1);padding:6px;border-radius:6px;font-size:10px;border-left:2px solid ${isMe ? '#fff' : 'var(--p)'};margin-bottom:6px;opacity:0.9">
-            <span style="font-weight:800;color:${isMe ? '#fff' : 'var(--p)'}">${m.replyTo.sender}</span>: ${replyDecodedText}
+            <span style="font-weight:800;color:${isMe ? '#fff' : 'var(--p)'}">${replySender}</span>: ${replyDecodedText}
           </div>
         `;
       }
 
-      const senderHtml = isMe ? '' : `<div style="font-size:9.5px;font-weight:800;color:var(--muted);margin-bottom:2px;margin-left:4px">${m.sender}</div>`;
+      const senderHtml = isMe ? '' : `<div style="font-size:9.5px;font-weight:800;color:var(--muted);margin-bottom:2px;margin-left:4px">${senderName}</div>`;
+      const timeHtml = m.time || '';
+      const safeId = m.id || '';
+      const safeDecodedText = decodedText.replace(/"/g, '&quot;');
+      const safeDecodedTextApos = decodedText.replace(/'/g, "\\'");
 
       return `
-        <div style="align-self:${align};display:flex;flex-direction:column;max-width:80%;position:relative" class="chat-msg-wrapper" data-msg-id="${m.id}" data-sender="${m.sender}" data-text="${decodedText.replace(/"/g, '&quot;')}">
+        <div style="align-self:${align};display:flex;flex-direction:column;max-width:80%;position:relative" class="chat-msg-wrapper" data-msg-id="${safeId}" data-sender="${senderName}" data-text="${safeDecodedText}">
           ${senderHtml}
           <div style="background:${clr};color:${color};border:${border};border-radius:${borderRad};padding:8px 12px;font-size:12.5px;box-shadow:0 2px 4px rgba(0,0,0,0.05);position:relative">
             ${replyHtml}
             <div style="font-family:'Hind Siliguri',sans-serif;line-height:1.5;word-break:break-word">${decodedText}</div>
-            <div style="font-size:8px;color:${isMe ? 'rgba(255,255,255,0.7)' : 'var(--muted)'};text-align:right;margin-top:4px;font-weight:700">${m.time}</div>
+            <div style="font-size:8px;color:${isMe ? 'rgba(255,255,255,0.7)' : 'var(--muted)'};text-align:right;margin-top:4px;font-weight:700">${timeHtml}</div>
           </div>
           <!-- Reply action button -->
-          <button class="ib chat-bubble-reply-btn" onclick="app.setChatReply('${m.id}', '${m.sender}', '${decodedText.replace(/'/g, "\\'")}')" style="position:absolute;top:50%;transform:translateY(-50%);${isMe ? 'left:-28px' : 'right:-28px'};width:20px;height:20px;font-size:9px;color:var(--muted);display:none;background:var(--surface);border-radius:50%;border:1px solid var(--border)" title="রিপ্লাই"><i class="fas fa-reply"></i></button>
+          <button class="ib chat-bubble-reply-btn" onclick="app.setChatReply('${safeId}', '${senderName}', '${safeDecodedTextApos}')" style="position:absolute;top:50%;transform:translateY(-50%);${isMe ? 'left:-28px' : 'right:-28px'};width:20px;height:20px;font-size:9px;color:var(--muted);display:none;background:var(--surface);border-radius:50%;border:1px solid var(--border)" title="রিপ্লাই"><i class="fas fa-reply"></i></button>
         </div>
       `;
     }).join('');
@@ -2139,7 +2226,8 @@ class BachelorKhata {
 
     const myInitials = this.data.settings.initials || 'SA';
 
-    const b64EncodeUnicode = (str) => {
+    // Base64 encode text - MORE compact in URLs for Bengali/emoji
+    const encText = (str) => {
       try { return btoa(unescape(encodeURIComponent(str))); }
       catch(e) { return str; }
     };
@@ -2147,9 +2235,9 @@ class BachelorKhata {
     const newMsg = {
       id: this.uid(),
       sender: myInitials,
-      text: b64EncodeUnicode(text),
+      text: encText(text),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-      replyTo: replyId ? { id: replyId, sender: replySender, text: b64EncodeUnicode(replyText) } : null
+      replyTo: replyId ? { id: replyId, sender: replySender, text: encText(replyText) } : null
     };
 
     input.value = '';
@@ -2158,25 +2246,24 @@ class BachelorKhata {
     try {
       // 1. Fetch latest messages first to merge
       const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${syncId}`);
-      let msgs = [];
-      if (res.ok) {
-        const textVal = await res.json();
-        if (textVal && textVal !== '""' && textVal !== 'null') {
-          msgs = JSON.parse(textVal);
-        }
-      }
+      let msgs = this._parseChatData(res.ok ? await res.text() : '');
 
       // 2. Append new message
       msgs.push(newMsg);
 
-      // Keep only last 60 messages to fit inside API payload limits
-      if (msgs.length > 60) {
-        msgs = msgs.slice(msgs.length - 60);
+      // 3. Keep as many messages as possible up to 25 messages, but ensure the payload fits URL limits (~1800 chars)
+      if (msgs.length > 25) msgs = msgs.slice(-25);
+      
+      let payload = encodeURIComponent(JSON.stringify(msgs));
+      while (payload.length > 1800 && msgs.length > 1) {
+        msgs.shift(); // Remove the oldest message to reduce size
+        payload = encodeURIComponent(JSON.stringify(msgs));
       }
 
-      // 3. Save back to server
-      const saveRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_chat_${syncId}?value=${encodeURIComponent(JSON.stringify(msgs))}`, {
-        method: 'POST'
+      // 4. Save back to server via URL param
+      const saveRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_chat_${syncId}?value=${payload}`, {
+        method: 'POST',
+        body: ''
       });
 
       if (saveRes.ok) {
