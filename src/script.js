@@ -5,7 +5,8 @@
 
 class BachelorKhata {
   constructor() {
-    this.page = 'dashboard';
+    this.lang = localStorage.getItem('bk_lang') || 'bn';
+    this.page = localStorage.getItem('bk_last_page') || 'dashboard';
     this.month = new Date().getMonth();
     this.year  = new Date().getFullYear();
     this.calMonth = this.month;
@@ -26,10 +27,11 @@ class BachelorKhata {
       bazar:        JSON.parse(localStorage.getItem('bk_bazar')|| '[]'),
       splits:       JSON.parse(localStorage.getItem('bk_split')|| '[]'),
       settings:     JSON.parse(localStorage.getItem('bk_set')  || '{"initials":"SA","theme":"dark"}'),
+      localChatMsgs: JSON.parse(localStorage.getItem('bk_local_chat') || '[]'),
       lastReadChatCount: parseInt(localStorage.getItem('bk_chat_read') || '0', 10)
     };
 
-    if (!this.data.settings.syncId) this.data.settings.syncId = '';
+    if (!this.data.settings.syncId || this.data.settings.syncId.startsWith('mess_')) this.data.settings.syncId = '';
     if (!this.data.settings.syncEditKey) this.data.settings.syncEditKey = '';
     if (!this.data.settings.lastSync) this.data.settings.lastSync = '';
 
@@ -86,7 +88,9 @@ class BachelorKhata {
     this.bindBazar();
     this.processRecurring();
     const today = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toTimeString().slice(0, 5);
     ['f-date','q-date','me-date','sp-date'].forEach(id => { const el = g(id); if(el) el.value = today; });
+    ['f-time','q-time'].forEach(id => { const el = g(id); if(el) el.value = nowTime; });
     this.bindSync();
     this.bindChat();
     if(this.data.settings.syncId) {
@@ -101,7 +105,7 @@ class BachelorKhata {
       }
     }, 10000);
     this.translatePage();
-    this.render();
+    this.navigate(this.page);
   }
 
   startBackgroundChatPoll() {
@@ -109,24 +113,10 @@ class BachelorKhata {
     if (this.chatPollInterval) clearInterval(this.chatPollInterval);
     
     this.chatPollInterval = setInterval(() => {
-      if (this.page === 'chat') {
+      if (this.page === 'mess' && this.activeMessSubtab === 'chat') {
         this.cloudDownloadChat(true);
       }
     }, 8000);
-  }
-
-  // Helper: safely parse chat data from server (handles double-quoted strings, corrupted data)
-  _parseChatData(text) {
-    if (!text || text === '""' || text === 'null' || text.trim() === '') return [];
-    try {
-      let parsed = JSON.parse(text);
-      // Server sometimes wraps value in extra quotes
-      if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-      if (Array.isArray(parsed)) return parsed.filter(m => m && typeof m === 'object');
-      return [];
-    } catch(e) {
-      return [];
-    }
   }
 
   // Helper: decode text that may be Base64 encoded or raw
@@ -143,7 +133,15 @@ class BachelorKhata {
   }
 
   navigate(page) {
+    if (page === 'chat') {
+      this.navigate('mess');
+      this.switchMessSubtab('chat');
+      return;
+    }
+    const monthBar = document.querySelector('.month-bar');
+    if (monthBar) monthBar.style.display = '';
     this.page = page;
+    localStorage.setItem('bk_last_page', page);
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nbtn,.mnbtn').forEach(b => b.classList.remove('active'));
     g(`page-${page}`)?.classList.add('active');
@@ -167,7 +165,6 @@ class BachelorKhata {
   renderPage(p) {
     if (p==='dashboard') this.renderDash();
     else if (p==='transactions') this.renderTx();
-    else if (p==='accounts') this.renderAccounts();
     else if (p==='mess') this.switchMessSubtab(this.activeMessSubtab || 'summary');
     else if (p==='bazar') this.renderBazar();
     else if (p==='split') this.renderSplits();
@@ -175,7 +172,10 @@ class BachelorKhata {
     else if (p==='goals') this.renderGoals();
     else if (p==='debts') this.renderDebts();
     else if (p==='reports') this.renderReports();
-    else if (p==='chat') this.renderChat();
+    else if (p==='chat') {
+      this.navigate('mess');
+      this.switchMessSubtab('chat');
+    }
   }
 
   render() { this.renderPage(this.page); }
@@ -187,10 +187,18 @@ class BachelorKhata {
         this.month = parseInt(t.dataset.month);
         document.querySelectorAll('.mtab').forEach(tt => tt.classList.remove('active'));
         document.querySelectorAll(`.mtab[data-month="${this.month}"]`).forEach(tt => tt.classList.add('active'));
+        this.centerActiveMonthTab();
         this.render();
       });
     });
     document.querySelectorAll(`.mtab[data-month="${this.month}"]`).forEach(t => t.classList.add('active'));
+    setTimeout(() => this.centerActiveMonthTab(), 100);
+  }
+
+  centerActiveMonthTab() {
+    document.querySelectorAll(`.mtab[data-month="${this.month}"]`).forEach(t => {
+      t.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
   }
 
   // ── HELPERS ───────────────────────────────────────────────────
@@ -199,6 +207,26 @@ class BachelorKhata {
     return '৳' + Math.round(n||0).toLocaleString(loc);
   }
   fmtK(n) { return Math.abs(n)>=1000 ? '৳'+Math.round(n/1000)+'k' : this.fmt(n); }
+  fmtTime(tStr) {
+    if (!tStr) return '';
+    const [h, m] = tStr.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return tStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    const mPad = m < 10 ? '0' + m : m;
+    return `${h12}:${mPad} ${ampm}`;
+  }
+  fmtDateBn(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = d.getDate();
+    const monthNames = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+    const toBnNum = (n) => n.toString().replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+    return `${toBnNum(day)} ${month}, ${toBnNum(year)}`;
+  }
   getAcc(id) { return this.data.accounts.find(a => a.id===id); }
 
   accBal(acc) {
@@ -248,9 +276,9 @@ class BachelorKhata {
         g('f-type').value = t;
         document.querySelectorAll('[data-type]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        this.fillCat('f-cat', t);
+        if (g('f-cat')) this.fillCat('f-cat', t);
         g('f-to-g').style.display = t==='transfer' ? '' : 'none';
-        g('f-cat-g').style.display = t==='transfer' ? 'none' : '';
+        if (g('f-cat-g')) g('f-cat-g').style.display = 'none';
       });
     });
 
@@ -261,7 +289,7 @@ class BachelorKhata {
         g('q-type').value = t;
         document.querySelectorAll('[data-qtype]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        this.fillCat('q-cat', t);
+        if (g('q-cat')) this.fillCat('q-cat', t);
       });
     });
 
@@ -276,7 +304,26 @@ class BachelorKhata {
     g('f-cancel')?.addEventListener('click', () => this.cancelEdit());
 
     // Export CSV
-    [g('export-csv'), g('export-csv2')].forEach(el => el?.addEventListener('click', () => this.exportCSV()));
+    [g('export-pdf'), g('export-pdf2')].forEach(el => el?.addEventListener('click', () => {
+      const today = new Date();
+      const bnMonths = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+      setText('dl-date-display', `${today.getDate()} ${bnMonths[today.getMonth()]}, ${today.getFullYear()}`);
+      this.openModal('m-download');
+    }));
+
+    g('btn-dl-daily')?.addEventListener('click', () => this.exportFilteredPDF('daily'));
+    g('btn-dl-monthly')?.addEventListener('click', () => this.exportFilteredPDF('monthly'));
+    g('btn-dl-yearly')?.addEventListener('click', () => this.exportFilteredPDF('yearly'));
+    g('btn-dl-custom')?.addEventListener('click', () => {
+      const wrap = g('dl-custom-wrap');
+      if (wrap) wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+    });
+    g('btn-dl-custom-do')?.addEventListener('click', () => {
+      const f = g('dl-date-from')?.value;
+      const t = g('dl-date-to')?.value;
+      if(!f || !t) { this.toast('তারিখ নির্বাচন করুন!', 'warning'); return; }
+      this.exportFilteredPDF('custom', f, t);
+    });
 
     // Accounts
     g('acc-save')?.addEventListener('click', () => this.saveAccount());
@@ -424,8 +471,9 @@ class BachelorKhata {
   openModal(id) {
     if (id==='m-quick') {
       this.fillAcc('q-acc');
-      this.fillCat('q-cat', g('q-type')?.value||'expense');
+      if (g('q-cat')) this.fillCat('q-cat', g('q-type')?.value||'expense');
       const today=new Date().toISOString().split('T')[0]; if(g('q-date')&&!g('q-date').value) g('q-date').value=today;
+      const nowTime=new Date().toTimeString().slice(0,5); if(g('q-time')&&!g('q-time').value) g('q-time').value=nowTime;
     }
     g(id)?.classList.add('open');
   }
@@ -438,18 +486,23 @@ class BachelorKhata {
   saveTx() {
     const id     = g('f-id').value;
     const type   = g('f-type').value;
-    const title  = g('f-title').value.trim();
+    let title    = g('f-title').value.trim();
     const amount = parseFloat(g('f-amount').value)||0;
-    const date   = g('f-date').value;
-    const accId  = g('f-acc').value;
-    const cat    = g('f-cat').value;
-    const notes  = g('f-notes').value.trim();
+    const date   = g('f-date').value || new Date().toISOString().split('T')[0];
+    const time   = g('f-time') ? g('f-time').value : new Date().toTimeString().slice(0, 5);
+    const accId  = g('f-acc') ? g('f-acc').value : (this.data.accounts[0]?.id || '');
+    const catEl  = g('f-cat');
+    const cat    = (catEl && catEl.value) ? catEl.value : (type === 'income' ? 'আয়' : type === 'transfer' ? 'ট্রান্সফার' : 'সাধারণ');
+    const notes  = g('f-notes') ? g('f-notes').value.trim() : '';
     const tags   = this.tags.slice();
-    const rec    = g('f-rec').checked;
-    const freq   = g('f-rec-freq').value;
-    const toAcc  = g('f-to-acc').value;
-    if (!title||!amount||!date||!accId) { this.toast('সব ঘর পূরণ করুন!','error'); return; }
-    const tx = { id:id||this.uid(), type, title, amount, date, accountId:accId, category:type==='transfer'?'ট্রান্সফার':cat, notes, tags, recurring:rec, recFreq:rec?freq:null, toAccountId:type==='transfer'?toAcc:null };
+    const rec    = g('f-rec') ? g('f-rec').checked : false;
+    const freq   = g('f-rec-freq') ? g('f-rec-freq').value : 'monthly';
+    const toAcc  = g('f-to-acc') ? g('f-to-acc').value : '';
+    
+    if (!title) title = type === 'income' ? 'আয়' : (type === 'transfer' ? 'ট্রান্সফার' : 'খরচ');
+    if (!amount) { this.toast('টাকার পরিমাণ লিখুন!','error'); return; }
+    
+    const tx = { id:id||this.uid(), type, title, amount, date, time, accountId:accId, category:type==='transfer'?'ট্রান্সফার':cat, notes, tags, recurring:rec, recFreq:rec?freq:null, toAccountId:type==='transfer'?toAcc:null };
     if(id) { this.data.transactions=this.data.transactions.map(t=>t.id===id?tx:t); this.toast('লেনদেন আপডেট হয়েছে!','success'); }
     else { this.data.transactions.push(tx); this.toast('লেনদেন যোগ হয়েছে!','success'); }
     this.save('transactions'); this.cancelEdit(); this.render();
@@ -458,12 +511,17 @@ class BachelorKhata {
   saveQuickTx() {
     const type   = g('q-type').value;
     const amount = parseFloat(g('q-amount').value)||0;
-    const title  = g('q-title').value.trim();
-    const date   = g('q-date').value;
-    const cat    = g('q-cat').value;
-    const accId  = g('q-acc').value;
-    if (!amount||!title||!date||!accId) { this.toast('সব ঘর পূরণ করুন!','error'); return; }
-    this.data.transactions.push({id:this.uid(),type,title,amount,date,accountId:accId,category:cat,notes:'',tags:[],recurring:false});
+    let title    = g('q-title').value.trim();
+    const date   = g('q-date').value || new Date().toISOString().split('T')[0];
+    const time   = g('q-time') ? g('q-time').value : new Date().toTimeString().slice(0, 5);
+    const catEl  = g('q-cat');
+    const cat    = (catEl && catEl.value) ? catEl.value : (type === 'income' ? 'আয়' : 'সাধারণ');
+    const accId  = g('q-acc') ? g('q-acc').value : (this.data.accounts[0]?.id || '');
+    
+    if (!title) title = type === 'income' ? 'আয়' : 'খরচ';
+    if (!amount) { this.toast('টাকার পরিমাণ লিখুন!','error'); return; }
+    
+    this.data.transactions.push({id:this.uid(),type,title,amount,date,time,accountId:accId,category:cat,notes:'',tags:[],recurring:false});
     this.save('transactions'); this.closeModal('m-quick'); this.toast('যোগ হয়েছে!','success');
     g('q-amount').value=''; g('q-title').value=''; this.render();
   }
@@ -472,16 +530,16 @@ class BachelorKhata {
     const t = this.data.transactions.find(tx=>tx.id===id); if(!t) return;
     this.navigate('transactions');
     setTimeout(()=>{
-      g('f-id').value=t.id; g('f-type').value=t.type; g('f-title').value=t.title; g('f-amount').value=t.amount; g('f-date').value=t.date; g('f-notes').value=t.notes||''; g('f-rec').checked=t.recurring||false;
+      g('f-id').value=t.id; g('f-type').value=t.type; g('f-title').value=t.title; g('f-amount').value=t.amount; g('f-date').value=t.date; if(g('f-time')) g('f-time').value=t.time||new Date().toTimeString().slice(0,5); g('f-notes').value=t.notes||''; g('f-rec').checked=t.recurring||false;
       if(t.recurring){g('f-rec-freq').style.display='';g('f-rec-freq').value=t.recFreq||'monthly';}
       this.tags=t.tags||[]; this.renderTags(); g('f-tags').value=this.tags.join(',');
-      this.fillCat('f-cat',t.type); this.fillAcc('f-acc'); this.fillAcc('f-to-acc');
-      g('f-acc').value=t.accountId; g('f-cat').value=t.category;
+      if(g('f-cat')) this.fillCat('f-cat',t.type); this.fillAcc('f-acc'); this.fillAcc('f-to-acc');
+      g('f-acc').value=t.accountId; if(g('f-cat')) g('f-cat').value=t.category;
       if(t.toAccountId) g('f-to-acc').value=t.toAccountId;
       document.querySelectorAll('[data-type]').forEach(b=>b.classList.toggle('active',b.dataset.type===t.type));
-      g('f-to-g').style.display=t.type==='transfer'?'':'none'; g('f-cat-g').style.display=t.type==='transfer'?'none':'';
-      setText('form-title','লেনদেন সম্পাদনা'); g('f-submit').textContent='✓ আপডেট করুন'; g('f-cancel').style.display='';
-      g('f-submit').style.background='linear-gradient(135deg,#059669,#0d9488)';
+      g('f-to-g').style.display=t.type==='transfer'?'':'none'; if(g('f-cat-g')) g('f-cat-g').style.display='none';
+      setText('form-title','আপডেট'); g('f-submit').textContent='আপডেট'; g('f-cancel').style.display='';
+      g('f-submit').style.background='#3b82f6';
     },100);
   }
 
@@ -492,12 +550,12 @@ class BachelorKhata {
   }
 
   cancelEdit() {
-    g('f-id').value=''; g('tx-form').reset(); g('f-date').value=new Date().toISOString().split('T')[0];
+    g('f-id').value=''; g('tx-form').reset(); g('f-date').value=new Date().toISOString().split('T')[0]; if(g('f-time')) g('f-time').value=new Date().toTimeString().slice(0,5);
     this.tags=[]; this.renderTags(); g('f-tags').value='';
-    setText('form-title','নতুন লেনদেন'); g('f-submit').textContent='লেনদেন যোগ করুন'; g('f-submit').style.background=''; g('f-cancel').style.display='none';
-    g('f-rec-freq').style.display='none'; g('f-to-g').style.display='none'; g('f-cat-g').style.display='';
+    setText('form-title','নতুন'); g('f-submit').textContent='অ্যাড'; g('f-submit').style.background=''; g('f-cancel').style.display='none';
+    g('f-rec-freq').style.display='none'; g('f-to-g').style.display='none'; if(g('f-cat-g')) g('f-cat-g').style.display='none';
     document.querySelectorAll('[data-type]').forEach(b=>b.classList.toggle('active',b.dataset.type==='expense'));
-    g('f-type').value='expense'; this.fillCat('f-cat','expense');
+    g('f-type').value='expense'; if(g('f-cat')) this.fillCat('f-cat','expense');
   }
 
   // ── ACCOUNTS ──────────────────────────────────────────────────
@@ -808,14 +866,14 @@ class BachelorKhata {
   // ── DEBTS ─────────────────────────────────────────────────────
   openDebtModal(id=null) {
     g('d-id').value=id||''; setText('debt-modal-title',id?'ধার সম্পাদনা':'নতুন ধার রেকর্ড'); g('d-del-btn').style.display=id?'':'none';
-    if(id){const d=this.data.debts.find(d=>d.id===id);if(d){g('d-person').value=d.person;g('d-amount').value=d.amount;g('d-due').value=d.due||'';g('d-desc').value=d.desc||'';g('d-type').value=d.type;document.querySelectorAll('[data-dtype]').forEach(b=>b.classList.toggle('active',b.dataset.dtype===d.type));}}
-    else{['d-person','d-amount','d-due','d-desc'].forEach(i=>{const el=g(i);if(el)el.value='';});g('d-type').value='i-owe';document.querySelectorAll('[data-dtype]').forEach(b=>b.classList.toggle('active',b.dataset.dtype==='i-owe'));}
+    if(id){const d=this.data.debts.find(d=>d.id===id);if(d){g('d-person').value=d.person;g('d-amount').value=d.amount;g('d-due').value=d.due||'';g('d-type').value=d.type;document.querySelectorAll('[data-dtype]').forEach(b=>b.classList.toggle('active',b.dataset.dtype===d.type));}}
+    else{['d-person','d-amount','d-due'].forEach(i=>{const el=g(i);if(el)el.value='';});g('d-type').value='i-owe';document.querySelectorAll('[data-dtype]').forEach(b=>b.classList.toggle('active',b.dataset.dtype==='i-owe'));}
     this.openModal('m-debt');
   }
 
   saveDebt() {
     const id=g('d-id').value; const type=g('d-type').value; const person=g('d-person').value.trim(); const amount=parseFloat(g('d-amount').value)||0;
-    const due=g('d-due').value; const desc=g('d-desc').value.trim();
+    const due=g('d-due').value; const desc='';
     if(!person||!amount){this.toast('সব ঘর পূরণ করুন।','error');return;}
     const debt={id:id||this.uid(),type,person,amount,due,desc,settled:false};
     if(id){this.data.debts=this.data.debts.map(d=>d.id===id?{...d,type,person,amount,due,desc}:d);this.toast('আপডেট হয়েছে!','success');}
@@ -880,13 +938,14 @@ class BachelorKhata {
     setText('d-balance',this.fmt(this.totalBal()));
     setText('d-income',this.fmt(income));
     setText('d-expense',this.fmt(expense));
-    setText('d-acc-total',this.fmtK(this.totalBal()));
+    setText('d-acc-total',this.fmt(this.totalBal()));
     setText('d-acc-count', this.lang === 'bn' ? `${this.data.accounts.length}টি` : `${this.data.accounts.length} wallets`);
 
-    // Mess stats (only include shared mess expenses)
+    // Mess stats
     const messExpenses = this.data.mess.entries.filter(e => {
+      if (!e.date) return false;
       const d = new Date(e.date);
-      return e.type === 'expense' && e.payerId === 'mess-fund' && d.getUTCMonth() === this.month && d.getUTCFullYear() === this.year;
+      return e.type === 'expense' && d.getUTCMonth() === this.month && d.getUTCFullYear() === this.year;
     });
     const messTotal = messExpenses.reduce((s,e) => s+e.amount, 0);
     const memberCount = this.data.mess.members.length;
@@ -895,7 +954,7 @@ class BachelorKhata {
 
     // Debts
     const activeDebts=this.data.debts.filter(d=>!d.settled);
-    setText('d-debt-total',this.fmtK(activeDebts.reduce((s,d)=>s+d.amount,0)));
+    setText('d-debt-total',this.fmt(activeDebts.reduce((s,d)=>s+d.amount,0)));
     setText('d-debt-count', this.lang === 'bn' ? `${activeDebts.length}টি` : `${activeDebts.length} active`);
 
     const monthsBN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
@@ -906,8 +965,7 @@ class BachelorKhata {
     this.renderCatChart(mTx);
     this.renderTrendChart();
     this.renderHealthScore(income,expense);
-    this.renderInsights(mTx,income,expense);
-    this.renderRecent();
+    this.renderRecent(mTx);
     this.responsiveChartGrid();
   }
 
@@ -1019,72 +1077,147 @@ class BachelorKhata {
     g('insights-list').innerHTML=insights.slice(0,5).map(ins=>`<div class="ins"><div class="ins-ico" style="background:var(--p-light);font-size:16px">${ins.e}</div><span style="font-size:11px;font-family:'Hind Siliguri',sans-serif">${ins.t}</span></div>`).join('');
   }
 
-  renderRecent() {
-    const recent=[...this.data.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
+  renderRecent(mTx) {
+    const txList = mTx || this.data.transactions;
+    const recent=[...txList].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
     if(!recent.length){g('recent-list').innerHTML=`<div class="empty"><i class="fas fa-receipt"></i><p>${this.t('no_tx')}</p></div>`;return;}
     g('recent-list').innerHTML=recent.map(t=>{
       const acc=this.getAcc(t.accountId); const isInc=t.type==='income'; const isTr=t.type==='transfer';
       const color=isInc?'var(--green)':isTr?'var(--blue)':'var(--red)'; const sign=isInc?'+':isTr?'⇄':'-';
-      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="width:34px;height:34px;border-radius:9px;background:${color}1a;border:1px solid ${color}33;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${this.catEmoji(t.category)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--head);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Hind Siliguri',sans-serif">${t.title}</div><div style="font-size:10px;color:var(--muted)">${this.tCat(t.category)} · ${t.date}</div></div><div style="font-size:13px;font-weight:800;color:${color};white-space:nowrap">${sign}${this.fmt(t.amount)}</div></div>`;
+      const timeDisplay=t.time ? ` · ${this.fmtTime(t.time)}` : '';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="width:34px;height:34px;border-radius:9px;background:${color}1a;border:1px solid ${color}33;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${this.catEmoji(t.category)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--head);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Hind Siliguri',sans-serif">${t.title}</div><div style="font-size:10px;color:var(--muted)">${t.date}${timeDisplay}</div></div><div style="font-size:13px;font-weight:800;color:${color};white-space:nowrap">${sign}${this.fmt(t.amount)}</div></div>`;
     }).join('');
   }
 
   // ── RENDER: TRANSACTIONS ──────────────────────────────────────
   renderTx() {
     this.fillAcc('f-acc'); this.fillAcc('f-to-acc');
-    const fc=g('t-cat'); if(fc){const all=[...this.INCOME_CATS,...this.EXPENSE_CATS];fc.innerHTML=`<option value="all">${this.t('all_cats')}</option>`+all.map(c=>`<option value="${c}">${this.tCat(c)}</option>`).join('');}
     this.applyTxFilter();
   }
 
   bindFilters() {
-    ['t-search','t-type','t-cat'].forEach(id=>{g(id)?.addEventListener('input',()=>this.applyTxFilter());g(id)?.addEventListener('change',()=>this.applyTxFilter());});
+    // Period tabs: আজ / চলতি মাস / মোট
+    document.querySelectorAll('#t-period-tabs .tab').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('#t-period-tabs .tab').forEach(tb => tb.classList.remove('active'));
+        b.classList.add('active');
+        this.txPeriod = b.dataset.period;
+        this.applyTxFilter();
+      });
+    });
+
+    // Type filter pills: সব / আয় / ব্যয়
+    document.querySelectorAll('#t-filter-tabs .tab').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('#t-filter-tabs .tab').forEach(tb => tb.classList.remove('active'));
+        b.classList.add('active');
+        this.txFilterType = b.dataset.tfilter;
+        this.applyTxFilter();
+      });
+    });
+
+    g('t-search')?.addEventListener('input', () => this.applyTxFilter());
   }
 
   applyTxFilter() {
-    const search=(g('t-search')?.value||'').toLowerCase(); const fType=g('t-type')?.value||'all'; const fCat=g('t-cat')?.value||'all';
-    let tx=this.data.transactions.filter(t=>{
-      const d=new Date(t.date); const mm=d.getUTCMonth()===this.month&&d.getUTCFullYear()===this.year;
-      const ms=!search||t.title.toLowerCase().includes(search)||(t.notes||'').toLowerCase().includes(search)||(t.tags||[]).some(tag=>tag.includes(search));
-      return mm&&ms&&(fType==='all'||t.type===fType)&&(fCat==='all'||t.category===fCat);
-    }).sort((a,b)=>new Date(b.date)-new Date(a.date));
-    const tbody=g('tx-list'); const empty=g('tx-empty'); if(!tbody) return;
-    if(!tx.length){tbody.innerHTML='';empty.style.display='';}
-    else{
-      empty.style.display='none';
-      tbody.innerHTML=tx.map(t=>{
-        const acc=this.getAcc(t.accountId); const isInc=t.type==='income'; const isTr=t.type==='transfer';
-        const color=isInc?'var(--green)':isTr?'var(--blue)':'var(--red)'; const sign=isInc?'+':isTr?'⇄':'-';
-        const tags=(t.tags||[]).map(tag=>`<span style="display:inline-flex;background:var(--p-light);border:1px solid rgba(249,115,22,.2);color:var(--p);border-radius:99px;padding:1px 6px;font-size:8px;font-weight:700">#${tag}</span>`).join(' ');
-        return `<tr class="${isTr?'tr-row':''}">
-          <td style="white-space:nowrap;font-size:10px;color:var(--muted);font-weight:600">${t.date}</td>
-          <td><div style="font-size:12px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${t.title}</div>${t.notes?`<div style="font-size:10px;color:var(--muted)">${t.notes}</div>`:''}</td>
-          <td><span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:9px;font-weight:700;background:var(--surface2);border:1px solid var(--border);color:var(--muted)">${this.catEmoji(t.category)} ${this.tCat(t.category)}</span></td>
-          <td style="font-size:10px;color:var(--muted)">${acc?`${this.accIcon(acc.type)} ${this.tAccName(acc.name)}`:'-'}</td>
-          <td style="text-align:right;font-size:12px;font-weight:800;color:${color};white-space:nowrap">${sign}${this.fmt(t.amount)}</td>
-          <td style="text-align:center"><div style="display:flex;gap:3px;justify-content:center"><button onclick="app.editTx('${t.id}')" class="btn btn-s bsm bico" title="${this.t('edit')}"><i class="fas fa-pen" style="font-size:9px"></i></button><button onclick="app.deleteTx('${t.id}')" class="btn btn-d bsm bico" title="${this.t('delete')}"><i class="fas fa-trash" style="font-size:9px"></i></button></div></td>
-        </tr>`;
-      }).join('');
+    const period = this.txPeriod || 'month';
+    const filterType = this.txFilterType || 'all';
+    const search = (g('t-search')?.value || '').toLowerCase();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 1. Filter for Top Summary Box based on period
+    const summaryTx = this.data.transactions.filter(t => {
+      if (period === 'today') return t.date === todayStr;
+      if (period === 'month') {
+        const d = new Date(t.date);
+        return d.getUTCMonth() === this.month && d.getUTCFullYear() === this.year;
+      }
+      return true; // 'all'
+    });
+
+    const sumIn = summaryTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const sumOut = summaryTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const sumBal = sumIn - sumOut;
+
+    setText('t-sum-in', `+${this.fmt(sumIn)}`);
+    setText('t-sum-out', `-${this.fmt(sumOut)}`);
+    setText('t-sum-bal', `${sumBal >= 0 ? '+' : ''}${this.fmt(sumBal)}`);
+
+    // 2. Filter for List based on period, filterType, and search
+    let listTx = summaryTx.filter(t => {
+      const matchType = filterType === 'all' || t.type === filterType;
+      const matchSearch = !search || t.title.toLowerCase().includes(search) || (t.notes || '').toLowerCase().includes(search);
+      return matchType && matchSearch;
+    }).sort((a, b) => {
+      if (b.date !== a.date) return new Date(b.date) - new Date(a.date);
+      return (b.time || '').localeCompare(a.time || '');
+    });
+
+    const container = g('tx-cards-container');
+    const empty = g('tx-empty');
+    if (!container) return;
+
+    if (!listTx.length) {
+      container.innerHTML = '';
+      if (empty) empty.style.display = '';
+      return;
     }
-    const ti=tx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-    const to=tx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-    setText('tx-count', this.lang === 'bn' ? `${tx.length}টি রেকর্ড` : `${tx.length} records`); setText('tx-in',`+${this.fmt(ti)}`); setText('tx-out',`-${this.fmt(to)}`);
+
+    if (empty) empty.style.display = 'none';
+
+    // Group transactions by date
+    const groups = {};
+    listTx.forEach(t => {
+      groups[t.date] = groups[t.date] || [];
+      groups[t.date].push(t);
+    });
+
+    container.innerHTML = Object.entries(groups).map(([dateStr, items]) => {
+      const dateLabel = this.fmtDateBn(dateStr);
+      const dayIn = items.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+      const dayOut = items.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+      const itemsHtml = items.map(t => {
+        const isInc = t.type === 'income';
+        const timeLabel = t.time ? this.fmtTime(t.time) : '';
+        return `
+          <div class="tx-item-card ${isInc ? 'tx-item-income' : 'tx-item-expense'}">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;background:${isInc ? 'rgba(34,197,94,.18)' : 'rgba(239,68,68,.18)'};color:${isInc ? '#10b981' : '#ef4444'}">
+                <i class="fas fa-${isInc ? 'plus' : 'minus'}"></i>
+              </div>
+              <div>
+                <div style="font-size:13.5px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${t.title}</div>
+                <div style="font-size:11px;color:var(--muted);font-weight:500">${timeLabel || t.date}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-size:15px;font-weight:800;color:${isInc ? '#10b981' : '#ef4444'};font-family:'Hind Siliguri',sans-serif">${isInc ? '+' : '-'}${this.fmt(t.amount)}</div>
+              <div style="display:flex;gap:4px">
+                <button onclick="app.editTx('${t.id}')" class="btn btn-s bsm bico" title="সম্পাদনা"><i class="fas fa-pen" style="font-size:10px"></i></button>
+                <button onclick="app.deleteTx('${t.id}')" class="btn btn-d bsm bico" title="মুছুন"><i class="fas fa-trash" style="font-size:10px"></i></button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div style="margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 4px 8px 4px;font-size:11px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;border-bottom:1px dashed var(--border);margin-bottom:8px">
+            <span style="font-weight:700">${dateLabel}</span>
+            <div style="display:flex;gap:8px">
+              <span>মোট</span>
+              ${dayIn > 0 ? `<span style="color:var(--green);font-weight:700">+${this.fmt(dayIn)}</span>` : ''}
+              ${dayOut > 0 ? `<span style="color:var(--red);font-weight:700">-${this.fmt(dayOut)}</span>` : ''}
+            </div>
+          </div>
+          ${itemsHtml}
+        </div>
+      `;
+    }).join('');
   }
 
-  // ── RENDER: ACCOUNTS ──────────────────────────────────────────
-  renderAccounts() {
-    const grid=g('accounts-grid'); if(!grid) return;
-    grid.innerHTML=this.data.accounts.map(acc=>{
-      const bal=this.accBal(acc); const mTx=this.txForMonth().filter(t=>t.accountId===acc.id||t.toAccountId===acc.id);
-      const mIn=mTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0); const mOut=mTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-      return `<div class="card acc-card ch" onclick="app.openAccModal('${acc.id}')" style="background:linear-gradient(135deg,${acc.color}18,${acc.color}06);border-color:${acc.color}28">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="width:42px;height:42px;border-radius:13px;background:${acc.color}22;border:1px solid ${acc.color}38;display:flex;align-items:center;justify-content:center;font-size:20px">${this.accIcon(acc.type)}</div><span class="badge" style="background:${acc.color}18;border-color:${acc.color}35;color:${acc.color};font-family:'Hind Siliguri',sans-serif">${this.t('acc_type_' + acc.type)}</span></div>
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px;font-family:'Hind Siliguri',sans-serif">${this.tAccName(acc.name)}</div>
-        <div style="font-size:24px;font-weight:900;color:var(--head);letter-spacing:-.02em;font-family:'Hind Siliguri',sans-serif">${this.fmt(bal)}</div>
-        <div style="display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid ${acc.color}18"><div><div style="font-size:8px;font-weight:800;text-transform:uppercase;color:var(--muted)">${this.t('income_lbl')}</div><div style="font-size:11px;font-weight:800;color:var(--green);font-family:'Hind Siliguri',sans-serif">+${this.fmtK(mIn)}</div></div><div><div style="font-size:8px;font-weight:800;text-transform:uppercase;color:var(--muted)">${this.t('expense_lbl')}</div><div style="font-size:11px;font-weight:800;color:var(--red);font-family:'Hind Siliguri',sans-serif">-${this.fmtK(mOut)}</div></div></div>
-      </div>`;
-    }).join('');
-    if(!this.data.accounts.length)grid.innerHTML=`<div class="empty"><i class="fas fa-wallet"></i><p>${this.t('no_accounts')}</p></div>`;
-  }
 
   // ── RENDER: MESS ──────────────────────────────────────────────
   renderMess() {
@@ -1372,16 +1505,6 @@ class BachelorKhata {
 
     requestAnimationFrame(() => {
       if(ctx1)this.charts.rBar=new Chart(ctx1,{type:'bar',data:{labels:bl,datasets:[{label:this.t('income_lbl'),data:bi,backgroundColor:'rgba(16,185,129,.6)',borderRadius:5},{label:this.t('expense_lbl'),data:be,backgroundColor:'rgba(244,63,94,.6)',borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:muted,font:{size:9,weight:'700',family:'Hind Siliguri'},usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${this.fmt(c.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:muted,font:{size:9,weight:'700',family:'Hind Siliguri'}}},y:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:muted,font:{size:9,family:'Hind Siliguri'},callback:v=>this.fmtK(v)}}}}});
-      
-      const catT={};allTx.filter(t=>t.type==='expense').forEach(t=>{catT[t.category]=(catT[t.category]||0)+t.amount;});
-      const sc=Object.entries(catT).sort((a,b)=>b[1]-a[1]);
-      if(ctx2)this.charts.rCat=new Chart(ctx2,{type:'doughnut',data:{labels:sc.map(([c])=>c),datasets:[{data:sc.map(([,v])=>v),backgroundColor:['#f97316','#f43f5e','#10b981','#f59e0b','#3b82f6','#a855f7','#06b6d4','#ec4899'],borderColor:'transparent',borderWidth:0}]},options:{cutout:'72%',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:muted,font:{size:9,weight:'700',family:'Hind Siliguri'},padding:7,usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.label}: ${this.fmt(c.parsed)}`}}}}});
-      
-      const tc=g('top-cats');
-      if(tc){const max=sc[0]?.[1]||1;tc.innerHTML=sc.slice(0,5).map(([cat,amt],i)=>{const pct=Math.round((amt/max)*100);const clrs=['#f97316','#f43f5e','#10b981','#f59e0b','#3b82f6'][i];return `<div><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${this.catEmoji(cat)} ${cat}</span><span style="font-size:12px;font-weight:800;color:var(--head);font-family:'Hind Siliguri',sans-serif">${this.fmt(amt)}</span></div><div style="height:4px;border-radius:99px;background:var(--border)"><div style="height:100%;width:${pct}%;border-radius:99px;background:${clrs}"></div></div></div>`;}).join('');}
-      
-      const dow=[0,0,0,0,0,0,0];allTx.filter(t=>t.type==='expense').forEach(t=>{const day=new Date(t.date).getDay();dow[day]+=t.amount;});
-      if(ctx3)this.charts.rDow=new Chart(ctx3,{type:'bar',data:{labels:this.lang==='en'?['Sun','Mon','Tue','Wed','Thu','Fri','Sat']:['রবি','সোম','মঙ্গল','বুধ','বৃহ','শুক্র','শনি'],datasets:[{data:dow,backgroundColor:dow.map(v=>v===Math.max(...dow)?'rgba(249,115,22,.7)':'rgba(249,115,22,.25)'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${this.fmt(c.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:muted,font:{size:9,weight:'700',family:'Hind Siliguri'}}},y:{display:false}}}});
     });
     this.renderCalendar();
   }
@@ -1505,8 +1628,8 @@ class BachelorKhata {
   }
 
   applyProfile() {
-    const i=this.data.settings.initials||'SA';
-    const initText = i.trim().split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase() || 'SA';
+    const i=this.data.settings.initials||'';
+    const initText = i ? i.trim().split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase() : 'U';
     const photo=localStorage.getItem('bk_avatar');
     
     // Sidebar profile button
@@ -1523,7 +1646,7 @@ class BachelorKhata {
       else { pImg.style.display='none'; pTxt.textContent=initText; pTxt.style.display=''; }
     }
     
-    setText('p-name-display',`${i}-এর ব্যাচেলর খাতা`);
+    setText('p-name-display', i ? `${i}-এর ব্যাচেলর খাতা` : 'ব্যাচেলর খাতা');
     const piEl=g('p-initials'); if(piEl)piEl.value=i;
   }
 
@@ -1533,16 +1656,16 @@ class BachelorKhata {
     g('p-initials')?.addEventListener('input',e=>{
       const v=e.target.value;
       const trimmed=v.trim();
-      this.data.settings.initials=trimmed||'SA';
+      this.data.settings.initials=trimmed||'';
       this.save('settings');
       
-      const i=trimmed||'SA';
-      const initText=i.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase()||'SA';
+      const i=trimmed||'';
+      const initText=i ? i.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase() : 'U';
       const photo=localStorage.getItem('bk_avatar');
       
       const sTxt=g('profile-initials'); if(sTxt && !photo) sTxt.textContent=initText;
       const pTxt=g('p-initials-lg'); if(pTxt && !photo) pTxt.textContent=initText;
-      setText('p-name-display',`${i}-এর ব্যাচেলর খাতা`);
+      setText('p-name-display', i ? `${i}-এর ব্যাচেলর খাতা` : 'ব্যাচেলর খাতা');
     });
     g('p-avatar')?.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(f.size>1.5*1024*1024){this.toast('ফাইল খুব বড়। সর্বোচ্চ ১.৫MB।','error');return;}const r=new FileReader();r.onload=ev=>{localStorage.setItem('bk_avatar',ev.target.result);this.applyProfile();this.toast('ছবি আপলোড হয়েছে!','success');};r.readAsDataURL(f);});
     g('p-rm-photo')?.addEventListener('click',()=>{localStorage.removeItem('bk_avatar');this.applyProfile();this.toast('ছবি সরানো হয়েছে।','info');});
@@ -1665,7 +1788,7 @@ class BachelorKhata {
       list = list.filter(u => u && u.name && (now - u.time < activeWindow));
       
       // Update/add current user
-      const myName = this.data.settings.initials || 'SA';
+      const myName = this.data.settings.initials || 'User';
       const myEntry = list.find(u => u.name === myName);
       if (myEntry) {
         myEntry.time = now;
@@ -1698,6 +1821,7 @@ class BachelorKhata {
     const id = this.data.settings.syncId;
     if(!id || this.isSyncing) return;
     try {
+      this.isSyncing = true;
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
       if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
@@ -1739,13 +1863,16 @@ class BachelorKhata {
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
       if(icon && !silent) icon.className = 'fas fa-rotate';
+    } finally {
+      this.isSyncing = false;
     }
   }
 
   async cloudDownload(silent = false) {
     const id = this.data.settings.syncId;
-    if(!id) return;
+    if(!id || this.isSyncing) return;
     try {
+      this.isSyncing = true;
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
       if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
@@ -1775,19 +1902,14 @@ class BachelorKhata {
         const remoteData = this.decompressData(joinedStr);
         
         if (remoteData) {
-          this.isSyncing = true;
-          try {
-            if (remoteData.mess) this.data.mess = remoteData.mess;
-            if (remoteData.bazar) this.data.bazar = remoteData.bazar;
-            this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            this.save('settings');
-            this.save('mess');
-            this.save('bazar');
-            this.applySyncUI();
-            this.render();
-          } finally {
-            this.isSyncing = false;
-          }
+          if (remoteData.mess) this.data.mess = remoteData.mess;
+          if (remoteData.bazar) this.data.bazar = remoteData.bazar;
+          this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          this.save('settings');
+          this.save('mess');
+          this.save('bazar');
+          this.applySyncUI();
+          this.render();
         }
       }
       
@@ -1798,6 +1920,8 @@ class BachelorKhata {
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
       if(icon && !silent) icon.className = 'fas fa-rotate';
+    } finally {
+      this.isSyncing = false;
     }
   }
 
@@ -1876,7 +2000,7 @@ class BachelorKhata {
   async handleSyncDisconnect() {
     if (confirm('মেস লিংক সরাতে চান? এর পর থেকে অফলাইনে ডেটা সেভ হবে।')) {
       const id = this.data.settings.syncId;
-      const myName = this.data.settings.initials || 'SA';
+      const myName = this.data.settings.initials || 'User';
       if (id) {
         try {
           const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_active_devices_${id}`);
@@ -1909,16 +2033,109 @@ class BachelorKhata {
     this.toast('সিঙ্ক সম্পন্ন হয়েছে! ✓','success');
   }
 
-  // ── EXPORT CSV ────────────────────────────────────────────────
-  exportCSV() {
-    const headers=['তারিখ','বিবরণ','ধরন','ক্যাটাগরি','একাউন্ট','পরিমাণ','নোট','ট্যাগ'];
-    const rows=this.data.transactions.map(t=>{const acc=this.getAcc(t.accountId);return[t.date,`"${t.title}"`,t.type,t.category,acc?acc.name:'',t.amount,`"${t.notes||''}"`,`"${(t.tags||[]).join(',')}"`].join(',');});
-    const csv=[headers.join(','),...rows].join('\n');
-    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=`bachelor_khata_${new Date().toISOString().split('T')[0]}.csv`;a.click();
-    URL.revokeObjectURL(url);
-    this.toast('CSV ডাউনলোড হচ্ছে!','success');
+  // ── EXPORT PDF ────────────────────────────────────────────────
+  exportFilteredPDF(type, fromDate, toDate) {
+    this.closeModal('m-download');
+    const w = window.open('', '_blank');
+    if(!w) { this.toast('পপ-আপ ব্লকার অন করা থাকলে অফ করুন।', 'error'); return; }
+    
+    let filtered = [...this.data.transactions].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    let reportTitle = 'সর্বকালীন আর্থিক বিবরণী';
+    const now = new Date();
+    
+    if (type === 'daily') {
+      const todayStr = now.toISOString().split('T')[0];
+      filtered = filtered.filter(t => t.date === todayStr);
+      reportTitle = `দৈনিক রিপোর্ট (${todayStr})`;
+    } else if (type === 'monthly') {
+      filtered = filtered.filter(t => {
+        const d = new Date(t.date);
+        return d.getMonth() === this.month && d.getFullYear() === this.year;
+      });
+      const mBn = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+      reportTitle = `মাসিক রিপোর্ট (${mBn[this.month]} ${this.year})`;
+    } else if (type === 'yearly') {
+      filtered = filtered.filter(t => new Date(t.date).getFullYear() === this.year);
+      reportTitle = `বাৎসরিক রিপোর্ট (${this.year})`;
+    } else if (type === 'custom') {
+      filtered = filtered.filter(t => t.date >= fromDate && t.date <= toDate);
+      reportTitle = `কাস্টম রিপোর্ট (${fromDate} হতে ${toDate})`;
+    }
+    
+    let rowsHtml = '';
+    let inc = 0, exp = 0;
+    
+    filtered.forEach(t => {
+      const acc = this.getAcc(t.accountId);
+      const accName = acc ? acc.name : '';
+      const sign = t.type === 'income' ? '+' : t.type === 'transfer' ? '⇆' : '-';
+      const color = t.type === 'income' ? '#10b981' : t.type === 'transfer' ? '#3b82f6' : '#f43f5e';
+      rowsHtml += `
+        <tr>
+          <td>${t.date}</td>
+          <td>${t.title}</td>
+          <td>${this.catEmoji(t.category)} ${this.tCat(t.category)}</td>
+          <td>${this.tAccName(accName)}</td>
+          <td style="color:${color};font-weight:bold;text-align:right">${sign}${this.fmt(t.amount)}</td>
+        </tr>
+      `;
+      if(t.type === 'income') inc += t.amount;
+      else if(t.type === 'expense') exp += t.amount;
+    });
+
+    if (filtered.length === 0) {
+      rowsHtml = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#71717a">এই সময়ে কোনো লেনদেন নেই।</td></tr>`;
+    }
+
+    const html = `
+      <html>
+      <head>
+        <title>Bachelor Khata - Report</title>
+        <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+          body { font-family: 'Hind Siliguri', sans-serif; padding: 20px; color: #333; }
+          h2 { text-align: center; margin-bottom: 5px; color: #18181b; }
+          p { text-align: center; color: #666; margin-top: 0; font-size:14px; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+          th, td { border: 1px solid #e4e4e7; padding: 10px; text-align: left; }
+          th { background-color: #f4f4f5; font-weight: 700; color:#52525b; }
+          .summary { display:flex; justify-content:space-between; margin-top: 20px; font-size: 15px; font-weight: 700; color:#18181b; background:#f4f4f5; padding:12px; border-radius:8px;}
+          @media print { body { padding: 0; } @page { margin: 20mm; } }
+        </style>
+      </head>
+      <body>
+        <h2>ব্যাচেলর খাতা - লেনদেন রিপোর্ট</h2>
+        <p>${reportTitle}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>তারিখ</th>
+              <th>বিবরণ</th>
+              <th>খাত</th>
+              <th>একাউন্ট</th>
+              <th style="text-align:right">পরিমাণ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+        <div class="summary">
+          <span style="color:#10b981">মোট আয়: ${this.fmt(inc)}</span>
+          <span style="color:#f43f5e">মোট ব্যয়: ${this.fmt(exp)}</span>
+          <span style="color:#2563eb">নিট সেভিংস: ${this.fmt(inc - exp)}</span>
+        </div>
+      </body>
+      </html>
+    `;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    this.toast('PDF জেনারেট হচ্ছে...', 'success');
+    setTimeout(() => {
+      w.print();
+      w.close();
+    }, 800);
   }
 
   // ── TOAST ─────────────────────────────────────────────────────
@@ -1935,184 +2152,103 @@ class BachelorKhata {
     setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),500);},3500);
   }
 
-  // ── MESS CHAT ──────────────────────────────────────────────────
+  // ── MESS CHAT NATIVE ──────────────────────────────────────────
   bindChat() {
-    g('chat-send-btn')?.addEventListener('click', () => this.sendChatMessage());
+    g('chat-send-btn')?.addEventListener('click', () => this.sendMessChat());
     g('chat-input')?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') this.sendChatMessage();
+      if (e.key === 'Enter') this.sendMessChat();
     });
-    g('chat-refresh-btn')?.addEventListener('click', () => this.cloudDownloadChat());
-    g('cancel-reply-btn')?.addEventListener('click', () => this.cancelChatReply());
-  }
-
-  initChat() {
-    const syncId = this.data.settings.syncId;
-    const notSynced = g('chat-not-synced');
-    const panel = g('chat-active-panel');
-    if (!syncId) {
-      if (notSynced) notSynced.style.display = 'flex';
-      if (panel) panel.style.display = 'none';
-      return;
-    }
-
-    if (notSynced) notSynced.style.display = 'none';
-    if (panel) panel.style.display = 'flex';
-
-    this.cloudDownloadChat();
-    this.startBackgroundChatPoll();
-  }
-
-  renderChat() {
-    this.initChat();
-  }
-
-  async cloudDownloadChat(silent = false) {
-    const syncId = this.data.settings.syncId;
-    if (!syncId) return;
-
-    try {
-      if (!silent) {
-        const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
-        if (refreshIcon) refreshIcon.className = 'fas fa-rotate fa-spin';
-      }
-
-      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${syncId}`);
-      if (res.ok) {
-        const text = await res.text();
-        let msgs = [];
-        if (text && text !== '""' && text !== 'null' && text.trim() !== '') {
-          try {
-            let parsed = JSON.parse(text);
-            // Server sometimes wraps value in extra quotes, decode if needed
-            if (typeof parsed === 'string') {
-              parsed = JSON.parse(parsed);
-            }
-            if (Array.isArray(parsed)) {
-              msgs = parsed.filter(m => m && typeof m === 'object');
-            }
-          } catch(err) {
-            console.error("Corrupted chat data:", err);
-            msgs = [];
-          }
-        }
-        
-        this.chatMsgsCount = msgs.length;
-        if (this.page === 'chat') {
-           this.data.lastReadChatCount = msgs.length;
-           localStorage.setItem('bk_chat_read', msgs.length.toString());
-        }
-        
-        this.renderChatMessages(msgs);
-      }
-
-      if (!silent) {
-        const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
+    g('chat-refresh-btn')?.addEventListener('click', () => {
+      // Refresh just re-renders local state since it auto-syncs with Mess
+      const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
+      if (refreshIcon) refreshIcon.className = 'fas fa-rotate fa-spin';
+      this.sync().then(() => {
         if (refreshIcon) refreshIcon.className = 'fas fa-rotate';
-      }
-    } catch (e) {
-      console.error("Chat download failed:", e);
-      if (!silent) this.toast('চ্যাট মেসেজ লোড করা যায়নি।', 'error');
-    }
+        this.renderMessChat();
+        this.toast('চ্যাট রিফ্রেশ হয়েছে', 'success');
+      });
+    });
   }
 
-  renderChatMessages(msgs) {
+  renderMessChat() {
     const container = g('chat-messages-container');
     if (!container) return;
 
-    if (!msgs || msgs.length === 0) {
+    if (!this.data.localChatMsgs || this.data.localChatMsgs.length === 0) {
       container.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11px;margin-top:20px;font-family:'Hind Siliguri',sans-serif">কোনো বার্তা নেই। প্রথম বার্তাটি লিখুন!</div>`;
       return;
     }
 
-    const myInitials = this.data.settings.initials || 'SA';
+    const myInitials = this.data.settings.initials || 'User';
 
-    container.innerHTML = msgs.filter(m => m && typeof m === 'object').map(m => {
+    container.innerHTML = this.data.localChatMsgs.map(m => {
       const decodedText = this._decodeMsg(m.text);
-      const senderName = m.sender || 'Unknown';
-      const isMe = senderName === myInitials;
+      const isMe = m.sender === myInitials;
       const clr = isMe ? 'linear-gradient(135deg, #38bdf8, #0ea5e9)' : 'var(--surface2)';
       const align = isMe ? 'flex-end' : 'flex-start';
       const borderRad = isMe ? '16px 16px 2px 16px' : '16px 16px 16px 2px';
       const color = isMe ? '#fff' : 'var(--head)';
       const border = isMe ? 'none' : '1px solid var(--border)';
-      
-      // Reply preview in bubble
-      let replyHtml = '';
-      if (m.replyTo && typeof m.replyTo === 'object') {
-        const replyDecodedText = this._decodeMsg(m.replyTo.text);
-        const replySender = m.replyTo.sender || 'Unknown';
-        replyHtml = `
-          <div style="background:rgba(0,0,0,0.1);padding:6px;border-radius:6px;font-size:10px;border-left:2px solid ${isMe ? '#fff' : 'var(--p)'};margin-bottom:6px;opacity:0.9">
-            <span style="font-weight:800;color:${isMe ? '#fff' : 'var(--p)'}">${replySender}</span>: ${replyDecodedText}
-          </div>
-        `;
-      }
-
-      const senderHtml = isMe ? '' : `<div style="font-size:9.5px;font-weight:800;color:var(--muted);margin-bottom:2px;margin-left:4px">${senderName}</div>`;
-      const timeHtml = m.time || '';
-      const safeId = m.id || '';
-      const safeDecodedText = decodedText.replace(/"/g, '&quot;');
-      const safeDecodedTextApos = decodedText.replace(/'/g, "\\'");
+      const senderHtml = isMe ? '' : `<div style="font-size:9.5px;font-weight:800;color:var(--muted);margin-bottom:2px;margin-left:4px">${m.sender}</div>`;
 
       return `
-        <div style="align-self:${align};display:flex;flex-direction:column;max-width:80%;position:relative" class="chat-msg-wrapper" data-msg-id="${safeId}" data-sender="${senderName}" data-text="${safeDecodedText}">
+        <div style="align-self:${align};display:flex;flex-direction:column;max-width:80%;position:relative" class="chat-msg-wrapper">
           ${senderHtml}
           <div style="background:${clr};color:${color};border:${border};border-radius:${borderRad};padding:8px 12px;font-size:12.5px;box-shadow:0 2px 4px rgba(0,0,0,0.05);position:relative">
-            ${replyHtml}
             <div style="font-family:'Hind Siliguri',sans-serif;line-height:1.5;word-break:break-word">${decodedText}</div>
-            <div style="font-size:8px;color:${isMe ? 'rgba(255,255,255,0.7)' : 'var(--muted)'};text-align:right;margin-top:4px;font-weight:700">${timeHtml}</div>
+            <div style="font-size:8px;color:${isMe ? 'rgba(255,255,255,0.7)' : 'var(--muted)'};text-align:right;margin-top:4px;font-weight:700">${m.time}</div>
           </div>
-          <!-- Reply action button -->
-          <button class="ib chat-bubble-reply-btn" onclick="app.setChatReply('${safeId}', '${senderName}', '${safeDecodedTextApos}')" style="position:absolute;top:50%;transform:translateY(-50%);${isMe ? 'left:-28px' : 'right:-28px'};width:20px;height:20px;font-size:9px;color:var(--muted);display:none;background:var(--surface);border-radius:50%;border:1px solid var(--border)" title="রিপ্লাই"><i class="fas fa-reply"></i></button>
         </div>
       `;
     }).join('');
 
-    // Trigger hover events or styles for reply buttons
-    document.querySelectorAll('.chat-msg-wrapper').forEach(wrap => {
-      wrap.addEventListener('mouseenter', () => {
-        const btn = wrap.querySelector('.chat-bubble-reply-btn');
-        if (btn) btn.style.display = 'flex';
-      });
-      wrap.addEventListener('mouseleave', () => {
-        const btn = wrap.querySelector('.chat-bubble-reply-btn');
-        if (btn) btn.style.display = 'none';
-      });
-    });
-
-    // Auto scroll to bottom
     container.scrollTop = container.scrollHeight;
   }
 
-  setChatReply(msgId, sender, text) {
-    g('reply-msg-id').value = msgId;
-    g('reply-preview-sender').textContent = this.lang === 'bn' ? `${sender} কে রিপ্লাই দিচ্ছেন` : `Replying to ${sender}`;
-    g('reply-preview-text').textContent = text;
-    g('chat-reply-preview').style.display = 'flex';
-    g('chat-input').focus();
-  }
-
-  cancelChatReply() {
-    g('reply-msg-id').value = '';
-    g('chat-reply-preview').style.display = 'none';
-  }
-
-  async sendChatMessage() {
+  async cloudDownloadChat(silent = false) {
     const syncId = this.data.settings.syncId;
     if (!syncId) return;
+    try {
+      if (!silent) {
+        const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
+        if (refreshIcon) refreshIcon.className = 'fas fa-rotate fa-spin';
+      }
+      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${syncId}`);
+      if (res.ok) {
+        let text = await res.text();
+        let msgs = [];
+        if (text && text !== '""' && text !== 'null' && text.trim() !== '') {
+          try {
+            let parsed = JSON.parse(text);
+            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+            if (Array.isArray(parsed)) msgs = parsed.filter(m => m && typeof m === 'object');
+          } catch(e){}
+        }
+        if (msgs.length > 0) {
+          this.data.localChatMsgs = msgs;
+          localStorage.setItem('bk_local_chat', JSON.stringify(msgs));
+          this.renderMessChat();
+        } else if (this.data.localChatMsgs && this.data.localChatMsgs.length > 0) {
+          this.renderMessChat();
+        } else {
+          this.renderMessChat();
+        }
+      }
+      if (!silent) {
+        const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
+        if (refreshIcon) refreshIcon.className = 'fas fa-rotate';
+      }
+    } catch (e) {
+      if (!silent) this.toast('চ্যাট মেসেজ লোড করা যায়নি।', 'error');
+    }
+  }
 
+  async sendMessChat() {
+    const syncId = this.data.settings.syncId;
     const input = g('chat-input');
     const text = input.value.trim();
     if (!text) return;
 
-    const replyId = g('reply-msg-id').value;
-    const replyText = g('reply-preview-text').textContent;
-    let replySender = g('reply-preview-sender').textContent;
-    replySender = replySender.replace(' কে রিপ্লাই দিচ্ছেন', '').replace('Replying to ', '');
-
-    const myInitials = this.data.settings.initials || 'SA';
-
-    // Base64 encode text - MORE compact in URLs for Bengali/emoji
     const encText = (str) => {
       try { return btoa(unescape(encodeURIComponent(str))); }
       catch(e) { return str; }
@@ -2120,46 +2256,60 @@ class BachelorKhata {
 
     const newMsg = {
       id: this.uid(),
-      sender: myInitials,
+      sender: this.data.settings.initials || 'User',
       text: encText(text),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-      replyTo: replyId ? { id: replyId, sender: replySender, text: encText(replyText) } : null
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
     };
 
+    // Local Optimistic Update
+    this.data.localChatMsgs = this.data.localChatMsgs || [];
+    this.data.localChatMsgs.push(newMsg);
+    if (this.data.localChatMsgs.length > 25) this.data.localChatMsgs = this.data.localChatMsgs.slice(-25);
+    localStorage.setItem('bk_local_chat', JSON.stringify(this.data.localChatMsgs));
+    this.renderMessChat();
     input.value = '';
-    this.cancelChatReply();
+
+    // If no sync id, just keep local
+    if (!syncId) return;
 
     try {
-      // 1. Fetch latest messages first to merge
+      // 1. Fetch latest to prevent overwriting
       const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${syncId}`);
-      let msgs = this._parseChatData(res.ok ? await res.text() : '');
+      let msgs = [];
+      if (res.ok) {
+        let txt = await res.text();
+        if (txt && txt !== '""' && txt !== 'null' && txt.trim() !== '') {
+          try {
+             let parsed = JSON.parse(txt);
+             if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+             if (Array.isArray(parsed)) msgs = parsed.filter(m => m && typeof m === 'object');
+          } catch(e){}
+        }
+      }
 
       // 2. Append new message
       msgs.push(newMsg);
-
-      // 3. Keep as many messages as possible up to 25 messages, but ensure the payload fits URL limits (~1800 chars)
       if (msgs.length > 25) msgs = msgs.slice(-25);
       
       let payload = encodeURIComponent(JSON.stringify(msgs));
       while (payload.length > 1800 && msgs.length > 1) {
-        msgs.shift(); // Remove the oldest message to reduce size
+        msgs.shift();
         payload = encodeURIComponent(JSON.stringify(msgs));
       }
 
-      // 4. Save back to server via URL param
+      // 3. Upload chat
       const saveRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_chat_${syncId}?value=${payload}`, {
         method: 'POST',
         body: ''
       });
 
       if (saveRes.ok) {
-        this.renderChatMessages(msgs);
-      } else {
-        this.toast('বার্তা পাঠানো যায়নি।', 'error');
+        this.data.localChatMsgs = msgs;
+        localStorage.setItem('bk_local_chat', JSON.stringify(msgs));
+        this.renderMessChat();
       }
     } catch (e) {
-      console.error("Chat send failed:", e);
-      this.toast('বার্তা পাঠানো যায়নি।', 'error');
+      console.error("Chat send error:", e);
     }
   }
 
@@ -2167,12 +2317,29 @@ class BachelorKhata {
     this.activeMessSubtab = tab;
 
     // Show/hide subpages
-    g('mess-subpage-summary').style.display = tab === 'summary' ? '' : 'none';
-    g('mess-subpage-bazar').style.display = tab === 'bazar' ? '' : 'none';
+    if (g('mess-subpage-summary')) g('mess-subpage-summary').style.display = tab === 'summary' ? '' : 'none';
+    if (g('mess-subpage-bazar')) g('mess-subpage-bazar').style.display = tab === 'bazar' ? '' : 'none';
+    
+    const pageHeader = g('mess-page-header');
+    const monthBar = document.querySelector('.month-bar');
+    
+    if (tab === 'chat') {
+      if (g('mess-subpage-chat')) {
+        g('mess-subpage-chat').style.display = 'flex';
+        g('mess-subpage-chat').style.height = 'calc(100dvh - 250px)';
+      }
+      if (pageHeader) pageHeader.style.display = 'none';
+      if (monthBar) monthBar.style.display = 'none';
+    } else {
+      if (g('mess-subpage-chat')) g('mess-subpage-chat').style.display = 'none';
+      if (pageHeader) pageHeader.style.display = '';
+      if (monthBar) monthBar.style.display = '';
+    }
 
     // Toggle active tabs
-    g('mess-subtab-summary').classList.toggle('active', tab === 'summary');
-    g('mess-subtab-bazar').classList.toggle('active', tab === 'bazar');
+    if (g('mess-subtab-summary')) g('mess-subtab-summary').classList.toggle('active', tab === 'summary');
+    if (g('mess-subtab-bazar')) g('mess-subtab-bazar').classList.toggle('active', tab === 'bazar');
+    if (g('mess-subtab-chat')) g('mess-subtab-chat').classList.toggle('active', tab === 'chat');
 
     // Toggle action buttons
     document.querySelectorAll('.mess-summary-action').forEach(b => b.style.display = tab === 'summary' ? '' : 'none');
@@ -2183,10 +2350,15 @@ class BachelorKhata {
       setText('mess-page-title', this.t('mess_title'));
       setText('mess-page-sub', this.t('mess_sub'));
       this.renderMess();
-    } else {
+    } else if (tab === 'bazar') {
       setText('mess-page-title', this.t('tab_bazar'));
       setText('mess-page-sub', this.t('new_bazar'));
       this.renderBazar();
+    } else if (tab === 'chat') {
+      setText('mess-page-title', '💬 মেস চ্যাট');
+      setText('mess-page-sub', 'রুমমেটদের সাথে মেস নিয়ে আলোচনা করুন');
+      this.renderMessChat();
+      this.cloudDownloadChat(true);
     }
   }
 
