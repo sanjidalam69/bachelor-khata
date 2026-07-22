@@ -304,6 +304,8 @@ class BachelorKhata {
     g('f-cancel')?.addEventListener('click', () => this.cancelEdit());
 
     // Export CSV
+    g('export-mess-pdf')?.addEventListener('click', () => this.exportMessPDF());
+
     [g('export-pdf'), g('export-pdf2')].forEach(el => el?.addEventListener('click', () => {
       const today = new Date();
       const bnMonths = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
@@ -2036,8 +2038,7 @@ class BachelorKhata {
   // ── EXPORT PDF ────────────────────────────────────────────────
   exportFilteredPDF(type, fromDate, toDate) {
     this.closeModal('m-download');
-    const w = window.open('', '_blank');
-    if(!w) { this.toast('পপ-আপ ব্লকার অন করা থাকলে অফ করুন।', 'error'); return; }
+    this.toast('PDF ডাউনলোড হচ্ছে...', 'info');
     
     let filtered = [...this.data.transactions].sort((a,b)=>new Date(a.date)-new Date(b.date));
     let reportTitle = 'সর্বকালীন আর্থিক বিবরণী';
@@ -2087,55 +2088,214 @@ class BachelorKhata {
       rowsHtml = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#71717a">এই সময়ে কোনো লেনদেন নেই।</td></tr>`;
     }
 
-    const html = `
-      <html>
-      <head>
-        <title>Bachelor Khata - Report</title>
-        <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
-        <style>
-          body { font-family: 'Hind Siliguri', sans-serif; padding: 20px; color: #333; }
-          h2 { text-align: center; margin-bottom: 5px; color: #18181b; }
-          p { text-align: center; color: #666; margin-top: 0; font-size:14px; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
-          th, td { border: 1px solid #e4e4e7; padding: 10px; text-align: left; }
-          th { background-color: #f4f4f5; font-weight: 700; color:#52525b; }
-          .summary { display:flex; justify-content:space-between; margin-top: 20px; font-size: 15px; font-weight: 700; color:#18181b; background:#f4f4f5; padding:12px; border-radius:8px;}
-          @media print { body { padding: 0; } @page { margin: 20mm; } }
-        </style>
-      </head>
-      <body>
-        <h2>ব্যাচেলর খাতা - লেনদেন রিপোর্ট</h2>
-        <p>${reportTitle}</p>
-        <table>
+    const htmlContent = `
+      <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+      <style>
+        * { font-family: 'Hind Siliguri', sans-serif !important; }
+      </style>
+      <div style="font-family: 'Hind Siliguri', sans-serif; padding: 20px; color: #333; background: #fff;">
+        <h2 style="text-align: center; margin-bottom: 5px; color: #18181b;">ব্যাচেলর খাতা - লেনদেন রিপোর্ট</h2>
+        <p style="text-align: center; color: #666; margin-top: 0; font-size:14px; margin-bottom: 20px;">${reportTitle}</p>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
           <thead>
-            <tr>
-              <th>তারিখ</th>
-              <th>বিবরণ</th>
-              <th>খাত</th>
-              <th>একাউন্ট</th>
-              <th style="text-align:right">পরিমাণ</th>
+            <tr style="background-color: #f4f4f5;">
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: left; font-weight: 700; color:#52525b;">তারিখ</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: left; font-weight: 700; color:#52525b;">বিবরণ</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: left; font-weight: 700; color:#52525b;">খাত</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: left; font-weight: 700; color:#52525b;">একাউন্ট</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: right; font-weight: 700; color:#52525b;">পরিমাণ</th>
             </tr>
           </thead>
           <tbody>
             ${rowsHtml}
           </tbody>
         </table>
-        <div class="summary">
+        <div style="display:flex; justify-content:space-between; margin-top: 20px; font-size: 13px; font-weight: 700; color:#18181b; background:#f4f4f5; padding:10px; border-radius:8px;">
           <span style="color:#10b981">মোট আয়: ${this.fmt(inc)}</span>
           <span style="color:#f43f5e">মোট ব্যয়: ${this.fmt(exp)}</span>
           <span style="color:#2563eb">নিট সেভিংস: ${this.fmt(inc - exp)}</span>
         </div>
-      </body>
-      </html>
+      </div>
     `;
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    this.toast('PDF জেনারেট হচ্ছে...', 'success');
-    setTimeout(() => {
-      w.print();
-      w.close();
-    }, 800);
+
+    const opt = {
+      margin:       10,
+      filename:     `bachelor_khata_report_${type}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().from(htmlContent).set(opt).save().then(() => {
+      this.toast('PDF ডাউনলোড সম্পন্ন হয়েছে! ✓', 'success');
+    }).catch(err => {
+      console.error(err);
+      this.toast('PDF ডাউনলোড করা যায়নি।', 'error');
+    });
+  }
+
+  // ── EXPORT MESS PDF ───────────────────────────────────────────
+  exportMessPDF() {
+    this.toast('মেস রিপোর্ট PDF ডাউনলোড হচ্ছে...', 'info');
+    
+    const mEntries = this.data.mess.entries.filter(e => {
+      const d = new Date(e.date);
+      return d.getUTCMonth() === this.month && d.getUTCFullYear() === this.year;
+    });
+
+    const deposits = mEntries.filter(e => e.type === 'deposit');
+    const totalDeposited = deposits.reduce((s,e) => s+e.amount, 0);
+
+    const expenses = mEntries.filter(e => e.type !== 'deposit');
+    const totalExpenses = expenses.reduce((s,e) => s+e.amount, 0);
+
+    const sharedExpenses = expenses.filter(e => e.payerId === 'mess-fund');
+    const totalSharedExpenses = sharedExpenses.reduce((s,e) => s+e.amount, 0);
+
+    const fundBalance = totalDeposited - totalExpenses;
+    const mc = this.data.mess.members.length;
+    const share = mc > 0 ? totalSharedExpenses / mc : 0;
+
+    const mBn = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+    const reportTitle = `মেস খরচ ও হিসাব রিপোর্ট (${mBn[this.month]} ${this.year})`;
+
+    // Calculate members summary
+    const mDeposits = {};
+    const mOutPocket = {};
+    deposits.forEach(e => { mDeposits[e.payerId] = (mDeposits[e.payerId] || 0) + e.amount; });
+    expenses.forEach(e => {
+      if (e.payerId !== 'mess-fund') {
+        mOutPocket[e.payerId] = (mOutPocket[e.payerId] || 0) + e.amount;
+      }
+    });
+
+    let membersRowsHtml = '';
+    this.data.mess.members.forEach(m => {
+      const depAmt = mDeposits[m.id] || 0;
+      const outAmt = mOutPocket[m.id] || 0;
+      const diff = depAmt - share - outAmt;
+      const statusText = diff > 0 ? 'পাবে' : diff < 0 ? 'দেবে' : 'সমান';
+      const statusColor = diff > 0 ? '#10b981' : diff < 0 ? '#f43f5e' : '#71717a';
+      membersRowsHtml += `
+        <tr>
+          <td><strong>${m.name}</strong></td>
+          <td style="text-align:right">${this.fmt(depAmt)}</td>
+          <td style="text-align:right">${this.fmt(outAmt)}</td>
+          <td style="text-align:right">${this.fmt(share)}</td>
+          <td style="text-align:right; font-weight:bold; color:${statusColor}">${diff > 0 ? '+' : ''}${this.fmt(diff)} (${statusText})</td>
+        </tr>
+      `;
+    });
+
+    if (this.data.mess.members.length === 0) {
+      membersRowsHtml = `<tr><td colspan="5" style="text-align:center;color:#71717a">কোনো মেস সদস্য নেই।</td></tr>`;
+    }
+
+    // Expense list rows
+    let expenseRowsHtml = '';
+    mEntries.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
+      let payerName = 'মেস তহবিল';
+      if (e.payerId !== 'mess-fund') {
+        const payer = this.data.mess.members.find(m => m.id === e.payerId);
+        if (payer) payerName = payer.name;
+      }
+      const typeText = e.type === 'deposit' ? 'তহবিলে জমা' : 'খরচ';
+      const color = e.type === 'deposit' ? '#10b981' : '#f43f5e';
+      
+      expenseRowsHtml += `
+        <tr>
+          <td>${e.date}</td>
+          <td>${e.title}</td>
+          <td>${payerName}</td>
+          <td style="color:${color};font-weight:bold">${typeText}</td>
+          <td style="text-align:right;font-weight:bold;color:${color}">${e.type === 'deposit' ? '+' : '-'}${this.fmt(e.amount)}</td>
+        </tr>
+      `;
+    });
+
+    if (mEntries.length === 0) {
+      expenseRowsHtml = `<tr><td colspan="5" style="text-align:center;color:#71717a">এই মাসে কোনো মেস লেনদেন নেই।</td></tr>`;
+    }
+
+    const htmlContent = `
+      <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+      <style>
+        * { font-family: 'Hind Siliguri', sans-serif !important; }
+      </style>
+      <div style="font-family: 'Hind Siliguri', sans-serif; padding: 25px; color: #333; background: #fff;">
+        <h2 style="text-align: center; margin-bottom: 5px; color: #18181b;">🍛 ব্যাচেলর খাতা - মেস হিসাব রিপোর্ট</h2>
+        <p style="text-align: center; color: #666; margin-top: 0; font-size:14px; margin-bottom: 25px;">${reportTitle}</p>
+        
+        <!-- Summary Dashboard -->
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 25px;">
+          <div style="text-align:center; padding:12px; background:#f4f4f5; border-radius:8px;">
+            <div style="font-size:11px; text-transform:uppercase; color:#71717a; font-weight:700;">মোট খরচ</div>
+            <div style="font-size:18px; font-weight:bold; color:#18181b; margin-top:4px;">${this.fmt(totalSharedExpenses)}</div>
+          </div>
+          <div style="text-align:center; padding:12px; background:#f4f4f5; border-radius:8px;">
+            <div style="font-size:11px; text-transform:uppercase; color:#71717a; font-weight:700;">মেস তহবিল</div>
+            <div style="font-size:18px; font-weight:bold; color:#10b981; margin-top:4px;">${this.fmt(fundBalance)}</div>
+          </div>
+          <div style="text-align:center; padding:12px; background:#f4f4f5; border-radius:8px;">
+            <div style="font-size:11px; text-transform:uppercase; color:#71717a; font-weight:700;">সদস্য সংখ্যা</div>
+            <div style="font-size:18px; font-weight:bold; color:#18181b; margin-top:4px;">${mc} জন</div>
+          </div>
+          <div style="text-align:center; padding:12px; background:#f4f4f5; border-radius:8px;">
+            <div style="font-size:11px; text-transform:uppercase; color:#71717a; font-weight:700;">জন প্রতি খরচ</div>
+            <div style="font-size:18px; font-weight:bold; color:#2563eb; margin-top:4px;">${this.fmt(share)}</div>
+          </div>
+        </div>
+
+        <!-- Members Calculations -->
+        <h3 style="font-size:14px; margin-bottom:10px; color:#18181b; border-bottom:2px solid #2563eb; padding-bottom:4px;">👥 সদস্য ভিত্তিক হিসাব ও ব্যালেন্স</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size:12px; border: 1px solid #e4e4e7;">
+          <thead>
+            <tr style="background-color: #f4f4f5;">
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: left; font-weight:700; color:#52525b;">নাম</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: right; font-weight:700; color:#52525b;">মোট জমা</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: right; font-weight:700; color:#52525b;">ব্যক্তিগত খরচ</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: right; font-weight:700; color:#52525b;">মেস শেয়ার</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: right; font-weight:700; color:#52525b;">ব্যালেন্স</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${membersRowsHtml}
+          </tbody>
+        </table>
+
+        <!-- Transaction Details -->
+        <h3 style="font-size:14px; margin-bottom:10px; color:#18181b; border-bottom:2px solid #2563eb; padding-bottom:4px;">📋 মেসের মোট খরচ ও জমার তালিকা</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; border: 1px solid #e4e4e7;">
+          <thead>
+            <tr style="background-color: #f4f4f5;">
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: left; font-weight:700; color:#52525b;">তারিখ</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: left; font-weight:700; color:#52525b;">বিবরণ</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: left; font-weight:700; color:#52525b;">কে দিয়েছেন</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: left; font-weight:700; color:#52525b;">ধরন</th>
+              <th style="border: 1px solid #e4e4e7; padding: 8px; text-align: right; font-weight:700; color:#52525b;">পরিমাণ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${expenseRowsHtml}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    const opt = {
+      margin:       10,
+      filename:     `bachelor_khata_mess_report_${mBn[this.month]}_${this.year}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().from(htmlContent).set(opt).save().then(() => {
+      this.toast('মেস রিপোর্ট PDF ডাউনলোড সম্পন্ন হয়েছে! ✓', 'success');
+    }).catch(err => {
+      console.error(err);
+      this.toast('PDF ডাউনলোড করা যায়নি।', 'error');
+    });
   }
 
   // ── TOAST ─────────────────────────────────────────────────────
