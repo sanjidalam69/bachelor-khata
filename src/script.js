@@ -1945,11 +1945,20 @@ class BachelorKhata {
           }
         };
 
-        const res = await fetch('https://api.restful-api.dev/objects', {
+        let res = await fetch('https://api.restful-api.dev/objects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
+        }).catch(() => null);
+
+        if (!res || !res.ok) {
+          await new Promise(r => setTimeout(r, 500));
+          res = await fetch('https://api.restful-api.dev/objects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
 
         if (!res.ok) throw new Error("Create room failed");
 
