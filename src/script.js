@@ -97,13 +97,13 @@ class BachelorKhata {
       this.cloudDownload().catch(err => console.error("Initial sync error:", err));
       this.startBackgroundChatPoll();
     }
-    // Auto-refresh active roommates and data every 10 seconds
+    // Auto-refresh active roommates and data every 30 seconds
     setInterval(() => {
       if (this.data.settings.syncId) {
         this.syncActiveRoommates().catch(() => {});
         this.cloudDownload(true).catch(() => {});
       }
-    }, 10000);
+    }, 30000);
     this.translatePage();
     this.navigate(this.page);
   }
@@ -1787,7 +1787,7 @@ class BachelorKhata {
     const id = this.data.settings.syncId;
     if (!id) return;
     try {
-      const getRes = await fetch(`https://api.restful-api.dev/objects/${id}`);
+      const getRes = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, { headers: { 'Accept': 'application/json' } });
       if (!getRes.ok) return;
 
       const obj = await getRes.json();
@@ -1809,16 +1809,13 @@ class BachelorKhata {
       this.activeRoommates = list;
 
       const payload = {
-        name: obj.name || `BK_${id.slice(-6).toUpperCase()}`,
-        data: {
-          ...obj.data,
-          devices: list
-        }
+        ...obj,
+        devices: list
       };
 
-      await fetch(`https://api.restful-api.dev/objects/${id}`, {
+      await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -1849,29 +1846,26 @@ class BachelorKhata {
       let remoteDevices = this.activeRoommates || [];
       
       try {
-        const getRes = await fetch(`https://api.restful-api.dev/objects/${id}`);
+        const getRes = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, { headers: { 'Accept': 'application/json' } });
         if (getRes.ok) {
           const resObj = await getRes.json();
-          if (resObj && resObj.data) {
-            if (Array.isArray(resObj.data.chat)) remoteChat = resObj.data.chat;
-            if (Array.isArray(resObj.data.devices)) remoteDevices = resObj.data.devices;
+          if (resObj) {
+            if (Array.isArray(resObj.chat)) remoteChat = resObj.chat;
+            if (Array.isArray(resObj.devices)) remoteDevices = resObj.devices;
           }
         }
       } catch(e) {}
 
       const payload = {
-        name: `BK_${id.slice(-6).toUpperCase()}`,
-        data: {
-          mess: this.data.mess || {},
-          bazar: this.data.bazar || [],
-          chat: remoteChat,
-          devices: remoteDevices
-        }
+        mess: this.data.mess || {},
+        bazar: this.data.bazar || [],
+        chat: remoteChat,
+        devices: remoteDevices
       };
 
-      const res = await fetch(`https://api.restful-api.dev/objects/${id}`, {
+      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -1901,16 +1895,16 @@ class BachelorKhata {
       const icon = syncBtn?.querySelector('i');
       if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
 
-      const res = await fetch(`https://api.restful-api.dev/objects/${id}`);
+      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, { headers: { 'Accept': 'application/json' } });
       if (!res.ok) throw new Error("Cloud fetch failed");
 
       const obj = await res.json();
-      if (obj && obj.data) {
-        if (obj.data.mess) this.data.mess = obj.data.mess;
-        if (obj.data.bazar) this.data.bazar = obj.data.bazar;
-        if (Array.isArray(obj.data.chat) && obj.data.chat.length > 0) {
-          this.data.localChatMsgs = obj.data.chat;
-          localStorage.setItem('bk_local_chat', JSON.stringify(obj.data.chat));
+      if (obj) {
+        if (obj.mess) this.data.mess = obj.mess;
+        if (obj.bazar) this.data.bazar = obj.bazar;
+        if (Array.isArray(obj.chat) && obj.chat.length > 0) {
+          this.data.localChatMsgs = obj.chat;
+          localStorage.setItem('bk_local_chat', JSON.stringify(obj.chat));
         }
         this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this.save('settings');
@@ -1936,34 +1930,22 @@ class BachelorKhata {
       this.toast('মেস কোড তৈরি হচ্ছে...', 'info');
       try {
         const payload = {
-          name: 'BachelorKhataMess',
-          data: {
-            mess: this.data.mess || {},
-            bazar: this.data.bazar || [],
-            chat: this.data.localChatMsgs || [],
-            devices: []
-          }
+          mess: this.data.mess || {},
+          bazar: this.data.bazar || [],
+          chat: this.data.localChatMsgs || [],
+          devices: []
         };
 
-        let res = await fetch('https://api.restful-api.dev/objects', {
+        const res = await fetch('https://jsonblob.com/api/jsonBlob', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(payload)
-        }).catch(() => null);
-
-        if (!res || !res.ok) {
-          await new Promise(r => setTimeout(r, 500));
-          res = await fetch('https://api.restful-api.dev/objects', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        }
+        });
 
         if (!res.ok) throw new Error("Create room failed");
 
-        const created = await res.json();
-        const roomId = created.id;
+        const loc = res.headers.get('Location') || '';
+        const roomId = loc.split('/').pop();
 
         this.data.settings.syncId = roomId;
         this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2003,21 +1985,21 @@ class BachelorKhata {
     const btn = g('join-room-btn');
     if(btn) { btn.disabled = true; btn.textContent = 'অপেক্ষা করুন...'; }
     try {
-      const res = await fetch(`https://api.restful-api.dev/objects/${roomId}`);
+      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${roomId}`, { headers: { 'Accept': 'application/json' } });
       if (!res.ok) throw new Error("Invalid ID");
 
       const obj = await res.json();
-      if (!obj || !obj.data) throw new Error("Empty room data");
+      if (!obj) throw new Error("Empty room data");
 
       if (confirm('মেস কোড পাওয়া গেছে! আপনি কি এই ডেটা লোড করতে চান? আপনার বর্তমান সমস্ত লোকাল ডেটা মুছে যাবে!')) {
         this.data.settings.syncId = roomId;
         this.save('settings');
 
-        if (obj.data.mess) this.data.mess = obj.data.mess;
-        if (obj.data.bazar) this.data.bazar = obj.data.bazar;
-        if (Array.isArray(obj.data.chat)) {
-          this.data.localChatMsgs = obj.data.chat;
-          localStorage.setItem('bk_local_chat', JSON.stringify(obj.data.chat));
+        if (obj.mess) this.data.mess = obj.mess;
+        if (obj.bazar) this.data.bazar = obj.bazar;
+        if (Array.isArray(obj.chat)) {
+          this.data.localChatMsgs = obj.chat;
+          localStorage.setItem('bk_local_chat', JSON.stringify(obj.chat));
         }
 
         this.save('mess');
@@ -2392,12 +2374,12 @@ class BachelorKhata {
         const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
         if (refreshIcon) refreshIcon.className = 'fas fa-rotate fa-spin';
       }
-      const res = await fetch(`https://api.restful-api.dev/objects/${syncId}`);
+      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${syncId}`, { headers: { 'Accept': 'application/json' } });
       if (res.ok) {
         const obj = await res.json();
-        if (obj && obj.data && Array.isArray(obj.data.chat)) {
-          this.data.localChatMsgs = obj.data.chat;
-          localStorage.setItem('bk_local_chat', JSON.stringify(obj.data.chat));
+        if (obj && Array.isArray(obj.chat)) {
+          this.data.localChatMsgs = obj.chat;
+          localStorage.setItem('bk_local_chat', JSON.stringify(obj.chat));
           this.renderMessChat();
         }
       }
@@ -2438,24 +2420,21 @@ class BachelorKhata {
     if (!syncId) return;
 
     try {
-      const res = await fetch(`https://api.restful-api.dev/objects/${syncId}`);
+      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${syncId}`, { headers: { 'Accept': 'application/json' } });
       if (res.ok) {
         const obj = await res.json();
-        let msgs = (obj && obj.data && Array.isArray(obj.data.chat)) ? obj.data.chat : [];
+        let msgs = (obj && Array.isArray(obj.chat)) ? obj.chat : [];
         msgs.push(newMsg);
         if (msgs.length > 30) msgs = msgs.slice(-30);
 
         const payload = {
-          name: obj.name || `BK_${syncId.slice(-6).toUpperCase()}`,
-          data: {
-            ...obj.data,
-            chat: msgs
-          }
+          ...obj,
+          chat: msgs
         };
 
-        const saveRes = await fetch(`https://api.restful-api.dev/objects/${syncId}`, {
+        const saveRes = await fetch(`https://jsonblob.com/api/jsonBlob/${syncId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(payload)
         });
 
