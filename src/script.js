@@ -2460,10 +2460,6 @@ class BachelorKhata {
       console.error("Chat send error:", e);
     }
   }
-    } catch (e) {
-      console.error("Chat send error:", e);
-    }
-  }
 
   switchMessSubtab(tab) {
     this.activeMessSubtab = tab;
