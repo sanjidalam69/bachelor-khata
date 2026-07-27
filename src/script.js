@@ -26,9 +26,7 @@ class BachelorKhata {
       mess:         JSON.parse(localStorage.getItem('bk_mess') || '{"members":[],"entries":[]}'),
       bazar:        JSON.parse(localStorage.getItem('bk_bazar')|| '[]'),
       splits:       JSON.parse(localStorage.getItem('bk_split')|| '[]'),
-      settings:     JSON.parse(localStorage.getItem('bk_set')  || '{"initials":"SA","theme":"dark"}'),
-      localChatMsgs: JSON.parse(localStorage.getItem('bk_local_chat') || '[]'),
-      lastReadChatCount: parseInt(localStorage.getItem('bk_chat_read') || '0', 10)
+      settings:     JSON.parse(localStorage.getItem('bk_set')  || '{"initials":"SA","theme":"dark"}')
     };
 
     if (!this.data.settings.syncId || this.data.settings.syncId.startsWith('mess_')) this.data.settings.syncId = '';
@@ -92,10 +90,8 @@ class BachelorKhata {
     ['f-date','q-date','me-date','sp-date'].forEach(id => { const el = g(id); if(el) el.value = today; });
     ['f-time','q-time'].forEach(id => { const el = g(id); if(el) el.value = nowTime; });
     this.bindSync();
-    this.bindChat();
     if(this.data.settings.syncId) {
       this.cloudDownload().catch(err => console.error("Initial sync error:", err));
-      this.startBackgroundChatPoll();
     }
     // Auto-refresh active roommates and data every 30 seconds
     setInterval(() => {
@@ -106,24 +102,6 @@ class BachelorKhata {
     }, 30000);
     this.translatePage();
     this.navigate(this.page);
-  }
-
-  startBackgroundChatPoll() {
-    if (!this.data.settings.syncId) return;
-    if (this.chatPollInterval) clearInterval(this.chatPollInterval);
-    
-    this.chatPollInterval = setInterval(() => {
-      if (this.page === 'mess' && this.activeMessSubtab === 'chat') {
-        this.cloudDownloadChat(true);
-      }
-    }, 8000);
-  }
-
-  // Helper: decode text that may be Base64 encoded or raw
-  _decodeMsg(str) {
-    if (!str) return '';
-    try { return decodeURIComponent(escape(atob(str))); }
-    catch(e) { return str; }
   }
 
   // ── NAVIGATION ────────────────────────────────────────────────
@@ -1843,7 +1821,6 @@ class BachelorKhata {
       const icon = syncBtn?.querySelector('i');
       if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
 
-      let remoteChat = this.data.localChatMsgs || [];
       let remoteDevices = this.activeRoommates || [];
       
       try {
@@ -1851,7 +1828,6 @@ class BachelorKhata {
         if (getRes.ok) {
           const resObj = await getRes.json();
           if (resObj) {
-            if (Array.isArray(resObj.chat)) remoteChat = resObj.chat;
             if (Array.isArray(resObj.devices)) remoteDevices = resObj.devices;
           }
         }
@@ -1860,7 +1836,6 @@ class BachelorKhata {
       const payload = {
         mess: this.data.mess || {},
         bazar: this.data.bazar || [],
-        chat: remoteChat,
         devices: remoteDevices
       };
 
@@ -1903,10 +1878,6 @@ class BachelorKhata {
       if (obj) {
         if (obj.mess) this.data.mess = obj.mess;
         if (obj.bazar) this.data.bazar = obj.bazar;
-        if (Array.isArray(obj.chat) && obj.chat.length > 0) {
-          this.data.localChatMsgs = obj.chat;
-          localStorage.setItem('bk_local_chat', JSON.stringify(obj.chat));
-        }
         this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this.save('settings');
         this.save('mess');
@@ -1942,7 +1913,6 @@ class BachelorKhata {
         const payload = {
           mess: this.data.mess || {},
           bazar: this.data.bazar || [],
-          chat: this.data.localChatMsgs || [],
           devices: []
         };
 
@@ -1980,7 +1950,6 @@ class BachelorKhata {
 
         this.applySyncUI();
         this.toast(`মেস সফলভাবে তৈরি হয়েছে! কোড: ${shortCode}`, 'success');
-        this.startBackgroundChatPoll();
       } catch(err) {
         console.error(err);
         this.toast('মেস তৈরি করা যায়নি। পুনরায় চেষ্টা করুন।', 'error');
@@ -2044,10 +2013,6 @@ class BachelorKhata {
 
         if (obj.mess) this.data.mess = obj.mess;
         if (obj.bazar) this.data.bazar = obj.bazar;
-        if (Array.isArray(obj.chat)) {
-          this.data.localChatMsgs = obj.chat;
-          localStorage.setItem('bk_local_chat', JSON.stringify(obj.chat));
-        }
 
         this.save('mess');
         this.save('bazar');
@@ -2055,7 +2020,6 @@ class BachelorKhata {
         this.render();
         this.closeModal('m-join-room');
         this.toast('সফলভাবে শেয়ার মেসে যোগ দিয়েছেন!', 'success');
-        this.startBackgroundChatPoll();
       } else {
         this.closeModal('m-join-room');
       }
@@ -2166,19 +2130,45 @@ class BachelorKhata {
       </div>
     `;
 
+    this.downloadPDF(htmlContent, `bachelor_khata_report_${type}.pdf`, 'PDF ডাউনলোড সম্পন্ন হয়েছে! ✓');
+  }
+
+  downloadPDF(htmlContent, filename, successMsg) {
     const opt = {
       margin:       10,
-      filename:     `bachelor_khata_report_${type}.pdf`,
+      filename:     filename,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().from(htmlContent).set(opt).save().then(() => {
-      this.toast('PDF ডাউনলোড সম্পন্ন হয়েছে! ✓', 'success');
+    const worker = html2pdf().from(htmlContent).set(opt);
+
+    worker.outputPdf('datauristring').then(pdfDataUri => {
+      try {
+        const link = document.createElement('a');
+        link.href = pdfDataUri;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          if (document.body.contains(link)) document.body.removeChild(link);
+        }, 1000);
+        this.toast(successMsg, 'success');
+      } catch(e) {
+        worker.save().then(() => {
+          this.toast(successMsg, 'success');
+        });
+      }
     }).catch(err => {
-      console.error(err);
-      this.toast('PDF ডাউনলোড করা যায়নি।', 'error');
+      console.error("PDF generation error, trying save fallback:", err);
+      worker.save().then(() => {
+        this.toast(successMsg, 'success');
+      }).catch(e => {
+        console.error(e);
+        this.toast('PDF ডাউনলোড করা যায়নি।', 'error');
+      });
     });
   }
 
@@ -2330,20 +2320,7 @@ class BachelorKhata {
       </div>
     `;
 
-    const opt = {
-      margin:       10,
-      filename:     `bachelor_khata_mess_report_${mBn[this.month]}_${this.year}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().from(htmlContent).set(opt).save().then(() => {
-      this.toast('মেস রিপোর্ট PDF ডাউনলোড সম্পন্ন হয়েছে! ✓', 'success');
-    }).catch(err => {
-      console.error(err);
-      this.toast('PDF ডাউনলোড করা যায়নি।', 'error');
-    });
+    this.downloadPDF(htmlContent, `bachelor_khata_mess_report_${mBn[this.month]}_${this.year}.pdf`, 'মেস রিপোর্ট PDF ডাউনলোড সম্পন্ন হয়েছে! ✓');
   }
 
   // ── TOAST ─────────────────────────────────────────────────────
@@ -2360,142 +2337,6 @@ class BachelorKhata {
     setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),500);},3500);
   }
 
-  // ── MESS CHAT NATIVE ──────────────────────────────────────────
-  bindChat() {
-    g('chat-send-btn')?.addEventListener('click', () => this.sendMessChat());
-    g('chat-input')?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') this.sendMessChat();
-    });
-    g('chat-refresh-btn')?.addEventListener('click', () => {
-      // Refresh just re-renders local state since it auto-syncs with Mess
-      const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
-      if (refreshIcon) refreshIcon.className = 'fas fa-rotate fa-spin';
-      this.sync().then(() => {
-        if (refreshIcon) refreshIcon.className = 'fas fa-rotate';
-        this.renderMessChat();
-        this.toast('চ্যাট রিফ্রেশ হয়েছে', 'success');
-      });
-    });
-  }
-
-  renderMessChat() {
-    const container = g('chat-messages-container');
-    if (!container) return;
-
-    if (!this.data.localChatMsgs || this.data.localChatMsgs.length === 0) {
-      container.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11px;margin-top:20px;font-family:'Hind Siliguri',sans-serif">কোনো বার্তা নেই। প্রথম বার্তাটি লিখুন!</div>`;
-      return;
-    }
-
-    const myInitials = this.data.settings.initials || 'User';
-
-    container.innerHTML = this.data.localChatMsgs.map(m => {
-      const decodedText = this._decodeMsg(m.text);
-      const isMe = m.sender === myInitials;
-      const clr = isMe ? 'linear-gradient(135deg, #38bdf8, #0ea5e9)' : 'var(--surface2)';
-      const align = isMe ? 'flex-end' : 'flex-start';
-      const borderRad = isMe ? '16px 16px 2px 16px' : '16px 16px 16px 2px';
-      const color = isMe ? '#fff' : 'var(--head)';
-      const border = isMe ? 'none' : '1px solid var(--border)';
-      const senderHtml = isMe ? '' : `<div style="font-size:9.5px;font-weight:800;color:var(--muted);margin-bottom:2px;margin-left:4px">${m.sender}</div>`;
-
-      return `
-        <div style="align-self:${align};display:flex;flex-direction:column;max-width:80%;position:relative" class="chat-msg-wrapper">
-          ${senderHtml}
-          <div style="background:${clr};color:${color};border:${border};border-radius:${borderRad};padding:8px 12px;font-size:12.5px;box-shadow:0 2px 4px rgba(0,0,0,0.05);position:relative">
-            <div style="font-family:'Hind Siliguri',sans-serif;line-height:1.5;word-break:break-word">${decodedText}</div>
-            <div style="font-size:8px;color:${isMe ? 'rgba(255,255,255,0.7)' : 'var(--muted)'};text-align:right;margin-top:4px;font-weight:700">${m.time}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    container.scrollTop = container.scrollHeight;
-  }
-
-  async cloudDownloadChat(silent = false) {
-    const syncId = this.data.settings.syncId;
-    if (!syncId) return;
-    try {
-      if (!silent) {
-        const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
-        if (refreshIcon) refreshIcon.className = 'fas fa-rotate fa-spin';
-      }
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${syncId}`, { headers: { 'Accept': 'application/json' } });
-      if (res.ok) {
-        const obj = await res.json();
-        if (obj && Array.isArray(obj.chat)) {
-          this.data.localChatMsgs = obj.chat;
-          localStorage.setItem('bk_local_chat', JSON.stringify(obj.chat));
-          this.renderMessChat();
-        }
-      }
-      if (!silent) {
-        const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
-        if (refreshIcon) refreshIcon.className = 'fas fa-rotate';
-      }
-    } catch (e) {
-      if (!silent) this.toast('চ্যাট মেসেজ লোড করা যায়নি।', 'error');
-    }
-  }
-
-  async sendMessChat() {
-    const syncId = this.data.settings.syncId;
-    const input = g('chat-input');
-    const text = input.value.trim();
-    if (!text) return;
-
-    const encText = (str) => {
-      try { return btoa(unescape(encodeURIComponent(str))); }
-      catch(e) { return str; }
-    };
-
-    const newMsg = {
-      id: this.uid(),
-      sender: this.data.settings.initials || 'User',
-      text: encText(text),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
-    };
-
-    this.data.localChatMsgs = this.data.localChatMsgs || [];
-    this.data.localChatMsgs.push(newMsg);
-    if (this.data.localChatMsgs.length > 30) this.data.localChatMsgs = this.data.localChatMsgs.slice(-30);
-    localStorage.setItem('bk_local_chat', JSON.stringify(this.data.localChatMsgs));
-    this.renderMessChat();
-    input.value = '';
-
-    if (!syncId) return;
-
-    try {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${syncId}`, { headers: { 'Accept': 'application/json' } });
-      if (res.ok) {
-        const obj = await res.json();
-        let msgs = (obj && Array.isArray(obj.chat)) ? obj.chat : [];
-        msgs.push(newMsg);
-        if (msgs.length > 30) msgs = msgs.slice(-30);
-
-        const payload = {
-          ...obj,
-          chat: msgs
-        };
-
-        const saveRes = await fetch(`https://jsonblob.com/api/jsonBlob/${syncId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (saveRes.ok) {
-          this.data.localChatMsgs = msgs;
-          localStorage.setItem('bk_local_chat', JSON.stringify(msgs));
-          this.renderMessChat();
-        }
-      }
-    } catch(e) {
-      console.error("Chat send error:", e);
-    }
-  }
-
   switchMessSubtab(tab) {
     this.activeMessSubtab = tab;
 
@@ -2506,23 +2347,12 @@ class BachelorKhata {
     const pageHeader = g('mess-page-header');
     const monthBar = document.querySelector('.month-bar');
     
-    if (tab === 'chat') {
-      if (g('mess-subpage-chat')) {
-        g('mess-subpage-chat').style.display = 'flex';
-        g('mess-subpage-chat').style.height = 'calc(100dvh - 250px)';
-      }
-      if (pageHeader) pageHeader.style.display = 'none';
-      if (monthBar) monthBar.style.display = 'none';
-    } else {
-      if (g('mess-subpage-chat')) g('mess-subpage-chat').style.display = 'none';
-      if (pageHeader) pageHeader.style.display = '';
-      if (monthBar) monthBar.style.display = '';
-    }
+    if (pageHeader) pageHeader.style.display = '';
+    if (monthBar) monthBar.style.display = '';
 
     // Toggle active tabs
     if (g('mess-subtab-summary')) g('mess-subtab-summary').classList.toggle('active', tab === 'summary');
     if (g('mess-subtab-bazar')) g('mess-subtab-bazar').classList.toggle('active', tab === 'bazar');
-    if (g('mess-subtab-chat')) g('mess-subtab-chat').classList.toggle('active', tab === 'chat');
 
     // Toggle action buttons
     document.querySelectorAll('.mess-summary-action').forEach(b => b.style.display = tab === 'summary' ? '' : 'none');
@@ -2537,11 +2367,6 @@ class BachelorKhata {
       setText('mess-page-title', this.t('tab_bazar'));
       setText('mess-page-sub', this.t('new_bazar'));
       this.renderBazar();
-    } else if (tab === 'chat') {
-      setText('mess-page-title', '💬 মেস চ্যাট');
-      setText('mess-page-sub', 'রুমমেটদের সাথে মেস নিয়ে আলোচনা করুন');
-      this.renderMessChat();
-      this.cloudDownloadChat(true);
     }
   }
 
@@ -3184,12 +3009,6 @@ class BachelorKhata {
     
     const bClr = g('clear-done-btn');
     if (bClr) bClr.innerHTML = `<i class="fas fa-broom"></i> ${this.t('clear_done')}`;
-    
-    const cRef = g('chat-refresh-btn');
-    if (cRef) cRef.innerHTML = `<i class="fas fa-rotate"></i> ${this.t('refresh')}`;
-
-    const chatSync = g('chat-turn-on-sync-btn');
-    if (chatSync) chatSync.innerHTML = `<i class="fas fa-link"></i> ${this.t('turn_on_sync')}`;
 
     // 4. Translate sub-tabs
     const subSummary = g('mess-subtab-summary');
@@ -3200,8 +3019,6 @@ class BachelorKhata {
     // 5. Placeholders
     const searchInp = g('t-search');
     if (searchInp) searchInp.placeholder = this.t('search_placeholder');
-    const chatInp = g('chat-input');
-    if (chatInp) chatInp.placeholder = this.t('write_msg_placeholder');
 
     const descInp = g('f-title');
     if (descInp) descInp.placeholder = this.t('desc_ph');

@@ -390,7 +390,6 @@ tbody tr:last-child td{border-bottom:none}
       <button class="nbtn active" data-page="dashboard" title="ড্যাশবোর্ড"><i class="fas fa-house"></i><span class="i18n" data-key="home">হোম</span></button>
       <button class="nbtn" data-page="transactions" title="লেনদেন"><i class="fas fa-list-ul"></i><span class="i18n" data-key="txs">লেনদেন</span></button>
       <button class="nbtn" data-page="mess" title="মেস হিসাব"><i class="fas fa-bowl-food"></i><span class="i18n" data-key="mess">মেস</span></button>
-      <button class="nbtn" data-page="chat" title="মেস চ্যাট" style="display:none"><i class="fas fa-comments"></i><span class="i18n" data-key="chat">চ্যাট</span></button>
       <button class="nbtn" data-page="split" title="খরচ ভাগ"><i class="fas fa-users"></i><span class="i18n" data-key="split">ভাগ</span></button>
       <button class="nbtn" data-page="budget" title="বাজেট"><i class="fas fa-sliders"></i><span class="i18n" data-key="budget">বাজেট</span></button>
       <button class="nbtn" data-page="goals" title="লক্ষ্য"><i class="fas fa-bullseye"></i><span class="i18n" data-key="goals">লক্ষ্য</span></button>
@@ -630,7 +629,6 @@ tbody tr:last-child td{border-bottom:none}
       <div class="tabs" style="margin-bottom:16px;max-width:480px">
         <button type="button" class="tab active" id="mess-subtab-summary" onclick="app.switchMessSubtab('summary')">📊 মেস হিসাব</button>
         <button type="button" class="tab" id="mess-subtab-bazar" onclick="app.switchMessSubtab('bazar')">🛒 বাজার লিস্ট</button>
-        <button type="button" class="tab" id="mess-subtab-chat" onclick="app.switchMessSubtab('chat')">💬 মেস চ্যাট</button>
       </div>
 
       <!-- Sub-page: Summary -->
@@ -720,37 +718,6 @@ tbody tr:last-child td{border-bottom:none}
                 <button class="btn btn-p bfull" id="bz-add-btn"><i class="fas fa-plus"></i> যোগ করুন</button>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-      <!-- Sub-page: Mess Chat -->
-      <div id="mess-subpage-chat" style="display:none;height:calc(100dvh - 360px);min-height:200px;display:flex;flex-direction:column;max-width:480px;margin:0 auto;width:100%">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-          <div>
-            <div class="sec-title i18n" data-key="chat_title" style="font-size:15px">💬 মেস চ্যাট</div>
-            <div class="sec-sub i18n" data-key="chat_sub" style="margin-bottom:0">রুমমেটদের সাথে মেস নিয়ে আলোচনা করুন</div>
-          </div>
-          <button class="btn btn-s bsm" id="chat-refresh-btn"><i class="fas fa-rotate"></i> রিফ্রেশ</button>
-        </div>
-
-        <div class="card" style="flex:1;display:flex;flex-direction:column;padding:0;overflow:hidden;border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)">
-          <div id="chat-messages-container" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--surface2)">
-            <!-- Messages render here -->
-          </div>
-          
-          <!-- Reply Preview Area -->
-          <div id="chat-reply-preview" style="display:none;padding:8px 16px;background:var(--surface2);border-top:1px solid var(--border);align-items:center;justify-content:space-between;gap:10px">
-            <div style="flex:1;min-width:0;border-left:3px solid var(--p);padding-left:8px">
-              <div style="font-size:10px;font-weight:800;color:var(--p)" id="reply-preview-sender"></div>
-              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="reply-preview-text"></div>
-            </div>
-            <button class="ib" id="cancel-reply-btn" style="width:24px;height:24px;font-size:10px;color:var(--muted)"><i class="fas fa-xmark"></i></button>
-            <input type="hidden" id="reply-msg-id" value="">
-          </div>
-
-          <div style="padding:12px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
-            <input type="text" class="inp" id="chat-input" placeholder="মেসেজ লিখুন..." style="flex:1;border-radius:24px;padding:10px 16px;font-size:13px" maxlength="200">
-            <button class="btn btn-p" id="chat-send-btn" style="border-radius:50%;width:38px;height:38px;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-paper-plane" style="font-size:13px"></i></button>
           </div>
         </div>
       </div>
@@ -882,7 +849,6 @@ tbody tr:last-child td{border-bottom:none}
   <button class="mnbtn" data-page="transactions"><i class="fas fa-list-ul"></i><span class="i18n" data-key="txs">লেনদেন</span></button>
   <button class="mnbtn" data-page="accounts" style="display:none"><i class="fas fa-wallet"></i><span class="i18n" data-key="accs">একাউন্ট</span></button>
   <button class="mnbtn" data-page="mess"><i class="fas fa-bowl-food"></i><span class="i18n" data-key="mess">মেস</span></button>
-  <button class="mnbtn" data-page="chat" style="display:none"><i class="fas fa-comments"></i><span class="i18n" data-key="chat">চ্যাট</span></button>
   <button class="mnbtn" data-page="split"><i class="fas fa-users"></i><span class="i18n" data-key="split">ভাগ</span></button>
   <button class="mnbtn" data-page="budget"><i class="fas fa-sliders"></i><span class="i18n" data-key="budget">বাজেট</span></button>
   <button class="mnbtn" data-page="goals"><i class="fas fa-bullseye"></i><span class="i18n" data-key="goals">লক্ষ্য</span></button>
