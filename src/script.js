@@ -1702,6 +1702,7 @@ class BachelorKhata {
 
   applySyncUI() {
     const id = this.data.settings.syncId;
+    const shortCode = this.data.settings.shortCode || id;
     const last = this.data.settings.lastSync;
     
     const discUI = g('p-sync-disconnected-ui');
@@ -1713,7 +1714,7 @@ class BachelorKhata {
     if (id) {
       if (discUI) discUI.style.display = 'none';
       if (connUI) connUI.style.display = 'flex';
-      if (codeText) codeText.textContent = id;
+      if (codeText) codeText.textContent = shortCode;
       if (hSync) hSync.style.display = 'inline-flex';
       if (pStatus) pStatus.textContent = last ? `সর্বশেষ সিঙ্ক: ${last}` : 'সংযুক্ত করা হয়েছে।';
       this.syncActiveRoommates().catch(() => {});
@@ -1925,6 +1926,15 @@ class BachelorKhata {
     }
   }
 
+  generateShortCode() {
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let res = '';
+    for(let i=0; i<6; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return res;
+  }
+
   async handleSyncCreateUI() {
     if(confirm('নতুন মেস তৈরি করলে আপনার বর্তমান ডেটা ক্লাউডে আপলোড হবে। নিশ্চিত?')) {
       this.toast('মেস কোড তৈরি হচ্ছে...', 'info');
@@ -1946,13 +1956,30 @@ class BachelorKhata {
 
         const loc = res.headers.get('Location') || '';
         const roomId = loc.split('/').pop();
+        const shortCode = this.generateShortCode();
+
+        // Register shortCode -> roomId in master index
+        try {
+          const idxRes = await fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', { headers: { 'Accept': 'application/json' } });
+          let idxData = {};
+          if (idxRes.ok) idxData = await idxRes.json();
+          idxData[shortCode] = roomId;
+          await fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(idxData)
+          });
+        } catch(e) {
+          console.error("Master index register error:", e);
+        }
 
         this.data.settings.syncId = roomId;
+        this.data.settings.shortCode = shortCode;
         this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this.save('settings');
 
         this.applySyncUI();
-        this.toast('মেস সফলভাবে তৈরি হয়েছে! রুমমেটদের কোডটি দিন।', 'success');
+        this.toast(`মেস সফলভাবে তৈরি হয়েছে! কোড: ${shortCode}`, 'success');
         this.startBackgroundChatPoll();
       } catch(err) {
         console.error(err);
@@ -1972,27 +1999,47 @@ class BachelorKhata {
   }
 
   handleCopyCode() {
-    const id = this.data.settings.syncId;
-    if(id) {
-      navigator.clipboard.writeText(id).then(() => {
-        this.toast('কোড কপি করা হয়েছে!', 'success');
+    const code = this.data.settings.shortCode || this.data.settings.syncId;
+    if(code) {
+      navigator.clipboard.writeText(code).then(() => {
+        this.toast('মেস কোড কপি করা হয়েছে!', 'success');
       });
     }
   }
 
-  async connectToRoomId(roomId) {
+  async connectToRoomId(inputCode) {
     this.toast('মেস ডেটা লোড করা হচ্ছে...', 'info');
     const btn = g('join-room-btn');
     if(btn) { btn.disabled = true; btn.textContent = 'অপেক্ষা করুন...'; }
+    
+    let targetRoomId = inputCode.trim();
+    let shortCodeToSave = targetRoomId.toUpperCase();
+
+    // Check if input is a 6-character short code and resolve via Master Index
+    if (targetRoomId.length <= 10 && !targetRoomId.includes('-')) {
+      try {
+        const idxRes = await fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', { headers: { 'Accept': 'application/json' } });
+        if (idxRes.ok) {
+          const idxData = await idxRes.json();
+          if (idxData && idxData[shortCodeToSave]) {
+            targetRoomId = idxData[shortCodeToSave];
+          }
+        }
+      } catch(e) {
+        console.error("Master index resolve error:", e);
+      }
+    }
+
     try {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${roomId}`, { headers: { 'Accept': 'application/json' } });
+      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${targetRoomId}`, { headers: { 'Accept': 'application/json' } });
       if (!res.ok) throw new Error("Invalid ID");
 
       const obj = await res.json();
       if (!obj) throw new Error("Empty room data");
 
       if (confirm('মেস কোড পাওয়া গেছে! আপনি কি এই ডেটা লোড করতে চান? আপনার বর্তমান সমস্ত লোকাল ডেটা মুছে যাবে!')) {
-        this.data.settings.syncId = roomId;
+        this.data.settings.syncId = targetRoomId;
+        this.data.settings.shortCode = shortCodeToSave;
         this.save('settings');
 
         if (obj.mess) this.data.mess = obj.mess;
