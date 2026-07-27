@@ -542,6 +542,18 @@ class BachelorKhata {
       g('f-to-g').style.display=t.type==='transfer'?'':'none'; if(g('f-cat-g')) g('f-cat-g').style.display='none';
       setText('form-title','আপডেট'); g('f-submit').textContent='আপডেট'; g('f-cancel').style.display='';
       g('f-submit').style.background='#3b82f6';
+      
+      const formCard = g('tx-form')?.closest('.card');
+      if (formCard) {
+        formCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        formCard.style.transition = 'all 0.3s ease';
+        formCard.style.outline = '2px solid #3b82f6';
+        formCard.style.boxShadow = '0 0 16px rgba(59, 130, 246, 0.4)';
+        setTimeout(() => {
+          formCard.style.outline = '';
+          formCard.style.boxShadow = '';
+        }, 2000);
+      }
     },100);
   }
 
@@ -1775,21 +1787,17 @@ class BachelorKhata {
     const id = this.data.settings.syncId;
     if (!id) return;
     try {
-      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_active_devices_${id}`);
-      let list = [];
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text !== '""' && text !== 'null') {
-          list = JSON.parse(text);
-        }
-      }
-      
+      const getRes = await fetch(`https://api.restful-api.dev/objects/${id}`);
+      if (!getRes.ok) return;
+
+      const obj = await getRes.json();
+      if (!obj || !obj.data) return;
+
+      let list = Array.isArray(obj.data.devices) ? obj.data.devices : [];
       const now = Date.now();
-      // Keep only active users from the last 15 minutes
       const activeWindow = 15 * 60 * 1000;
       list = list.filter(u => u && u.name && (now - u.time < activeWindow));
-      
-      // Update/add current user
+
       const myName = this.data.settings.initials || 'User';
       const myEntry = list.find(u => u.name === myName);
       if (myEntry) {
@@ -1797,14 +1805,23 @@ class BachelorKhata {
       } else {
         list.push({ name: myName, time: now });
       }
-      
-      // Save back to server
-      await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_active_devices_${id}?value=${encodeURIComponent(JSON.stringify(list))}`, {
-        method: 'POST',
-        body: ''
+
+      this.activeRoommates = list;
+
+      const payload = {
+        name: obj.name || `BK_${id.slice(-6).toUpperCase()}`,
+        data: {
+          ...obj.data,
+          devices: list
+        }
+      };
+
+      await fetch(`https://api.restful-api.dev/objects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      
-      // Render active users list in UI
+
       const countEl = g('p-active-count');
       const listEl = g('p-active-list');
       if (countEl) countEl.textContent = list.length;
@@ -1827,37 +1844,42 @@ class BachelorKhata {
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
       if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
+
+      let remoteChat = this.data.localChatMsgs || [];
+      let remoteDevices = this.activeRoommates || [];
       
-      const compressedStr = this.compressData();
-      if (!compressedStr) throw new Error("Compression failed");
-      
-      // Divide into chunks of 900 characters each to bypass ASP.NET route limit
-      const chunkSize = 900;
-      const chunks = [];
-      for (let i = 0; i < compressedStr.length; i += chunkSize) {
-        chunks.push(compressedStr.substring(i, i + chunkSize));
-      }
-      
-      // Upload chunks to KV store
-      for (let i = 0; i < chunks.length; i++) {
-        const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_data_${id}_${i}?value=${encodeURIComponent(chunks[i])}`, {
-          method: 'POST',
-          body: ''
-        });
-        if (!res.ok) throw new Error(`Chunk ${i} upload failed`);
-      }
-      
-      // Save chunk count
-      const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_data_${id}_count?value=${chunks.length}`, {
-        method: 'POST',
-        body: ''
+      try {
+        const getRes = await fetch(`https://api.restful-api.dev/objects/${id}`);
+        if (getRes.ok) {
+          const resObj = await getRes.json();
+          if (resObj && resObj.data) {
+            if (Array.isArray(resObj.data.chat)) remoteChat = resObj.data.chat;
+            if (Array.isArray(resObj.data.devices)) remoteDevices = resObj.data.devices;
+          }
+        }
+      } catch(e) {}
+
+      const payload = {
+        name: `BK_${id.slice(-6).toUpperCase()}`,
+        data: {
+          mess: this.data.mess || {},
+          bazar: this.data.bazar || [],
+          chat: remoteChat,
+          devices: remoteDevices
+        }
+      };
+
+      const res = await fetch(`https://api.restful-api.dev/objects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      if (!countRes.ok) throw new Error("Count upload failed");
-      
+
+      if (!res.ok) throw new Error("Cloud upload failed");
+
       this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       this.save('settings');
       this.applySyncUI();
-      
       if(icon && !silent) icon.className = 'fas fa-rotate';
     } catch(err) {
       console.error(err);
@@ -1878,43 +1900,25 @@ class BachelorKhata {
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
       if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
-      
-      // Read chunk count
-      const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_data_${id}_count`);
-      if (!countRes.ok) throw new Error("Fetch count failed");
-      
-      const rawCount = await countRes.text();
-      let count = 0;
-      if (rawCount && rawCount.trim() !== '' && rawCount !== '""' && rawCount !== 'null') {
-        count = parseInt(JSON.parse(rawCount));
-      }
-      
-      if (count > 0) {
-        // Fetch all chunks concurrently
-        const fetchPromises = [];
-        for (let i = 0; i < count; i++) {
-          fetchPromises.push(
-            fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_data_${id}_${i}`)
-              .then(res => res.json())
-          );
+
+      const res = await fetch(`https://api.restful-api.dev/objects/${id}`);
+      if (!res.ok) throw new Error("Cloud fetch failed");
+
+      const obj = await res.json();
+      if (obj && obj.data) {
+        if (obj.data.mess) this.data.mess = obj.data.mess;
+        if (obj.data.bazar) this.data.bazar = obj.data.bazar;
+        if (Array.isArray(obj.data.chat) && obj.data.chat.length > 0) {
+          this.data.localChatMsgs = obj.data.chat;
+          localStorage.setItem('bk_local_chat', JSON.stringify(obj.data.chat));
         }
-        
-        const chunks = await Promise.all(fetchPromises);
-        const joinedStr = chunks.join('');
-        const remoteData = this.decompressData(joinedStr);
-        
-        if (remoteData) {
-          if (remoteData.mess) this.data.mess = remoteData.mess;
-          if (remoteData.bazar) this.data.bazar = remoteData.bazar;
-          this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          this.save('settings');
-          this.save('mess');
-          this.save('bazar');
-          this.applySyncUI();
-          this.render();
-        }
+        this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        this.save('settings');
+        this.save('mess');
+        this.save('bazar');
+        this.applySyncUI();
+        this.render();
       }
-      
       if(icon && !silent) icon.className = 'fas fa-rotate';
     } catch(err) {
       console.error(err);
@@ -1929,28 +1933,47 @@ class BachelorKhata {
 
   async handleSyncCreateUI() {
     if(confirm('নতুন মেস তৈরি করলে আপনার বর্তমান ডেটা ক্লাউডে আপলোড হবে। নিশ্চিত?')) {
-      // Generate a unique 6-character ID
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let randomId = '';
-      for(let i=0; i<6; i++) randomId += chars.charAt(Math.floor(Math.random() * chars.length));
-      
-      this.data.settings.syncId = randomId;
-      this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      this.save('settings');
-      
       this.toast('মেস কোড তৈরি হচ্ছে...', 'info');
-      // Upload current local database under this ID
-      await this.cloudUpload();
-      this.applySyncUI();
-      this.toast('মেস সফলভাবে তৈরি হয়েছে! রুমমেটদের কোডটি দিন।', 'success');
-      this.startBackgroundChatPoll();
+      try {
+        const payload = {
+          name: 'BachelorKhataMess',
+          data: {
+            mess: this.data.mess || {},
+            bazar: this.data.bazar || [],
+            chat: this.data.localChatMsgs || [],
+            devices: []
+          }
+        };
+
+        const res = await fetch('https://api.restful-api.dev/objects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error("Create room failed");
+
+        const created = await res.json();
+        const roomId = created.id;
+
+        this.data.settings.syncId = roomId;
+        this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        this.save('settings');
+
+        this.applySyncUI();
+        this.toast('মেস সফলভাবে তৈরি হয়েছে! রুমমেটদের কোডটি দিন।', 'success');
+        this.startBackgroundChatPoll();
+      } catch(err) {
+        console.error(err);
+        this.toast('মেস তৈরি করা যায়নি। পুনরায় চেষ্টা করুন।', 'error');
+      }
     }
   }
 
   async handleJoinRoom() {
     const codeInput = g('join-room-code');
-    const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
-    if(!code || code.length < 6) {
+    const code = codeInput ? codeInput.value.trim() : '';
+    if(!code) {
       this.toast('দয়া করে সঠিক মেস কোডটি দিন।', 'error');
       return;
     }
@@ -1971,21 +1994,27 @@ class BachelorKhata {
     const btn = g('join-room-btn');
     if(btn) { btn.disabled = true; btn.textContent = 'অপেক্ষা করুন...'; }
     try {
-      // Test fetch count first to verify validity of the scanned ID
-      const countRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_data_${roomId}_count`);
-      if (!countRes.ok) throw new Error("Invalid ID");
-      
-      const rawCount = await countRes.text();
-      if (!rawCount || rawCount.trim() === '' || rawCount === '""' || rawCount === 'null') {
-        throw new Error("Empty count");
-      }
-      
+      const res = await fetch(`https://api.restful-api.dev/objects/${roomId}`);
+      if (!res.ok) throw new Error("Invalid ID");
+
+      const obj = await res.json();
+      if (!obj || !obj.data) throw new Error("Empty room data");
+
       if (confirm('মেস কোড পাওয়া গেছে! আপনি কি এই ডেটা লোড করতে চান? আপনার বর্তমান সমস্ত লোকাল ডেটা মুছে যাবে!')) {
         this.data.settings.syncId = roomId;
         this.save('settings');
-        
-        await this.cloudDownload();
+
+        if (obj.data.mess) this.data.mess = obj.data.mess;
+        if (obj.data.bazar) this.data.bazar = obj.data.bazar;
+        if (Array.isArray(obj.data.chat)) {
+          this.data.localChatMsgs = obj.data.chat;
+          localStorage.setItem('bk_local_chat', JSON.stringify(obj.data.chat));
+        }
+
+        this.save('mess');
+        this.save('bazar');
         this.applySyncUI();
+        this.render();
         this.closeModal('m-join-room');
         this.toast('সফলভাবে শেয়ার মেসে যোগ দিয়েছেন!', 'success');
         this.startBackgroundChatPoll();
@@ -2001,25 +2030,6 @@ class BachelorKhata {
 
   async handleSyncDisconnect() {
     if (confirm('মেস লিংক সরাতে চান? এর পর থেকে অফলাইনে ডেটা সেভ হবে।')) {
-      const id = this.data.settings.syncId;
-      const myName = this.data.settings.initials || 'User';
-      if (id) {
-        try {
-          const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_active_devices_${id}`);
-          if (res.ok) {
-            const text = await res.text();
-            if (text && text !== '""' && text !== 'null') {
-              let list = JSON.parse(text);
-              list = list.filter(u => u && u.name && u.name !== myName);
-              await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_active_devices_${id}?value=${encodeURIComponent(JSON.stringify(list))}`, {
-                method: 'POST',
-                body: ''
-              });
-            }
-          }
-        } catch(e) {}
-      }
-      
       this.data.settings.syncId = '';
       this.data.settings.lastSync = '';
       this.save('settings');
@@ -2373,24 +2383,12 @@ class BachelorKhata {
         const refreshIcon = g('chat-refresh-btn')?.querySelector('i');
         if (refreshIcon) refreshIcon.className = 'fas fa-rotate fa-spin';
       }
-      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${syncId}`);
+      const res = await fetch(`https://api.restful-api.dev/objects/${syncId}`);
       if (res.ok) {
-        let text = await res.text();
-        let msgs = [];
-        if (text && text !== '""' && text !== 'null' && text.trim() !== '') {
-          try {
-            let parsed = JSON.parse(text);
-            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-            if (Array.isArray(parsed)) msgs = parsed.filter(m => m && typeof m === 'object');
-          } catch(e){}
-        }
-        if (msgs.length > 0) {
-          this.data.localChatMsgs = msgs;
-          localStorage.setItem('bk_local_chat', JSON.stringify(msgs));
-          this.renderMessChat();
-        } else if (this.data.localChatMsgs && this.data.localChatMsgs.length > 0) {
-          this.renderMessChat();
-        } else {
+        const obj = await res.json();
+        if (obj && obj.data && Array.isArray(obj.data.chat)) {
+          this.data.localChatMsgs = obj.data.chat;
+          localStorage.setItem('bk_local_chat', JSON.stringify(obj.data.chat));
           this.renderMessChat();
         }
       }
@@ -2421,53 +2419,47 @@ class BachelorKhata {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
     };
 
-    // Local Optimistic Update
     this.data.localChatMsgs = this.data.localChatMsgs || [];
     this.data.localChatMsgs.push(newMsg);
-    if (this.data.localChatMsgs.length > 25) this.data.localChatMsgs = this.data.localChatMsgs.slice(-25);
+    if (this.data.localChatMsgs.length > 30) this.data.localChatMsgs = this.data.localChatMsgs.slice(-30);
     localStorage.setItem('bk_local_chat', JSON.stringify(this.data.localChatMsgs));
     this.renderMessChat();
     input.value = '';
 
-    // If no sync id, just keep local
     if (!syncId) return;
 
     try {
-      // 1. Fetch latest to prevent overwriting
-      const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/swnr32ym/bk_chat_${syncId}`);
-      let msgs = [];
+      const res = await fetch(`https://api.restful-api.dev/objects/${syncId}`);
       if (res.ok) {
-        let txt = await res.text();
-        if (txt && txt !== '""' && txt !== 'null' && txt.trim() !== '') {
-          try {
-             let parsed = JSON.parse(txt);
-             if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-             if (Array.isArray(parsed)) msgs = parsed.filter(m => m && typeof m === 'object');
-          } catch(e){}
+        const obj = await res.json();
+        let msgs = (obj && obj.data && Array.isArray(obj.data.chat)) ? obj.data.chat : [];
+        msgs.push(newMsg);
+        if (msgs.length > 30) msgs = msgs.slice(-30);
+
+        const payload = {
+          name: obj.name || `BK_${syncId.slice(-6).toUpperCase()}`,
+          data: {
+            ...obj.data,
+            chat: msgs
+          }
+        };
+
+        const saveRes = await fetch(`https://api.restful-api.dev/objects/${syncId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (saveRes.ok) {
+          this.data.localChatMsgs = msgs;
+          localStorage.setItem('bk_local_chat', JSON.stringify(msgs));
+          this.renderMessChat();
         }
       }
-
-      // 2. Append new message
-      msgs.push(newMsg);
-      if (msgs.length > 25) msgs = msgs.slice(-25);
-      
-      let payload = encodeURIComponent(JSON.stringify(msgs));
-      while (payload.length > 1800 && msgs.length > 1) {
-        msgs.shift();
-        payload = encodeURIComponent(JSON.stringify(msgs));
-      }
-
-      // 3. Upload chat
-      const saveRes = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/swnr32ym/bk_chat_${syncId}?value=${payload}`, {
-        method: 'POST',
-        body: ''
-      });
-
-      if (saveRes.ok) {
-        this.data.localChatMsgs = msgs;
-        localStorage.setItem('bk_local_chat', JSON.stringify(msgs));
-        this.renderMessChat();
-      }
+    } catch(e) {
+      console.error("Chat send error:", e);
+    }
+  }
     } catch (e) {
       console.error("Chat send error:", e);
     }
