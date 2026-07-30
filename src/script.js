@@ -66,7 +66,11 @@ class BachelorKhata {
     
     // Auto cloud upload if syncId is active
     if (this.data.settings.syncId && k !== 'settings') {
-      this.cloudUpload().catch(err => console.error("Cloud upload error:", err));
+      this.localChangesPending = true;
+      clearTimeout(this.syncTimer);
+      this.syncTimer = setTimeout(() => {
+        this.cloudUpload().catch(err => console.error("Cloud upload error:", err));
+      }, 800);
     }
   }
 
@@ -1684,14 +1688,17 @@ class BachelorKhata {
       shortCode = this.generateShortCode();
       this.data.settings.shortCode = shortCode;
       this.save('settings');
-      
+    }
+
+    // Auto-heal Master Index
+    if (id && shortCode) {
       try {
-        fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', { headers: { 'Accept': 'application/json' } })
+        fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', { headers: { 'Accept': 'application/json' } })
           .then(r => r.ok ? r.json() : null)
           .then(idxData => {
-            if (idxData) {
+            if (idxData && idxData[shortCode] !== id) {
               idxData[shortCode] = id;
-              fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', {
+              fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify(idxData)
@@ -1837,6 +1844,7 @@ class BachelorKhata {
     if(!id || this.isSyncing) return;
     try {
       this.isSyncing = true;
+      this.localChangesPending = false;
       const syncBtn = g('header-sync-btn');
       const icon = syncBtn?.querySelector('i');
       if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
@@ -1868,7 +1876,7 @@ class BachelorKhata {
       if (!res.ok) throw new Error("Cloud upload failed");
 
       this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      this.save('settings');
+      localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
       this.applySyncUI();
       if(icon && !silent) icon.className = 'fas fa-rotate';
     } catch(err) {
@@ -1896,14 +1904,27 @@ class BachelorKhata {
 
       const obj = await res.json();
       if (obj) {
-        if (obj.mess) this.data.mess = obj.mess;
-        if (obj.bazar) this.data.bazar = obj.bazar;
-        this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        this.save('settings');
-        this.save('mess');
-        this.save('bazar');
-        this.applySyncUI();
-        this.render();
+        if (this.localChangesPending) {
+          console.log("Local changes pending, skipping cloud overwrite");
+        } else {
+          let changed = false;
+          if (obj.mess && JSON.stringify(this.data.mess) !== JSON.stringify(obj.mess)) {
+            this.data.mess = obj.mess;
+            changed = true;
+            localStorage.setItem('bk_mess', JSON.stringify(this.data.mess));
+          }
+          if (obj.bazar && JSON.stringify(this.data.bazar) !== JSON.stringify(obj.bazar)) {
+            this.data.bazar = obj.bazar;
+            changed = true;
+            localStorage.setItem('bk_bazar', JSON.stringify(this.data.bazar));
+          }
+          if (changed || !this.data.settings.lastSync) {
+            this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
+            this.applySyncUI();
+            this.render();
+          }
+        }
       }
       if(icon && !silent) icon.className = 'fas fa-rotate';
     } catch(err) {
@@ -1914,6 +1935,9 @@ class BachelorKhata {
       if(icon && !silent) icon.className = 'fas fa-rotate';
     } finally {
       this.isSyncing = false;
+      if (this.localChangesPending) {
+        this.cloudUpload().catch(() => {});
+      }
     }
   }
 
@@ -1950,11 +1974,11 @@ class BachelorKhata {
 
         // Register shortCode -> roomId in master index
         try {
-          const idxRes = await fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', { headers: { 'Accept': 'application/json' } });
+          const idxRes = await fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', { headers: { 'Accept': 'application/json' } });
           let idxData = {};
           if (idxRes.ok) idxData = await idxRes.json();
           idxData[shortCode] = roomId;
-          await fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', {
+          await fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify(idxData)
@@ -2007,7 +2031,7 @@ class BachelorKhata {
     // Check if input is a 6-character short code and resolve via Master Index
     if (targetRoomId.length <= 10 && !targetRoomId.includes('-')) {
       try {
-        const idxRes = await fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', { headers: { 'Accept': 'application/json' } });
+        const idxRes = await fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', { headers: { 'Accept': 'application/json' } });
         if (idxRes.ok) {
           const idxData = await idxRes.json();
           if (idxData && idxData[shortCodeToSave]) {
