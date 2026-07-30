@@ -150,10 +150,6 @@ class BachelorKhata {
     else if (p==='goals') this.renderGoals();
     else if (p==='debts') this.renderDebts();
     else if (p==='reports') this.renderReports();
-    else if (p==='chat') {
-      this.navigate('mess');
-      this.switchMessSubtab('chat');
-    }
   }
 
   render() { this.renderPage(this.page); }
@@ -1680,8 +1676,32 @@ class BachelorKhata {
 
   applySyncUI() {
     const id = this.data.settings.syncId;
-    const shortCode = this.data.settings.shortCode || id;
+    let shortCode = this.data.settings.shortCode;
     const last = this.data.settings.lastSync;
+    
+    // Auto-generate shortcode for old users who only have UUID
+    if (id && !shortCode && id.length > 10) {
+      shortCode = this.generateShortCode();
+      this.data.settings.shortCode = shortCode;
+      this.save('settings');
+      
+      try {
+        fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', { headers: { 'Accept': 'application/json' } })
+          .then(r => r.ok ? r.json() : null)
+          .then(idxData => {
+            if (idxData) {
+              idxData[shortCode] = id;
+              fetch('https://jsonblob.com/api/jsonBlob/019fa519-df6b-7f7d-b160-0fdbf71b7bfe', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(idxData)
+              });
+            }
+          });
+      } catch(e) {}
+    }
+
+    const codeToDisplay = shortCode || id;
     
     const discUI = g('p-sync-disconnected-ui');
     const connUI = g('p-sync-connected-ui');
@@ -1692,7 +1712,7 @@ class BachelorKhata {
     if (id) {
       if (discUI) discUI.style.display = 'none';
       if (connUI) connUI.style.display = 'flex';
-      if (codeText) codeText.textContent = shortCode;
+      if (codeText) codeText.textContent = codeToDisplay;
       if (hSync) hSync.style.display = 'inline-flex';
       if (pStatus) pStatus.textContent = last ? `সর্বশেষ সিঙ্ক: ${last}` : 'সংযুক্ত করা হয়েছে।';
       this.syncActiveRoommates().catch(() => {});
@@ -2144,21 +2164,51 @@ class BachelorKhata {
 
     const worker = html2pdf().from(htmlContent).set(opt);
 
-    worker.outputPdf('datauristring').then(pdfDataUri => {
+    worker.outputPdf('datauristring').then(async pdfDataUri => {
       try {
-        const link = document.createElement('a');
-        link.href = pdfDataUri;
-        link.download = filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(() => {
-          if (document.body.contains(link)) document.body.removeChild(link);
-        }, 1000);
-        this.toast(successMsg, 'success');
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+          const base64Data = pdfDataUri.split(',')[1];
+          const Filesystem = window.Capacitor.Plugins.Filesystem;
+          const Share = window.Capacitor.Plugins.Share;
+          
+          if (!Filesystem) {
+            throw new Error("Filesystem plugin missing");
+          }
+          
+          const result = await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: 'DOCUMENTS',
+            recursive: true
+          });
+          
+          if (Share) {
+            await Share.share({
+              title: filename,
+              url: result.uri,
+              dialogTitle: 'PDF সেভ বা শেয়ার করুন'
+            }).catch(e => console.log('Share canceled or failed', e));
+          }
+          
+          this.toast(successMsg, 'success');
+        } else {
+          const link = document.createElement('a');
+          link.href = pdfDataUri;
+          link.download = filename;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            if (document.body.contains(link)) document.body.removeChild(link);
+          }, 1000);
+          this.toast(successMsg, 'success');
+        }
       } catch(e) {
+        console.error("PDF Download/Share error:", e);
         worker.save().then(() => {
           this.toast(successMsg, 'success');
+        }).catch(err => {
+          this.toast('PDF ডাউনলোড করা যায়নি।', 'error');
         });
       }
     }).catch(err => {
