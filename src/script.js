@@ -1674,7 +1674,8 @@ class BachelorKhata {
 
   // ── CLOUD SYNC & SHARING ───────────────────────────────────────
   bindSync() {
-    g('p-sync-btn-create')?.addEventListener('click', () => this.handleSyncCreateUI());
+    g('p-sync-btn-create')?.addEventListener('click', () => this.openModal('m-create-mess'));
+    g('create-mess-btn')?.addEventListener('click', () => this.handleSyncCreateUI());
     g('p-sync-btn-scan')?.addEventListener('click', () => this.openModal('m-join-room'));
     g('join-room-btn')?.addEventListener('click', () => this.handleJoinRoom());
     g('p-sync-btn-copy')?.addEventListener('click', () => this.handleCopyCode());
@@ -1698,24 +1699,6 @@ class BachelorKhata {
       this.save('settings');
     }
 
-    // Auto-heal Master Index
-    if (id && shortCode) {
-      try {
-        fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
-          .then(r => r.ok ? r.json() : null)
-          .then(idxData => {
-            if (idxData && idxData[shortCode] !== id) {
-              idxData[shortCode] = id;
-              fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify(idxData)
-              });
-            }
-          });
-      } catch(e) {}
-    }
-
     const codeToDisplay = shortCode || id;
     
     const discUI = g('p-sync-disconnected-ui');
@@ -1723,14 +1706,21 @@ class BachelorKhata {
     const codeText = g('p-sync-code-text');
     const hSync = g('header-sync-btn');
     const pStatus = g('p-sync-status');
-    
+
     if (id) {
       if (discUI) discUI.style.display = 'none';
       if (connUI) connUI.style.display = 'flex';
       if (codeText) codeText.textContent = codeToDisplay;
       if (hSync) hSync.style.display = 'inline-flex';
       if (pStatus) pStatus.textContent = last ? `সর্বশেষ সিঙ্ক: ${last}` : 'সংযুক্ত করা হয়েছে।';
-      this.syncActiveRoommates().catch(() => {});
+      // Auto-heal Firebase Master Index
+      if (shortCode) {
+        db.ref('masterIndex/' + shortCode).once('value').then(snap => {
+          if (!snap.exists() || snap.val() !== id) {
+            db.ref('masterIndex/' + shortCode).set(id).catch(() => {});
+          }
+        }).catch(() => {});
+      }
     } else {
       if (discUI) discUI.style.display = 'flex';
       if (connUI) connUI.style.display = 'none';
@@ -1901,36 +1891,55 @@ class BachelorKhata {
   }
 
   async handleSyncCreateUI() {
-    if(confirm('নতুন মেস তৈরি করলে আপনার বর্তমান ডেটা ক্লাউডে আপলোড হবে। নিশ্চিত?')) {
-      this.toast('মেস তৈরি হচ্ছে...', 'info');
-      try {
-        const shortCode = this.generateShortCode();
-        const roomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    const codeInput = g('create-mess-code');
+    const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
+    
+    if (!code || code.length < 4 || code.length > 6) {
+      this.toast('দয়া করে ৪-৬ অক্ষরের একটি কোড লিখুন।', 'error');
+      return;
+    }
+    
+    if (!/^[A-Z0-9]+$/.test(code)) {
+      this.toast('শুধু ইংরেজি বড় হাতের অক্ষর ও সংখ্যা ব্যবহার করুন।', 'error');
+      return;
+    }
 
-        const payload = {
-          mess: this.data.mess || {},
-          bazar: this.data.bazar || [],
-          devices: [{ name: this.data.settings.initials || 'User', time: Date.now() }]
-        };
-
-        // Create Room in Firebase
-        await db.ref('rooms/' + roomId).set(payload);
-        
-        // Register in Master Index
-        await db.ref('masterIndex/' + shortCode).set(roomId);
-
-        this.data.settings.syncId = roomId;
-        this.data.settings.shortCode = shortCode;
-        this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        this.save('settings');
-
-        this.attachFirebaseListeners();
-        this.applySyncUI();
-        this.toast(`মেস সফলভাবে তৈরি হয়েছে! কোড: ${shortCode}`, 'success');
-      } catch(err) {
-        console.error(err);
-        this.toast('মেস তৈরি করা যায়নি। পুনরায় চেষ্টা করুন।', 'error');
+    this.toast('কোড চেক করা হচ্ছে...', 'info');
+    
+    try {
+      // Check if code already exists
+      const existingSnap = await db.ref('masterIndex/' + code).once('value');
+      if (existingSnap.exists()) {
+        this.toast('এই কোডটি ইতিমধ্যে ব্যবহৃত হচ্ছে। অন্য একটি কোড দিন।', 'error');
+        return;
       }
+
+      const roomId = 'room_' + code;
+
+      const payload = {
+        mess: this.data.mess || {},
+        bazar: this.data.bazar || [],
+        devices: [{ name: this.data.settings.initials || 'User', time: Date.now() }]
+      };
+
+      // Create Room in Firebase
+      await db.ref('rooms/' + roomId).set(payload);
+      
+      // Register in Master Index
+      await db.ref('masterIndex/' + code).set(roomId);
+
+      this.data.settings.syncId = roomId;
+      this.data.settings.shortCode = code;
+      this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this.save('settings');
+
+      this.attachFirebaseListeners();
+      this.applySyncUI();
+      this.closeModal('m-create-mess');
+      this.toast(`মেস সফলভাবে তৈরি হয়েছে! কোড: ${code}`, 'success');
+    } catch(err) {
+      console.error(err);
+      this.toast('মেস তৈরি করা যায়নি। পুনরায় চেষ্টা করুন।', 'error');
     }
   }
 

@@ -1183,10 +1183,22 @@ tbody tr:last-child td{border-bottom:none}
   <div class="mh"><div class="mt">মেসে যোগ দিন</div><button class="mc" data-close="m-join-room"><i class="fas fa-xmark"></i></button></div>
   <div style="display:flex;flex-direction:column;gap:12px;text-align:center">
     <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আপনার রুমমেটের তৈরি করা মেস কোডটি এখানে লিখুন।</div>
-    <input type="text" class="inp" id="join-room-code" placeholder="যেমন: A7B2X9" maxlength="10" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800">
+    <input type="text" class="inp" id="join-room-code" placeholder="যেমন: MESS01" maxlength="10" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800">
   </div>
   <div class="mf"><button class="btn btn-s" data-close="m-join-room" style="flex:1">বাতিল</button><button class="btn btn-p" id="join-room-btn" style="flex:1">যুক্ত হোন</button></div>
 </div></div>
+
+<!-- Create Mess Modal -->
+<div class="mo" id="m-create-mess"><div class="modal" style="max-width:340px">
+  <div class="mh"><div class="mt">নতুন মেস তৈরি করুন</div><button class="mc" data-close="m-create-mess"><i class="fas fa-xmark"></i></button></div>
+  <div style="display:flex;flex-direction:column;gap:12px;text-align:center">
+    <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আপনার মেসের জন্য একটি ৬ ডিজিটের কোড লিখুন। এই কোড দিয়ে অন্যরা মেসে জয়েন করতে পারবে।</div>
+    <input type="text" class="inp" id="create-mess-code" placeholder="যেমন: MESS01" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800">
+    <div style="font-size:10px;color:var(--amber);font-family:'Hind Siliguri',sans-serif"><i class="fas fa-info-circle"></i> শুধু ইংরেজি বড় হাতের অক্ষর ও সংখ্যা ব্যবহার করুন</div>
+  </div>
+  <div class="mf"><button class="btn btn-s" data-close="m-create-mess" style="flex:1">বাতিল</button><button class="btn btn-p" id="create-mess-btn" style="flex:1"><i class="fas fa-plus"></i> তৈরি করুন</button></div>
+</div></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
