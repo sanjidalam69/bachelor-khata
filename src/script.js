@@ -3,6 +3,21 @@
  * Full-featured Bengali finance tracker for bachelors
  */
 
+const firebaseConfig = {
+  apiKey: "AIzaSyBZMcPPPT60Zm1GKzAZo7JB2znbBW1ntpM",
+  authDomain: "bachelor-khata-1a348.firebaseapp.com",
+  projectId: "bachelor-khata-1a348",
+  storageBucket: "bachelor-khata-1a348.firebasestorage.app",
+  messagingSenderId: "16344139819",
+  appId: "1:16344139819:web:9a0f596839ac2393b5826e",
+  databaseURL: "https://bachelor-khata-1a348-default-rtdb.firebaseio.com"
+};
+
+if (!window.firebase.apps.length) {
+  window.firebase.initializeApp(firebaseConfig);
+}
+const db = window.firebase.database();
+
 class BachelorKhata {
   constructor() {
     this.lang = localStorage.getItem('bk_lang') || 'bn';
@@ -95,15 +110,8 @@ class BachelorKhata {
     ['f-time','q-time'].forEach(id => { const el = g(id); if(el) el.value = nowTime; });
     this.bindSync();
     if(this.data.settings.syncId) {
-      this.cloudDownload().catch(err => console.error("Initial sync error:", err));
+      this.attachFirebaseListeners();
     }
-    // Auto-refresh active roommates and data every 30 seconds
-    setInterval(() => {
-      if (this.data.settings.syncId) {
-        this.syncActiveRoommates().catch(() => {});
-        this.cloudDownload(true).catch(() => {});
-      }
-    }, 30000);
     this.translatePage();
     this.navigate(this.page);
   }
@@ -1693,7 +1701,7 @@ class BachelorKhata {
     // Auto-heal Master Index
     if (id && shortCode) {
       try {
-        fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', { headers: { 'Accept': 'application/json' } })
+        fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
           .then(r => r.ok ? r.json() : null)
           .then(idxData => {
             if (idxData && idxData[shortCode] !== id) {
@@ -1789,42 +1797,31 @@ class BachelorKhata {
     }
   }
 
-  async syncActiveRoommates() {
+  attachFirebaseListeners() {
     const id = this.data.settings.syncId;
-    if (!id) return;
-    try {
-      const getRes = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, { headers: { 'Accept': 'application/json' } });
-      if (!getRes.ok) return;
-
-      const obj = await getRes.json();
-      if (!obj || !obj.data) return;
-
-      let list = Array.isArray(obj.data.devices) ? obj.data.devices : [];
-      const now = Date.now();
+    if(!id) return;
+    
+    const myName = this.data.settings.initials || 'User';
+    
+    // Stop any existing listeners before attaching new ones
+    db.ref('rooms/' + id).off('value');
+    
+    db.ref('rooms/' + id).on('value', (snapshot) => {
+      const obj = snapshot.val();
+      if (!obj) return;
+      
+      let list = Array.isArray(obj.devices) ? obj.devices : [];
       const activeWindow = 15 * 60 * 1000;
-      list = list.filter(u => u && u.name && (now - u.time < activeWindow));
-
-      const myName = this.data.settings.initials || 'User';
+      list = list.filter(u => u && u.name && (Date.now() - u.time < activeWindow));
+      
       const myEntry = list.find(u => u.name === myName);
-      if (myEntry) {
-        myEntry.time = now;
-      } else {
-        list.push({ name: myName, time: now });
+      if (!myEntry) {
+         list.push({ name: myName, time: Date.now() });
+         // Silently update devices list to show self as active
+         db.ref('rooms/' + id + '/devices').set(list).catch(()=>{});
       }
-
       this.activeRoommates = list;
-
-      const payload = {
-        ...obj,
-        devices: list
-      };
-
-      await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
+      
       const countEl = g('p-active-count');
       const listEl = g('p-active-list');
       if (countEl) countEl.textContent = list.length;
@@ -1834,111 +1831,64 @@ class BachelorKhata {
           return `<span class="badge ${isMe ? 'bg' : 'bp'}" style="font-family:'Hind Siliguri',sans-serif">${u.name}${isMe ? ' (তুমি)' : ''}</span>`;
         }).join('');
       }
-    } catch (e) {
-      console.error("Active roommates sync failed:", e);
-    }
+
+      if (this.localChangesPending) {
+        return;
+      }
+      
+      let changed = false;
+      if (obj.mess && JSON.stringify(this.data.mess) !== JSON.stringify(obj.mess)) {
+        this.data.mess = obj.mess;
+        changed = true;
+        localStorage.setItem('bk_mess', JSON.stringify(this.data.mess));
+      }
+      if (obj.bazar && JSON.stringify(this.data.bazar) !== JSON.stringify(obj.bazar)) {
+        this.data.bazar = obj.bazar;
+        changed = true;
+        localStorage.setItem('bk_bazar', JSON.stringify(this.data.bazar));
+      }
+      if (changed || !this.data.settings.lastSync) {
+        this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
+        this.applySyncUI();
+        this.render();
+      }
+    });
   }
 
   async cloudUpload(silent = false) {
     const id = this.data.settings.syncId;
-    if(!id || this.isSyncing) return;
+    if(!id) return;
     try {
       this.isSyncing = true;
       this.localChangesPending = false;
-      const syncBtn = g('header-sync-btn');
-      const icon = syncBtn?.querySelector('i');
-      if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
-
-      let remoteDevices = this.activeRoommates || [];
       
-      try {
-        const getRes = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, { headers: { 'Accept': 'application/json' } });
-        if (getRes.ok) {
-          const resObj = await getRes.json();
-          if (resObj) {
-            if (Array.isArray(resObj.devices)) remoteDevices = resObj.devices;
-          }
-        }
-      } catch(e) {}
-
       const payload = {
         mess: this.data.mess || {},
         bazar: this.data.bazar || [],
-        devices: remoteDevices
+        devices: this.activeRoommates || []
       };
 
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) throw new Error("Cloud upload failed");
+      await db.ref('rooms/' + id).set(payload);
 
       this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
       this.applySyncUI();
-      if(icon && !silent) icon.className = 'fas fa-rotate';
     } catch(err) {
       console.error(err);
       if(!silent) this.toast('ক্লাউডে ডেটা আপলোড করা যায়নি।','error');
-      const syncBtn = g('header-sync-btn');
-      const icon = syncBtn?.querySelector('i');
-      if(icon && !silent) icon.className = 'fas fa-rotate';
     } finally {
       this.isSyncing = false;
     }
   }
 
   async cloudDownload(silent = false) {
-    const id = this.data.settings.syncId;
-    if(!id || this.isSyncing) return;
-    try {
-      this.isSyncing = true;
-      const syncBtn = g('header-sync-btn');
-      const icon = syncBtn?.querySelector('i');
-      if(icon && !silent) icon.className = 'fas fa-rotate fa-spin';
+    // This is now handled by attachFirebaseListeners automatically.
+    // Kept for compatibility.
+  }
 
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, { headers: { 'Accept': 'application/json' } });
-      if (!res.ok) throw new Error("Cloud fetch failed");
-
-      const obj = await res.json();
-      if (obj) {
-        if (this.localChangesPending) {
-          console.log("Local changes pending, skipping cloud overwrite");
-        } else {
-          let changed = false;
-          if (obj.mess && JSON.stringify(this.data.mess) !== JSON.stringify(obj.mess)) {
-            this.data.mess = obj.mess;
-            changed = true;
-            localStorage.setItem('bk_mess', JSON.stringify(this.data.mess));
-          }
-          if (obj.bazar && JSON.stringify(this.data.bazar) !== JSON.stringify(obj.bazar)) {
-            this.data.bazar = obj.bazar;
-            changed = true;
-            localStorage.setItem('bk_bazar', JSON.stringify(this.data.bazar));
-          }
-          if (changed || !this.data.settings.lastSync) {
-            this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
-            this.applySyncUI();
-            this.render();
-          }
-        }
-      }
-      if(icon && !silent) icon.className = 'fas fa-rotate';
-    } catch(err) {
-      console.error(err);
-      if(!silent) this.toast('ক্লাউড থেকে ডেটা ডাউনলোড করা যায়নি।','error');
-      const syncBtn = g('header-sync-btn');
-      const icon = syncBtn?.querySelector('i');
-      if(icon && !silent) icon.className = 'fas fa-rotate';
-    } finally {
-      this.isSyncing = false;
-      if (this.localChangesPending) {
-        this.cloudUpload().catch(() => {});
-      }
-    }
+  async syncActiveRoommates() {
+    // Handled by attachFirebaseListeners
   }
 
   generateShortCode() {
@@ -1952,46 +1902,29 @@ class BachelorKhata {
 
   async handleSyncCreateUI() {
     if(confirm('নতুন মেস তৈরি করলে আপনার বর্তমান ডেটা ক্লাউডে আপলোড হবে। নিশ্চিত?')) {
-      this.toast('মেস কোড তৈরি হচ্ছে...', 'info');
+      this.toast('মেস তৈরি হচ্ছে...', 'info');
       try {
+        const shortCode = this.generateShortCode();
+        const roomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
         const payload = {
           mess: this.data.mess || {},
           bazar: this.data.bazar || [],
-          devices: []
+          devices: [{ name: this.data.settings.initials || 'User', time: Date.now() }]
         };
 
-        const res = await fetch('https://jsonblob.com/api/jsonBlob', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) throw new Error("Create room failed");
-
-        const loc = res.headers.get('Location') || '';
-        const roomId = loc.split('/').pop();
-        const shortCode = this.generateShortCode();
-
-        // Register shortCode -> roomId in master index
-        try {
-          const idxRes = await fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', { headers: { 'Accept': 'application/json' } });
-          let idxData = {};
-          if (idxRes.ok) idxData = await idxRes.json();
-          idxData[shortCode] = roomId;
-          await fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(idxData)
-          });
-        } catch(e) {
-          console.error("Master index register error:", e);
-        }
+        // Create Room in Firebase
+        await db.ref('rooms/' + roomId).set(payload);
+        
+        // Register in Master Index
+        await db.ref('masterIndex/' + shortCode).set(roomId);
 
         this.data.settings.syncId = roomId;
         this.data.settings.shortCode = shortCode;
         this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this.save('settings');
 
+        this.attachFirebaseListeners();
         this.applySyncUI();
         this.toast(`মেস সফলভাবে তৈরি হয়েছে! কোড: ${shortCode}`, 'success');
       } catch(err) {
@@ -2028,27 +1961,20 @@ class BachelorKhata {
     let targetRoomId = inputCode.trim();
     let shortCodeToSave = targetRoomId.toUpperCase();
 
-    // Check if input is a 6-character short code and resolve via Master Index
-    if (targetRoomId.length <= 10 && !targetRoomId.includes('-')) {
-      try {
-        const idxRes = await fetch('https://jsonblob.com/api/jsonBlob/019fb46f-32e0-7bf8-8246-80212690c106', { headers: { 'Accept': 'application/json' } });
-        if (idxRes.ok) {
-          const idxData = await idxRes.json();
-          if (idxData && idxData[shortCodeToSave]) {
-            targetRoomId = idxData[shortCodeToSave];
-          }
-        }
-      } catch(e) {
-        console.error("Master index resolve error:", e);
-      }
-    }
-
     try {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${targetRoomId}`, { headers: { 'Accept': 'application/json' } });
-      if (!res.ok) throw new Error("Invalid ID");
+      if (targetRoomId.length <= 10 && !targetRoomId.includes('-') && !targetRoomId.startsWith('room_')) {
+        const idxSnapshot = await db.ref('masterIndex/' + shortCodeToSave).once('value');
+        if (idxSnapshot.exists()) {
+          targetRoomId = idxSnapshot.val();
+        } else {
+          throw new Error("Invalid Code");
+        }
+      }
 
-      const obj = await res.json();
-      if (!obj) throw new Error("Empty room data");
+      const roomSnapshot = await db.ref('rooms/' + targetRoomId).once('value');
+      if (!roomSnapshot.exists()) throw new Error("Room not found");
+
+      const obj = roomSnapshot.val();
 
       if (confirm('মেস কোড পাওয়া গেছে! আপনি কি এই ডেটা লোড করতে চান? আপনার বর্তমান সমস্ত লোকাল ডেটা মুছে যাবে!')) {
         this.data.settings.syncId = targetRoomId;
@@ -2060,6 +1986,8 @@ class BachelorKhata {
 
         this.save('mess');
         this.save('bazar');
+        
+        this.attachFirebaseListeners();
         this.applySyncUI();
         this.render();
         this.closeModal('m-join-room');
@@ -2076,6 +2004,9 @@ class BachelorKhata {
 
   async handleSyncDisconnect() {
     if (confirm('মেস লিংক সরাতে চান? এর পর থেকে অফলাইনে ডেটা সেভ হবে।')) {
+      if (this.data.settings.syncId) {
+        db.ref('rooms/' + this.data.settings.syncId).off('value');
+      }
       this.data.settings.syncId = '';
       this.data.settings.lastSync = '';
       this.save('settings');
@@ -2085,10 +2016,7 @@ class BachelorKhata {
   }
 
   async handleSyncNow() {
-    this.toast('সিঙ্কিং হচ্ছে...','info');
-    await this.cloudDownload();
-    await this.cloudUpload();
-    this.toast('সিঙ্ক সম্পন্ন হয়েছে! ✓','success');
+    this.toast('সিঙ্ক সম্পন্ন হয়েছে! ✓ (ফায়ারবেস অটোমেটিক লাইভ সিঙ্ক করছে)','success');
   }
 
   // ── EXPORT PDF ────────────────────────────────────────────────
