@@ -10,7 +10,7 @@ const firebaseConfig = {
   storageBucket: "bachelor-khata-1a348.firebasestorage.app",
   messagingSenderId: "16344139819",
   appId: "1:16344139819:web:9a0f596839ac2393b5826e",
-  databaseURL: "https://bachelor-khata-1a348-default-rtdb.firebaseio.com"
+  databaseURL: "https://bachelor-khata-1a348-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 if (!window.firebase.apps.length) {
