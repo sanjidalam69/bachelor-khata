@@ -103,11 +103,10 @@ class BachelorKhata {
     
     // Auto cloud upload if syncId is active
     if (this.data.settings.syncId && k !== 'settings') {
-      this.localChangesPending = true;
       clearTimeout(this.syncTimer);
       this.syncTimer = setTimeout(() => {
-        this.cloudUpload().catch(err => console.error("Cloud upload error:", err));
-      }, 800);
+        this.cloudUpload(true).catch(err => console.error("Cloud upload error:", err));
+      }, 500);
     }
   }
 
@@ -626,7 +625,11 @@ class BachelorKhata {
       this.data.mess.members.push({id:this.uid(),name});
       this.toast(`${name} যোগ হয়েছে!`,'success');
     }
-    this.save('mess'); this.closeModal('m-mess-member'); g('mm-name').value=''; g('mm-id').value=''; this.fillMessPayer(); this.render();
+    this.save('mess');
+    if (this.data.settings.syncId) {
+      db.ref('rooms/' + this.data.settings.syncId + '/mess/members').set(this.data.mess.members).catch(()=>{});
+    }
+    this.closeModal('m-mess-member'); g('mm-name').value=''; g('mm-id').value=''; this.fillMessPayer(); this.render();
   }
 
   editMessMember(id) {
@@ -641,7 +644,11 @@ class BachelorKhata {
     const m=this.data.mess.members.find(m=>m.id===id); if(!m) return;
     if(!confirm(`${m.name}-কে মেস থেকে বাদ দিতে চান?`)) return;
     this.data.mess.members=this.data.mess.members.filter(m=>m.id!==id);
-    this.save('mess'); this.fillMessPayer(); this.toast('সদস্য বাদ দেওয়া হয়েছে।','info'); this.render();
+    this.save('mess');
+    if (this.data.settings.syncId) {
+      db.ref('rooms/' + this.data.settings.syncId + '/mess/members').set(this.data.mess.members).catch(()=>{});
+    }
+    this.fillMessPayer(); this.toast('সদস্য বাদ দেওয়া হয়েছে।','info'); this.render();
   }
 
   toggleMessEntryType(type) {
@@ -792,20 +799,34 @@ class BachelorKhata {
         this.toast('মেস খরচ যোগ হয়েছে!','success');
       }
     }
-    this.save('mess'); this.closeModal('m-mess-entry'); this.render();
+    this.save('mess');
+    if (this.data.settings.syncId) {
+      db.ref('rooms/' + this.data.settings.syncId + '/mess/entries').set(this.data.mess.entries).catch(()=>{});
+    }
+    this.closeModal('m-mess-entry'); this.render();
   }
 
   deleteMessEntry() {
     this.ensureMessStructure();
     const id=g('me-id').value; if(!id||!confirm('এই এন্ট্রি মুছবেন?')) return;
-    this.data.mess.entries=this.data.mess.entries.filter(e=>e.id!==id); this.save('mess'); this.closeModal('m-mess-entry'); this.toast('মুছে গেছে।','info'); this.render();
+    this.data.mess.entries=this.data.mess.entries.filter(e=>e.id!==id);
+    this.save('mess');
+    if (this.data.settings.syncId) {
+      db.ref('rooms/' + this.data.settings.syncId + '/mess/entries').set(this.data.mess.entries).catch(()=>{});
+    }
+    this.closeModal('m-mess-entry'); this.toast('মুছে গেছে।','info'); this.render();
   }
 
   // ── BAZAR ─────────────────────────────────────────────────────
   bindBazar() {
     g('bz-add-btn')?.addEventListener('click', () => this.addBazarItem());
     g('clear-done-btn')?.addEventListener('click', () => {
-      this.data.bazar=this.data.bazar.filter(b=>!b.done); this.save('bazar'); this.render(); this.toast('সম্পন্ন আইটেম মুছে গেছে।','info');
+      this.data.bazar=this.data.bazar.filter(b=>!b.done);
+      this.save('bazar');
+      if (this.data.settings.syncId) {
+        db.ref('rooms/' + this.data.settings.syncId + '/bazar').set(this.data.bazar).catch(()=>{});
+      }
+      this.render(); this.toast('সম্পন্ন আইটেম মুছে গেছে।','info');
     });
     document.querySelectorAll('.prio-btn').forEach(b => {
       b.addEventListener('click', () => {
@@ -825,11 +846,20 @@ class BachelorKhata {
     const name=g('bz-name').value.trim(); const qty=g('bz-qty').value.trim(); const prio=g('bz-prio').value;
     if(!name){this.toast('পণ্যের নাম দিন।','error');return;}
     this.data.bazar.push({id:this.uid(),name,qty,price:0,prio,done:false,addedAt:new Date().toISOString()});
-    this.save('bazar'); g('bz-name').value=''; g('bz-qty').value=''; this.toast(`${name} যোগ হয়েছে!`,'success'); this.renderBazar();
+    this.save('bazar');
+    if (this.data.settings.syncId) {
+      db.ref('rooms/' + this.data.settings.syncId + '/bazar').set(this.data.bazar).catch(()=>{});
+    }
+    g('bz-name').value=''; g('bz-qty').value=''; this.toast(`${name} যোগ হয়েছে!`,'success'); this.renderBazar();
   }
 
   toggleBazar(id) {
-    this.data.bazar=this.data.bazar.map(b=>b.id===id?{...b,done:!b.done}:b); this.save('bazar'); this.renderBazar();
+    this.data.bazar=this.data.bazar.map(b=>b.id===id?{...b,done:!b.done}:b);
+    this.save('bazar');
+    if (this.data.settings.syncId) {
+      db.ref('rooms/' + this.data.settings.syncId + '/bazar').set(this.data.bazar).catch(()=>{});
+    }
+    this.renderBazar();
   }
 
   openBazarEdit(id) {
@@ -842,12 +872,21 @@ class BachelorKhata {
     const id=g('baz-id').value; if(!id) return;
     const name=g('baz-name').value.trim(); const qty=g('baz-qty').value.trim();
     this.data.bazar=this.data.bazar.map(b=>b.id===id?{...b,name,qty,price:0}:b);
-    this.save('bazar'); this.closeModal('m-bazar'); this.toast('আপডেট হয়েছে!','success'); this.renderBazar();
+    this.save('bazar');
+    if (this.data.settings.syncId) {
+      db.ref('rooms/' + this.data.settings.syncId + '/bazar').set(this.data.bazar).catch(()=>{});
+    }
+    this.closeModal('m-bazar'); this.toast('আপডেট হয়েছে!','success'); this.renderBazar();
   }
 
   deleteBazarItem(id) {
     if(!id||!confirm('এই আইটেম মুছবেন?')) return;
-    this.data.bazar=this.data.bazar.filter(b=>b.id!==id); this.save('bazar'); this.closeModal('m-bazar'); this.toast('মুছে গেছে।','info'); this.renderBazar();
+    this.data.bazar=this.data.bazar.filter(b=>b.id!==id);
+    this.save('bazar');
+    if (this.data.settings.syncId) {
+      db.ref('rooms/' + this.data.settings.syncId + '/bazar').set(this.data.bazar).catch(()=>{});
+    }
+    this.closeModal('m-bazar'); this.toast('মুছে গেছে।','info'); this.renderBazar();
   }
 
   // ── BUDGET ────────────────────────────────────────────────────
@@ -1386,7 +1425,12 @@ class BachelorKhata {
   deleteMessEntry2(id) {
     this.ensureMessStructure();
     if(!confirm('এই এন্ট্রি মুছবেন?')) return;
-    this.data.mess.entries=this.data.mess.entries.filter(e=>e.id!==id); this.save('mess'); this.toast('মুছে গেছে।','info'); this.renderMess();
+    this.data.mess.entries=this.data.mess.entries.filter(e=>e.id!==id);
+    this.save('mess');
+    if (this.data.settings.syncId) {
+      db.ref('rooms/' + this.data.settings.syncId + '/mess/entries').set(this.data.mess.entries).catch(()=>{});
+    }
+    this.toast('মুছে গেছে।','info'); this.renderMess();
   }
 
   // ── RENDER: BAZAR ─────────────────────────────────────────────
@@ -1772,16 +1816,21 @@ class BachelorKhata {
   }
 
   checkWelcomeOnboarding() {
-    const hasName = this.data.settings.hasSetProfile && this.data.settings.initials && this.data.settings.initials.trim().length > 0 && this.data.settings.initials !== 'SA';
-    if (!hasName) {
-      setTimeout(() => {
-        const inp = g('welcome-name');
-        if (inp && this.data.settings.initials && this.data.settings.initials !== 'SA') {
-          inp.value = this.data.settings.initials;
-        }
-        this.openModal('m-welcome');
-      }, 400);
+    // If user already has a valid name saved, don't show welcome popup
+    if (this.data.settings.initials && this.data.settings.initials.trim().length > 0 && this.data.settings.initials !== 'SA') {
+      this.data.settings.hasSetProfile = true;
+      this.save('settings');
+      return;
     }
+
+    // New user: Show welcome popup with an EMPTY input field
+    setTimeout(() => {
+      const inp = g('welcome-name');
+      if (inp) {
+        inp.value = '';
+      }
+      this.openModal('m-welcome');
+    }, 400);
   }
 
   ensureSelfMemberInMess() {
@@ -1952,19 +2001,30 @@ class BachelorKhata {
         }).join('');
       }
 
-      if (this.localChangesPending) {
-        return;
-      }
-      
       let changed = false;
       if (obj.mess) {
         const normalizedMess = this.ensureMessStructure(obj.mess);
+        let directMemberSyncNeeded = false;
         
-        // Auto-ensure self is registered as member in mess
-        if (myName && myName !== 'User' && myName !== 'SA' && !normalizedMess.members.some(m => m.name.trim().toLowerCase() === myName.toLowerCase())) {
+        // Auto-ensure self is registered as member in mess on Firebase
+        if (myName && myName !== 'User' && myName !== 'SA' && !normalizedMess.members.some(m => m.name && m.name.trim().toLowerCase() === myName.toLowerCase())) {
           normalizedMess.members.push({ id: this.uid(), name: myName });
-          changed = true;
-          this.cloudUpload(true);
+          directMemberSyncNeeded = true;
+        }
+
+        // Auto-ensure all connected roommates from devices list are registered in mess members
+        list.forEach(d => {
+          const devName = (d && d.name ? d.name.trim() : '');
+          if (devName && devName !== 'User' && devName !== 'SA') {
+            if (!normalizedMess.members.some(m => m.name && m.name.trim().toLowerCase() === devName.toLowerCase())) {
+              normalizedMess.members.push({ id: this.uid(), name: devName });
+              directMemberSyncNeeded = true;
+            }
+          }
+        });
+
+        if (directMemberSyncNeeded) {
+          db.ref('rooms/' + id + '/mess/members').set(normalizedMess.members).catch(()=>{});
         }
 
         if (JSON.stringify(this.data.mess) !== JSON.stringify(normalizedMess)) {
@@ -1997,15 +2057,14 @@ class BachelorKhata {
     if(!id) return;
     try {
       this.isSyncing = true;
-      this.localChangesPending = false;
       
-      const payload = {
-        mess: this.data.mess || {},
-        bazar: this.data.bazar || [],
-        devices: this.activeRoommates || []
-      };
+      const updates = {};
+      updates['rooms/' + id + '/mess/members'] = this.data.mess.members || [];
+      updates['rooms/' + id + '/mess/entries'] = this.data.mess.entries || [];
+      updates['rooms/' + id + '/mess/subcategories'] = this.data.mess.subcategories || {};
+      updates['rooms/' + id + '/bazar'] = this.data.bazar || [];
 
-      await db.ref('rooms/' + id).set(payload);
+      await db.ref().update(updates);
 
       this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
@@ -2160,11 +2219,16 @@ class BachelorKhata {
         this.save('settings');
 
         this.data.mess = this.ensureMessStructure(obj ? obj.mess : null);
-        this.data.bazar = Array.isArray(obj?.bazar) ? obj.bazar : [];
+        const toArr = (val) => Array.isArray(val) ? val.filter(Boolean) : (val && typeof val === 'object' ? Object.values(val).filter(Boolean) : []);
+        this.data.bazar = toArr(obj?.bazar);
 
-        // Automatically register self as member of this mess
-        if (myName && !this.data.mess.members.some(m => m.name.trim().toLowerCase() === myName.toLowerCase())) {
-          this.data.mess.members.push({ id: this.uid(), name: myName });
+        // Direct atomic registration of self in Firebase members list!
+        const existingMembers = Array.isArray(this.data.mess.members) ? [...this.data.mess.members] : [];
+        if (!existingMembers.some(m => m.name && m.name.trim().toLowerCase() === myName.toLowerCase())) {
+          existingMembers.push({ id: this.uid(), name: myName });
+          this.data.mess.members = existingMembers;
+          // Atomically write updated members array directly to Firebase!
+          await db.ref('rooms/' + targetRoomId + '/mess/members').set(existingMembers);
         }
 
         this.save('mess');
@@ -2174,7 +2238,6 @@ class BachelorKhata {
         this.applySyncUI();
         this.render();
         this.closeModal('m-join-room');
-        this.cloudUpload(true); // upload updated members to Firebase immediately!
         this.toast(`সফলভাবে শেয়ার মেসে যোগ দিয়েছেন! সদস্য: ${myName}`, 'success');
       } else {
         this.closeModal('m-join-room');
@@ -2200,7 +2263,35 @@ class BachelorKhata {
   }
 
   async handleSyncNow() {
-    this.toast('সিঙ্ক সম্পন্ন হয়েছে! ✓ (ফায়ারবেস অটোমেটিক লাইভ সিঙ্ক করছে)','success');
+    const id = this.data.settings.syncId;
+    if (!id) {
+      this.toast('মেস কোড কানেক্ট করা নেই!', 'warning');
+      return;
+    }
+    this.toast('ডাটা সিঙ্ক হচ্ছে...', 'info');
+    try {
+      const snap = await db.ref('rooms/' + id).once('value');
+      if (snap.exists()) {
+        const obj = snap.val();
+        const toArr = (val) => Array.isArray(val) ? val.filter(Boolean) : (val && typeof val === 'object' ? Object.values(val).filter(Boolean) : []);
+        if (obj.mess) {
+          this.data.mess = this.ensureMessStructure(obj.mess);
+          localStorage.setItem('bk_mess', JSON.stringify(this.data.mess));
+        }
+        if (obj.bazar) {
+          this.data.bazar = toArr(obj.bazar);
+          localStorage.setItem('bk_bazar', JSON.stringify(this.data.bazar));
+        }
+        this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
+        this.applySyncUI();
+        this.render();
+        this.toast('সফলভাবে সিঙ্ক সম্পন্ন হয়েছে! ✓', 'success');
+      }
+    } catch (e) {
+      console.error(e);
+      this.toast('সিঙ্ক করতে সমস্যা হয়েছে', 'error');
+    }
   }
 
   // ── EXPORT PDF ────────────────────────────────────────────────
