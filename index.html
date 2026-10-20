@@ -411,7 +411,7 @@ tbody tr:last-child td{border-bottom:none}
         <button class="btn btn-p bsm" id="quick-add-btn"><i class="fas fa-plus"></i> যোগ</button>
 
         <button class="ib" id="theme-toggle" title="থিম পরিবর্তন" style="width:34px;height:34px;font-size:14px;background:var(--surface2);border:none"><i class="fas fa-moon"></i></button>
-        <button class="av" id="profile-btn" title="প্রোফাইল"><img id="profile-pic" src="" alt="" style="display:none"><span id="profile-initials">SA</span></button>
+        <button class="av" id="profile-btn" title="প্রোফাইল"><img id="profile-pic" src="" alt="" style="display:none"><span id="profile-initials"><i class="fas fa-user" style="font-size:12px"></i></span></button>
       </div>
     </header>
 
@@ -1102,7 +1102,7 @@ tbody tr:last-child td{border-bottom:none}
       <div style="position:relative">
         <div style="width:64px;height:64px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--p-grad)">
           <img id="p-pic-lg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
-          <span id="p-initials-lg" style="font-size:20px;font-weight:800;color:#fff;font-family:'Hind Siliguri',sans-serif">U</span>
+          <span id="p-initials-lg" style="font-size:20px;font-weight:800;color:#fff;font-family:'Hind Siliguri',sans-serif"><i class="fas fa-user"></i></span>
         </div>
         <label style="position:absolute;bottom:-4px;right:-4px;width:26px;height:26px;background:var(--p);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;border:2px solid var(--surface);box-shadow:0 2px 5px rgba(0,0,0,0.2);transition:all 0.2s">
           <i class="fas fa-camera"></i>
@@ -1197,6 +1197,21 @@ tbody tr:last-child td{border-bottom:none}
     <div style="font-size:10px;color:var(--amber);font-family:'Hind Siliguri',sans-serif"><i class="fas fa-info-circle"></i> শুধু ইংরেজি বড় হাতের অক্ষর ও সংখ্যা ব্যবহার করুন</div>
   </div>
   <div class="mf"><button class="btn btn-s" data-close="m-create-mess" style="flex:1">বাতিল</button><button class="btn btn-p" id="create-mess-btn" style="flex:1"><i class="fas fa-plus"></i> তৈরি করুন</button></div>
+</div></div>
+
+<!-- Welcome / Name Onboarding Modal -->
+<div class="mo" id="m-welcome" style="z-index:99999"><div class="modal" style="max-width:340px;text-align:center;padding:24px 20px">
+  <div style="width:64px;height:64px;background:var(--p-grad);border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 20px rgba(56,189,248,0.35)">
+    👋
+  </div>
+  <div style="font-size:19px;font-weight:800;color:var(--head);font-family:'Hind Siliguri',sans-serif;margin-bottom:6px">স্বাগতম ব্যাচেলর খাতায়!</div>
+  <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin-bottom:18px;line-height:1.5">
+    মেসের যাবতীয় হিসাব পরিচালনা এবং বন্ধুদের সাথে যুক্ত হতে প্রথমে আপনার নামটি লিখুন:
+  </div>
+  <div class="ig" style="margin-bottom:18px">
+    <input type="text" class="inp" id="welcome-name" placeholder="যেমন: শান্ত, রাফি, সাকিব" maxlength="25" style="text-align:center;font-size:16px;font-weight:700;padding:12px;letter-spacing:0.5px">
+  </div>
+  <button class="btn btn-p bfull" id="welcome-save-btn" style="padding:13px;font-size:15px;font-weight:700"><i class="fas fa-arrow-right" style="margin-right:6px"></i> শুরু করুন</button>
 </div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
