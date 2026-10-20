@@ -59,19 +59,35 @@ class BachelorKhata {
     }
 
     // Ensure mess structure
-    if (!this.data.mess.members) {
-      this.data.mess.members = [];
-      this.data.mess.entries = [];
+    this.ensureMessStructure();
+    if (!Array.isArray(this.data.bazar)) this.data.bazar = [];
+
+    this.init();
+  }
+
+  ensureMessStructure(target = this.data?.mess) {
+    if (!target || typeof target !== 'object') {
+      target = {};
     }
-    if (!this.data.mess.subcategories) {
-      this.data.mess.subcategories = {
+    if (!Array.isArray(target.members)) {
+      target.members = [];
+    }
+    if (!Array.isArray(target.entries)) {
+      target.entries = [];
+    }
+    if (!target.subcategories || typeof target.subcategories !== 'object') {
+      target.subcategories = {
         "বাজার": ["সবজি", "ফল", "মাছ", "মাংস", "পেঁয়াজ", "মরিচ", "আলু", "হলুদ"],
         "অন্যান্য": []
       };
-      this.save('mess');
     }
-
-    this.init();
+    if (this.data) {
+      this.data.mess = target;
+      if (!Array.isArray(this.data.bazar)) {
+        this.data.bazar = [];
+      }
+    }
+    return target;
   }
 
   uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
@@ -164,7 +180,10 @@ class BachelorKhata {
     else if (p==='reports') this.renderReports();
   }
 
-  render() { this.renderPage(this.page); }
+  render() {
+    this.ensureMessStructure();
+    this.renderPage(this.page);
+  }
 
   // ── MONTH TABS ────────────────────────────────────────────────
   bindMonthTabs() {
@@ -583,11 +602,13 @@ class BachelorKhata {
   refreshAccSelects() { ['f-acc','f-to-acc','q-acc'].forEach(id=>this.fillAcc(id)); }
 
   openMessMemberModal() {
+    this.ensureMessStructure();
     g('mm-id').value=''; g('mm-name').value='';
     this.openModal('m-mess-member');
   }
 
   saveMessMember() {
+    this.ensureMessStructure();
     const id=g('mm-id').value; const name=g('mm-name').value.trim(); if(!name){this.toast('নাম দিন।','error');return;}
     if(this.data.mess.members.some(m=>m.name===name && m.id!==id)){this.toast('এই নাম আগে থেকেই আছে।','error');return;}
     if(id){
@@ -601,12 +622,14 @@ class BachelorKhata {
   }
 
   editMessMember(id) {
+    this.ensureMessStructure();
     const m=this.data.mess.members.find(m=>m.id===id); if(!m) return;
     g('mm-id').value=id; g('mm-name').value=m.name;
     this.openModal('m-mess-member');
   }
 
   deleteMessMember(id) {
+    this.ensureMessStructure();
     const m=this.data.mess.members.find(m=>m.id===id); if(!m) return;
     if(!confirm(`${m.name}-কে মেস থেকে বাদ দিতে চান?`)) return;
     this.data.mess.members=this.data.mess.members.filter(m=>m.id!==id);
@@ -614,6 +637,7 @@ class BachelorKhata {
   }
 
   toggleMessEntryType(type) {
+    this.ensureMessStructure();
     g('me-type').value=type;
     document.querySelectorAll('[data-metype]').forEach(b=>b.classList.toggle('active',b.dataset.metype===type));
     this.fillMessPayer();
@@ -644,6 +668,7 @@ class BachelorKhata {
   }
 
   fillMessPayer() {
+    this.ensureMessStructure();
     const el=g('me-payer'); if(!el) return;
     const type=g('me-type')?.value||'expense';
     if(type==='deposit'){
@@ -654,6 +679,7 @@ class BachelorKhata {
   }
 
   openMessEntry(id=null) {
+    this.ensureMessStructure();
     g('me-id').value=id||''; setText('mess-entry-title',id?'মেস খরচ/জমা সম্পাদনা':'মেস খরচ/জমা যোগ'); g('me-del-btn').style.display=id?'':'none';
     if(id){
       const e=this.data.mess.entries.find(e=>e.id===id);
@@ -684,6 +710,7 @@ class BachelorKhata {
   }
 
   saveMessEntry() {
+    this.ensureMessStructure();
     const id     =g('me-id').value;
     const type   =g('me-type').value;
     let title    =g('me-title').value.trim();
@@ -761,6 +788,7 @@ class BachelorKhata {
   }
 
   deleteMessEntry() {
+    this.ensureMessStructure();
     const id=g('me-id').value; if(!id||!confirm('এই এন্ট্রি মুছবেন?')) return;
     this.data.mess.entries=this.data.mess.entries.filter(e=>e.id!==id); this.save('mess'); this.closeModal('m-mess-entry'); this.toast('মুছে গেছে।','info'); this.render();
   }
@@ -932,6 +960,7 @@ class BachelorKhata {
 
   // ── RENDER: DASHBOARD ─────────────────────────────────────────
   renderDash() {
+    this.ensureMessStructure();
     const mTx=this.txForMonth();
     const income=mTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const expense=mTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -1221,6 +1250,7 @@ class BachelorKhata {
 
   // ── RENDER: MESS ──────────────────────────────────────────────
   renderMess() {
+    this.ensureMessStructure();
     const monthsBN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
     const monthsEN=['January','February','March','April','May','June','July','August','September','October','November','December'];
     const months = this.lang === 'bn' ? monthsBN : monthsEN;
@@ -1346,12 +1376,14 @@ class BachelorKhata {
   }
 
   deleteMessEntry2(id) {
+    this.ensureMessStructure();
     if(!confirm('এই এন্ট্রি মুছবেন?')) return;
     this.data.mess.entries=this.data.mess.entries.filter(e=>e.id!==id); this.save('mess'); this.toast('মুছে গেছে।','info'); this.renderMess();
   }
 
   // ── RENDER: BAZAR ─────────────────────────────────────────────
   renderBazar(filter=null) {
+    if (!Array.isArray(this.data.bazar)) this.data.bazar = [];
     if (!filter) {
       const activeTab = document.querySelector('#bazar-filter-tabs .tab.active');
       filter = activeTab ? activeTab.dataset.bfilter : 'pending';
@@ -1827,13 +1859,21 @@ class BachelorKhata {
       }
       
       let changed = false;
-      if (obj.mess && JSON.stringify(this.data.mess) !== JSON.stringify(obj.mess)) {
-        this.data.mess = obj.mess;
+      if (obj.mess) {
+        const normalizedMess = this.ensureMessStructure(obj.mess);
+        if (JSON.stringify(this.data.mess) !== JSON.stringify(normalizedMess)) {
+          this.data.mess = normalizedMess;
+          changed = true;
+          localStorage.setItem('bk_mess', JSON.stringify(this.data.mess));
+        }
+      } else if (!this.data.mess || !Array.isArray(this.data.mess.members)) {
+        this.ensureMessStructure();
         changed = true;
         localStorage.setItem('bk_mess', JSON.stringify(this.data.mess));
       }
-      if (obj.bazar && JSON.stringify(this.data.bazar) !== JSON.stringify(obj.bazar)) {
-        this.data.bazar = obj.bazar;
+      const normalizedBazar = Array.isArray(obj.bazar) ? obj.bazar : [];
+      if (JSON.stringify(this.data.bazar) !== JSON.stringify(normalizedBazar)) {
+        this.data.bazar = normalizedBazar;
         changed = true;
         localStorage.setItem('bk_bazar', JSON.stringify(this.data.bazar));
       }
@@ -1990,8 +2030,8 @@ class BachelorKhata {
         this.data.settings.shortCode = shortCodeToSave;
         this.save('settings');
 
-        if (obj.mess) this.data.mess = obj.mess;
-        if (obj.bazar) this.data.bazar = obj.bazar;
+        this.data.mess = this.ensureMessStructure(obj ? obj.mess : null);
+        this.data.bazar = Array.isArray(obj?.bazar) ? obj.bazar : [];
 
         this.save('mess');
         this.save('bazar');
@@ -2185,6 +2225,7 @@ class BachelorKhata {
 
   // ── EXPORT MESS PDF ───────────────────────────────────────────
   exportMessPDF() {
+    this.ensureMessStructure();
     this.toast('মেস রিপোর্ট PDF ডাউনলোড হচ্ছে...', 'info');
     
     const mEntries = this.data.mess.entries.filter(e => {
