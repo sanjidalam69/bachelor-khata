@@ -71,29 +71,46 @@ class BachelorKhata {
     this.init();
   }
 
-  ensureMessStructure(target = this.data?.mess) {
-    if (!target || typeof target !== 'object') {
-      target = {};
+  ensureMessStructure(target) {
+    const isSelf = (!target || target === this.data?.mess);
+    let t = target || this.data?.mess || {};
+    if (!t || typeof t !== 'object') {
+      t = {};
     }
-    if (!Array.isArray(target.members)) {
-      target.members = [];
-    }
-    if (!Array.isArray(target.entries)) {
-      target.entries = [];
-    }
-    if (!target.subcategories || typeof target.subcategories !== 'object') {
-      target.subcategories = {
+    const toArr = (val) => {
+      if (Array.isArray(val)) return val.filter(Boolean);
+      if (val && typeof val === 'object') return Object.values(val).filter(Boolean);
+      return [];
+    };
+    t.members = toArr(t.members);
+    t.entries = toArr(t.entries);
+    if (!t.subcategories || typeof t.subcategories !== 'object') {
+      t.subcategories = {
         "বাজার": ["সবজি", "ফল", "মাছ", "মাংস", "পেঁয়াজ", "মরিচ", "আলু", "হলুদ"],
         "অন্যান্য": []
       };
     }
-    if (this.data) {
-      this.data.mess = target;
+    if (isSelf && this.data) {
+      this.data.mess = t;
       if (!Array.isArray(this.data.bazar)) {
-        this.data.bazar = [];
+        this.data.bazar = toArr(this.data.bazar);
       }
     }
-    return target;
+    return t;
+  }
+
+  isCurrentMonth(dateStr, targetMonth = this.month, targetYear = this.year) {
+    if (!dateStr) return false;
+    if (typeof dateStr === 'string' && dateStr.includes('-')) {
+      const parts = dateStr.split('T')[0].split('-');
+      if (parts.length >= 2) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        return y === targetYear && m === targetMonth;
+      }
+    }
+    const d = new Date(dateStr);
+    return !isNaN(d.getTime()) && d.getFullYear() === targetYear && d.getMonth() === targetMonth;
   }
 
   uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
@@ -1020,8 +1037,7 @@ class BachelorKhata {
     // Mess stats
     const messExpenses = this.data.mess.entries.filter(e => {
       if (!e.date) return false;
-      const d = new Date(e.date);
-      return e.type === 'expense' && d.getUTCMonth() === this.month && d.getUTCFullYear() === this.year;
+      return e.type === 'expense' && this.isCurrentMonth(e.date);
     });
     const messTotal = messExpenses.reduce((s,e) => s+e.amount, 0);
     const memberCount = this.data.mess.members.length;
@@ -1147,7 +1163,7 @@ class BachelorKhata {
     if(mb.length)insights.push({e:'🚨',t:`${this.t('budget_alert')}: ${mb.map(c=>this.tCat(c)).join(', ')}`});
 
     // Bachelor-specific insights
-    const messTotal=this.data.mess.entries.filter(e=>{const d=new Date(e.date);return d.getUTCMonth()===this.month&&d.getUTCFullYear()===this.year;}).reduce((s,e)=>s+e.amount,0);
+    const messTotal=this.data.mess.entries.filter(e => this.isCurrentMonth(e.date)).reduce((s,e)=>s+e.amount,0);
     if(messTotal>0&&income>0&&messTotal/income>0.5)insights.push({e:'🍛',t:this.t('mess_warn_50')});
 
     g('insights-list').innerHTML=insights.slice(0,5).map(ins=>`<div class="ins"><div class="ins-ico" style="background:var(--p-light);font-size:16px">${ins.e}</div><span style="font-size:11px;font-family:'Hind Siliguri',sans-serif">${ins.t}</span></div>`).join('');
@@ -1302,7 +1318,7 @@ class BachelorKhata {
     const monthsEN=['January','February','March','April','May','June','July','August','September','October','November','December'];
     const months = this.lang === 'bn' ? monthsBN : monthsEN;
     setText('mess-month-lbl',`${months[this.month]} ${this.year}`);
-    const mEntries=this.data.mess.entries.filter(e=>{const d=new Date(e.date);return d.getUTCMonth()===this.month&&d.getUTCFullYear()===this.year;});
+    const mEntries=this.data.mess.entries.filter(e => this.isCurrentMonth(e.date));
     
     // Deposits
     const deposits = mEntries.filter(e => e.type === 'deposit');
@@ -1970,7 +1986,7 @@ class BachelorKhata {
     const id = this.data.settings.syncId;
     if(!id) return;
     
-    const myName = this.data.settings.initials || 'User';
+    const myName = (this.data.settings.initials || '').trim();
     
     // Stop any existing listeners before attaching new ones
     db.ref('rooms/' + id).off('value');
@@ -1979,15 +1995,23 @@ class BachelorKhata {
       const obj = snapshot.val();
       if (!obj) return;
       
-      let list = Array.isArray(obj.devices) ? obj.devices : [];
+      const toArr = (val) => {
+        if (Array.isArray(val)) return val.filter(Boolean);
+        if (val && typeof val === 'object') return Object.values(val).filter(Boolean);
+        return [];
+      };
+
+      // 1. Devices list & active presence
+      let list = toArr(obj.devices);
       const activeWindow = 15 * 60 * 1000;
       list = list.filter(u => u && u.name && (Date.now() - u.time < activeWindow));
       
-      const myEntry = list.find(u => u.name === myName);
-      if (!myEntry) {
-         list.push({ name: myName, time: Date.now() });
-         // Silently update devices list to show self as active
-         db.ref('rooms/' + id + '/devices').set(list).catch(()=>{});
+      if (myName && myName !== 'User' && myName !== 'SA') {
+        const myEntry = list.find(u => u.name && u.name.trim().toLowerCase() === myName.toLowerCase());
+        if (!myEntry) {
+          list.push({ name: myName, time: Date.now() });
+          db.ref('rooms/' + id + '/devices').set(list).catch(()=>{});
+        }
       }
       this.activeRoommates = list;
       
@@ -1996,12 +2020,12 @@ class BachelorKhata {
       if (countEl) countEl.textContent = list.length;
       if (listEl) {
         listEl.innerHTML = list.map(u => {
-          const isMe = u.name === myName;
+          const isMe = u.name && myName && u.name.trim().toLowerCase() === myName.toLowerCase();
           return `<span class="badge ${isMe ? 'bg' : 'bp'}" style="font-family:'Hind Siliguri',sans-serif">${u.name}${isMe ? ' (তুমি)' : ''}</span>`;
         }).join('');
       }
 
-      let changed = false;
+      // 2. Sync mess members & entries
       if (obj.mess) {
         const normalizedMess = this.ensureMessStructure(obj.mess);
         let directMemberSyncNeeded = false;
@@ -2027,28 +2051,24 @@ class BachelorKhata {
           db.ref('rooms/' + id + '/mess/members').set(normalizedMess.members).catch(()=>{});
         }
 
-        if (JSON.stringify(this.data.mess) !== JSON.stringify(normalizedMess)) {
-          this.data.mess = normalizedMess;
-          changed = true;
-          localStorage.setItem('bk_mess', JSON.stringify(this.data.mess));
-        }
+        this.data.mess = normalizedMess;
+        localStorage.setItem('bk_mess', JSON.stringify(this.data.mess));
       } else if (!this.data.mess || !Array.isArray(this.data.mess.members)) {
         this.ensureMessStructure();
-        changed = true;
         localStorage.setItem('bk_mess', JSON.stringify(this.data.mess));
       }
-      const normalizedBazar = Array.isArray(obj.bazar) ? obj.bazar : [];
-      if (JSON.stringify(this.data.bazar) !== JSON.stringify(normalizedBazar)) {
-        this.data.bazar = normalizedBazar;
-        changed = true;
+
+      // 3. Sync bazar
+      if (obj.bazar) {
+        this.data.bazar = toArr(obj.bazar);
         localStorage.setItem('bk_bazar', JSON.stringify(this.data.bazar));
       }
-      if (changed || !this.data.settings.lastSync) {
-        this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
-        this.applySyncUI();
-        this.render();
-      }
+
+      // 4. Update sync timestamp and ALWAYS RE-RENDER INSTANTLY ON EVERY EVENT!
+      this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
+      this.applySyncUI();
+      this.render();
     });
   }
 
@@ -2454,10 +2474,7 @@ class BachelorKhata {
     this.ensureMessStructure();
     this.toast('মেস রিপোর্ট PDF ডাউনলোড হচ্ছে...', 'info');
     
-    const mEntries = this.data.mess.entries.filter(e => {
-      const d = new Date(e.date);
-      return d.getUTCMonth() === this.month && d.getUTCFullYear() === this.year;
-    });
+    const mEntries = this.data.mess.entries.filter(e => this.isCurrentMonth(e.date));
 
     const deposits = mEntries.filter(e => e.type === 'deposit');
     const totalDeposited = deposits.reduce((s,e) => s+e.amount, 0);
