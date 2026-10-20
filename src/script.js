@@ -41,8 +41,14 @@ class BachelorKhata {
       mess:         JSON.parse(localStorage.getItem('bk_mess') || '{"members":[],"entries":[]}'),
       bazar:        JSON.parse(localStorage.getItem('bk_bazar')|| '[]'),
       splits:       JSON.parse(localStorage.getItem('bk_split')|| '[]'),
-      settings:     JSON.parse(localStorage.getItem('bk_set')  || '{"initials":"SA","theme":"dark"}')
+      settings:     JSON.parse(localStorage.getItem('bk_set')  || '{"initials":"","theme":"dark","hasSetProfile":false}')
     };
+
+    if (this.data.settings.initials === 'SA') {
+      this.data.settings.initials = '';
+      this.data.settings.hasSetProfile = false;
+      this.save('settings');
+    }
 
     if (!this.data.settings.syncId || this.data.settings.syncId.startsWith('mess_')) this.data.settings.syncId = '';
     if (!this.data.settings.syncEditKey) this.data.settings.syncEditKey = '';
@@ -125,11 +131,13 @@ class BachelorKhata {
     ['f-date','q-date','me-date','sp-date'].forEach(id => { const el = g(id); if(el) el.value = today; });
     ['f-time','q-time'].forEach(id => { const el = g(id); if(el) el.value = nowTime; });
     this.bindSync();
+    this.bindWelcome();
     if(this.data.settings.syncId) {
       this.attachFirebaseListeners();
     }
     this.translatePage();
     this.navigate(this.page);
+    this.checkWelcomeOnboarding();
   }
 
   // ── NAVIGATION ────────────────────────────────────────────────
@@ -1660,48 +1668,138 @@ class BachelorKhata {
   }
 
   applyProfile() {
-    const i=this.data.settings.initials||'';
-    const initText = i ? i.trim().split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase() : 'U';
-    const photo=localStorage.getItem('bk_avatar');
+    const i = (this.data.settings.initials || '').trim();
+    let initText = '👤';
+    if (i && i !== 'SA') {
+      const words = i.split(' ').filter(Boolean);
+      if (words.length >= 2) {
+        initText = (words[0][0] + words[1][0]).toUpperCase();
+      } else {
+        initText = words[0].slice(0, 2).toUpperCase();
+      }
+    }
+    const photo = localStorage.getItem('bk_avatar');
     
     // Sidebar profile button
-    const sImg=g('profile-pic'); const sTxt=g('profile-initials');
-    if(sImg && sTxt){
-      if(photo){ sImg.src=photo; sImg.style.display=''; sTxt.style.display='none'; }
-      else { sImg.style.display='none'; sTxt.textContent=initText; sTxt.style.display=''; }
+    const sImg = g('profile-pic'); const sTxt = g('profile-initials');
+    if (sImg && sTxt) {
+      if (photo) { sImg.src = photo; sImg.style.display = ''; sTxt.style.display = 'none'; }
+      else { 
+        sImg.style.display = 'none'; 
+        if (i && i !== 'SA') {
+          sTxt.textContent = initText;
+        } else {
+          sTxt.innerHTML = '<i class="fas fa-user" style="font-size:12px"></i>';
+        }
+        sTxt.style.display = ''; 
+      }
     }
     
     // Profile modal
-    const pImg=g('p-pic-lg'); const pTxt=g('p-initials-lg');
-    if(pImg && pTxt){
-      if(photo){ pImg.src=photo; pImg.style.display=''; pTxt.style.display='none'; }
-      else { pImg.style.display='none'; pTxt.textContent=initText; pTxt.style.display=''; }
+    const pImg = g('p-pic-lg'); const pTxt = g('p-initials-lg');
+    if (pImg && pTxt) {
+      if (photo) { pImg.src = photo; pImg.style.display = ''; pTxt.style.display = 'none'; }
+      else { 
+        pImg.style.display = 'none'; 
+        if (i && i !== 'SA') {
+          pTxt.textContent = initText;
+        } else {
+          pTxt.innerHTML = '<i class="fas fa-user"></i>';
+        }
+        pTxt.style.display = ''; 
+      }
     }
     
-    setText('p-name-display', i ? `${i}-এর ব্যাচেলর খাতা` : 'ব্যাচেলর খাতা');
-    const piEl=g('p-initials'); if(piEl)piEl.value=i;
+    setText('p-name-display', (i && i !== 'SA') ? `${i}-এর ব্যাচেলর খাতা` : 'ব্যাচেলর খাতা');
+    const piEl = g('p-initials'); if (piEl) piEl.value = (i && i !== 'SA') ? i : '';
   }
 
   bindProfile() {
     g('profile-btn')?.addEventListener('click',()=>this.openModal('m-profile'));
     [g('theme-toggle'),g('theme-toggle-mob')].forEach(btn=>{btn?.addEventListener('click',()=>{this.data.settings.theme=this.data.settings.theme==='dark'?'light':'dark';this.save('settings');this.applyTheme();this.render();this.toast(`${this.data.settings.theme==='dark'?'ডার্ক':'লাইট'} মোড চালু!`,'success');});});
-    g('p-initials')?.addEventListener('input',e=>{
-      const v=e.target.value;
-      const trimmed=v.trim();
-      this.data.settings.initials=trimmed||'';
+    
+    g('p-initials')?.addEventListener('input', e => {
+      const v = e.target.value.trim();
+      this.data.settings.initials = v;
+      if (v) this.data.settings.hasSetProfile = true;
       this.save('settings');
-      
-      const i=trimmed||'';
-      const initText=i ? i.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase() : 'U';
-      const photo=localStorage.getItem('bk_avatar');
-      
-      const sTxt=g('profile-initials'); if(sTxt && !photo) sTxt.textContent=initText;
-      const pTxt=g('p-initials-lg'); if(pTxt && !photo) pTxt.textContent=initText;
-      setText('p-name-display', i ? `${i}-এর ব্যাচেলর খাতা` : 'ব্যাচেলর খাতা');
+      this.applyProfile();
     });
+
+    g('p-initials')?.addEventListener('change', e => {
+      const v = e.target.value.trim();
+      if (v) {
+        this.data.settings.initials = v;
+        this.data.settings.hasSetProfile = true;
+        this.save('settings');
+        this.applyProfile();
+        if (this.data.settings.syncId) {
+          this.ensureSelfMemberInMess();
+        }
+      }
+    });
+
     g('p-avatar')?.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(f.size>1.5*1024*1024){this.toast('ফাইল খুব বড়। সর্বোচ্চ ১.৫MB।','error');return;}const r=new FileReader();r.onload=ev=>{localStorage.setItem('bk_avatar',ev.target.result);this.applyProfile();this.toast('ছবি আপলোড হয়েছে!','success');};r.readAsDataURL(f);});
     g('p-rm-photo')?.addEventListener('click',()=>{localStorage.removeItem('bk_avatar');this.applyProfile();this.toast('ছবি সরানো হয়েছে।','info');});
     g('p-reset')?.addEventListener('click',()=>{if(confirm('সব ডেটা মুছে যাবে! নিশ্চিত?')&&confirm('আপনি কি সত্যিই নিশ্চিত?')){localStorage.clear();this.toast('সব ডেটা মুছা হয়েছে।','warning');setTimeout(()=>location.reload(),800);}});
+  }
+
+  bindWelcome() {
+    const save = () => {
+      const inp = g('welcome-name');
+      const name = inp ? inp.value.trim() : '';
+      if (!name) {
+        this.toast('দয়া করে আপনার নামটি লিখুন।', 'error');
+        if (inp) inp.focus();
+        return;
+      }
+      this.data.settings.initials = name;
+      this.data.settings.hasSetProfile = true;
+      this.save('settings');
+      this.applyProfile();
+      this.closeModal('m-welcome');
+      this.toast(`স্বাগতম, ${name}! ব্যাচেলর খাতা এখন প্রস্তুত।`, 'success');
+
+      if (this.data.settings.syncId) {
+        this.ensureSelfMemberInMess();
+      }
+    };
+
+    g('welcome-save-btn')?.addEventListener('click', save);
+    g('welcome-name')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') save();
+    });
+  }
+
+  checkWelcomeOnboarding() {
+    const hasName = this.data.settings.hasSetProfile && this.data.settings.initials && this.data.settings.initials.trim().length > 0 && this.data.settings.initials !== 'SA';
+    if (!hasName) {
+      setTimeout(() => {
+        const inp = g('welcome-name');
+        if (inp && this.data.settings.initials && this.data.settings.initials !== 'SA') {
+          inp.value = this.data.settings.initials;
+        }
+        this.openModal('m-welcome');
+      }, 400);
+    }
+  }
+
+  ensureSelfMemberInMess() {
+    this.ensureMessStructure();
+    const myName = (this.data.settings.initials || '').trim();
+    if (!myName || myName === 'SA') return false;
+    
+    const exists = this.data.mess.members.some(m => m.name.trim().toLowerCase() === myName.toLowerCase());
+    if (!exists) {
+      this.data.mess.members.push({ id: this.uid(), name: myName });
+      this.save('mess');
+      if (this.data.settings.syncId) {
+        this.cloudUpload(true);
+      }
+      this.render();
+      return true;
+    }
+    return false;
   }
 
   // ── CLOUD SYNC & SHARING ───────────────────────────────────────
@@ -1861,6 +1959,14 @@ class BachelorKhata {
       let changed = false;
       if (obj.mess) {
         const normalizedMess = this.ensureMessStructure(obj.mess);
+        
+        // Auto-ensure self is registered as member in mess
+        if (myName && myName !== 'User' && myName !== 'SA' && !normalizedMess.members.some(m => m.name.trim().toLowerCase() === myName.toLowerCase())) {
+          normalizedMess.members.push({ id: this.uid(), name: myName });
+          changed = true;
+          this.cloudUpload(true);
+        }
+
         if (JSON.stringify(this.data.mess) !== JSON.stringify(normalizedMess)) {
           this.data.mess = normalizedMess;
           changed = true;
@@ -1931,6 +2037,14 @@ class BachelorKhata {
   }
 
   async handleSyncCreateUI() {
+    const myName = (this.data.settings.initials || '').trim();
+    if (!myName || myName === 'SA') {
+      this.closeModal('m-create-mess');
+      this.openModal('m-welcome');
+      this.toast('মেস তৈরি করতে প্রথমে আপনার নামটি দিন।', 'info');
+      return;
+    }
+
     const codeInput = g('create-mess-code');
     const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
     
@@ -1956,10 +2070,16 @@ class BachelorKhata {
 
       const roomId = 'room_' + code;
 
+      this.ensureMessStructure();
+      if (!this.data.mess.members.some(m => m.name.trim().toLowerCase() === myName.toLowerCase())) {
+        this.data.mess.members.unshift({ id: this.uid(), name: myName });
+        this.save('mess');
+      }
+
       const payload = {
-        mess: this.data.mess || {},
+        mess: this.data.mess,
         bazar: this.data.bazar || [],
-        devices: [{ name: this.data.settings.initials || 'User', time: Date.now() }]
+        devices: [{ name: myName, time: Date.now() }]
       };
 
       // Create Room in Firebase
@@ -1975,8 +2095,9 @@ class BachelorKhata {
 
       this.attachFirebaseListeners();
       this.applySyncUI();
+      this.render();
       this.closeModal('m-create-mess');
-      this.toast(`মেস সফলভাবে তৈরি হয়েছে! কোড: ${code}`, 'success');
+      this.toast(`মেস সফলভাবে তৈরি হয়েছে! সদস্য: ${myName} (কোড: ${code})`, 'success');
     } catch(err) {
       console.error(err);
       this.toast('মেস তৈরি করা যায়নি। পুনরায় চেষ্টা করুন।', 'error');
@@ -2003,6 +2124,14 @@ class BachelorKhata {
   }
 
   async connectToRoomId(inputCode) {
+    const myName = (this.data.settings.initials || '').trim();
+    if (!myName || myName === 'SA') {
+      this.closeModal('m-join-room');
+      this.openModal('m-welcome');
+      this.toast('মেসে যোগ দিতে প্রথমে আপনার নামটি দিন।', 'info');
+      return;
+    }
+
     this.toast('মেস ডেটা লোড করা হচ্ছে...', 'info');
     const btn = g('join-room-btn');
     if(btn) { btn.disabled = true; btn.textContent = 'অপেক্ষা করুন...'; }
@@ -2033,6 +2162,11 @@ class BachelorKhata {
         this.data.mess = this.ensureMessStructure(obj ? obj.mess : null);
         this.data.bazar = Array.isArray(obj?.bazar) ? obj.bazar : [];
 
+        // Automatically register self as member of this mess
+        if (myName && !this.data.mess.members.some(m => m.name.trim().toLowerCase() === myName.toLowerCase())) {
+          this.data.mess.members.push({ id: this.uid(), name: myName });
+        }
+
         this.save('mess');
         this.save('bazar');
         
@@ -2040,7 +2174,8 @@ class BachelorKhata {
         this.applySyncUI();
         this.render();
         this.closeModal('m-join-room');
-        this.toast('সফলভাবে শেয়ার মেসে যোগ দিয়েছেন!', 'success');
+        this.cloudUpload(true); // upload updated members to Firebase immediately!
+        this.toast(`সফলভাবে শেয়ার মেসে যোগ দিয়েছেন! সদস্য: ${myName}`, 'success');
       } else {
         this.closeModal('m-join-room');
       }
