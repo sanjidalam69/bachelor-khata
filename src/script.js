@@ -2400,38 +2400,20 @@ class BachelorKhata {
     const tt = g('theme-toggle'); if (tt) tt.innerHTML = icon;
     const ttm = g('theme-toggle-mob'); if (ttm) ttm.innerHTML = icon;
 
-    // Update theme-color and native StatusBar / EdgeToEdge
+    // Update theme-color and native StatusBar
     try {
       const barBg = isDark ? '#0B1220' : '#F1F5F4';
       const meta = document.getElementById('meta-theme-color') || document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', barBg);
 
-      if (window.Capacitor && window.Capacitor.Plugins) {
-        const Plugins = window.Capacitor.Plugins;
-        const EdgeToEdge = Plugins.EdgeToEdge || Plugins.AndroidEdgeToEdgeSupport;
-        const StatusBar = Plugins.StatusBar;
-
-        // Set status bar & navigation bar background for Android Edge-to-Edge
-        if (EdgeToEdge) {
-          if (typeof EdgeToEdge.setBackgroundColor === 'function') {
-            EdgeToEdge.setBackgroundColor({ color: barBg }).catch(() => {});
-          }
-          if (typeof EdgeToEdge.setStatusBarColor === 'function') {
-            EdgeToEdge.setStatusBarColor({ color: barBg }).catch(() => {});
-          }
-          if (typeof EdgeToEdge.setNavigationBarColor === 'function') {
-            EdgeToEdge.setNavigationBarColor({ color: barBg }).catch(() => {});
-          }
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar) {
+        const StatusBar = window.Capacitor.Plugins.StatusBar;
+        // DARK style = white icons (for dark bg), LIGHT style = dark icons (for light bg)
+        if (typeof StatusBar.setStyle === 'function') {
+          StatusBar.setStyle({ style: isDark ? 'DARK' : 'LIGHT' }).catch(() => {});
         }
-
-        // Set status bar icons style: DARK = white icons (for dark bg), LIGHT = dark icons (for light bg)
-        if (StatusBar) {
-          if (typeof StatusBar.setStyle === 'function') {
-            StatusBar.setStyle({ style: isDark ? 'DARK' : 'LIGHT' }).catch(() => {});
-          }
-          if (typeof StatusBar.setBackgroundColor === 'function') {
-            StatusBar.setBackgroundColor({ color: barBg }).catch(() => {});
-          }
+        if (typeof StatusBar.setBackgroundColor === 'function') {
+          StatusBar.setBackgroundColor({ color: barBg }).catch(() => {});
         }
       }
     } catch (e) {
