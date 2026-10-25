@@ -484,21 +484,17 @@ input.no-spin {
 .tx-actions{display:flex;gap:8px;align-items:center}
 .tx-act-btn{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;border:none;cursor:pointer;transition:all .2s}
 .tx-act-btn:active{transform:scale(0.92)}
-.tx-act-edit{background:#0B1220;color:var(--head)}
-:root.light .tx-act-edit{background:#EEF2F5;color:var(--head)}
+.tx-act-edit{background:rgba(255,255,255,0.08);color:var(--head);border:1px solid var(--border)}
+:root.light .tx-act-edit{background:#F1F5F9;color:var(--head);border:1px solid #CBD5E1}
 .tx-act-edit:hover{background:var(--surface2)}
-.tx-act-del{background:rgba(248,113,113,.14);color:#F87171}
-:root.light .tx-act-del{background:#FEE2E2;color:#EF4444}
+.tx-act-del{background:rgba(248,113,113,.14);color:#F87171;border:1px solid rgba(248,113,113,.3)}
+:root.light .tx-act-del{background:#FEE2E2;color:#EF4444;border:1px solid #FCA5A5}
 .tx-act-del:hover{background:rgba(239,68,68,0.25)}
 @media(max-width:480px){
   .tx-row-card{padding:10px 12px;gap:8px}
   .tx-row-icon{width:40px;height:40px;font-size:16px}
   .tx-actions{gap:6px}
   .tx-act-btn{width:32px;height:32px;font-size:12px}
-}
-@media(hover:hover) and (pointer:fine){
-  .tx-actions{opacity:0.4;transition:opacity .2s}
-  .tx-row-card:hover .tx-actions{opacity:1}
 }
 
 /* Inline Form (Right Column) */
@@ -962,6 +958,7 @@ input:checked + .slider:before{transform:translateX(20px)}
   .mobnav{display:flex}
   .page{padding:14px 16px calc(88px + env(safe-area-inset-bottom, 0px)) !important}
   .g4,.g3,.g2{grid-template-columns:1fr !important;gap:12px}
+  #page-reports .g4{grid-template-columns:repeat(2,1fr) !important;gap:10px}
   .topbar{padding:var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) 16px 0 !important;height:calc(60px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) !important;gap:10px;box-sizing:border-box}
   .tbar-right{gap:10px}
   #header-refresh-btn{display:none !important}
@@ -1044,7 +1041,10 @@ input:checked + .slider:before{transform:translateX(20px)}
         <!-- Total Balance Card (Hero 6 cols) -->
         <div class="card hero-stat-card" style="padding:18px 22px;display:flex;flex-direction:column;justify-content:space-between;min-height:180px;height:180px;cursor:pointer;border:none" onclick="app.navigate('transactions')">
           <div>
-            <div style="font-size:13px;font-weight:600;opacity:0.95;color:#FFFFFF;margin-bottom:4px" class="i18n" data-key="tot_bal">মোট ব্যালেন্স</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+              <div style="font-size:13px;font-weight:600;opacity:0.95;color:#FFFFFF" class="i18n" data-key="tot_bal">ব্যক্তিগত ব্যালেন্স</div>
+              <span style="font-size:11px;opacity:0.85;color:#FFFFFF;background:rgba(255,255,255,0.18);padding:2px 8px;border-radius:99px;font-weight:500;font-family:'Hind Siliguri',sans-serif">মেস আলাদা</span>
+            </div>
             <div style="font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1;color:#FFFFFF;font-family:'Hind Siliguri',sans-serif" id="d-balance">৳০</div>
           </div>
           <div style="display:flex;gap:12px;margin-top:16px">
@@ -1263,8 +1263,8 @@ input:checked + .slider:before{transform:translateX(20px)}
                   <label class="label">সময়</label>
                   <input type="time" class="inp" id="f-time" required style="height:48px;font-size:15px;border-radius:12px">
                 </div>
-                <div class="ig" style="flex:1;display:none"><label class="label">একাউন্ট</label><select class="sel" id="f-acc"></select></div>
-                <div class="ig" id="f-to-g" style="display:none"><label class="label">প্রতি একাউন্ট</label><select class="sel" id="f-to-acc"></select></div>
+                <div class="ig" style="flex:1;display:none"><label class="label">অ্যাকাউন্ট</label><select class="sel" id="f-acc"></select></div>
+                <div class="ig" id="f-to-g" style="display:none"><label class="label">গ্রহীতা অ্যাকাউন্ট</label><select class="sel" id="f-to-acc"></select></div>
                 <div class="ig" id="f-cat-g" style="display:none"><select class="sel" id="f-cat"></select></div>
               </div>
 
@@ -1402,6 +1402,10 @@ input:checked + .slider:before{transform:translateX(20px)}
                   </div>
                   <button class="btn btn-s bsm" onclick="app.openMessMemberModal()" style="font-size:12px;padding:4px 10px"><i class="fas fa-user-plus"></i> যোগ</button>
                 </div>
+                <div style="display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);margin-bottom:10px;font-family:'Hind Siliguri',sans-serif">
+                  <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block"></span> অনলাইন (অ্যাপে যুক্ত)</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;display:inline-block"></span> অফলাইন (ম্যানুয়াল)</span>
+                </div>
                 <div id="mess-members-list"></div>
                 <div id="mess-members-empty" class="empty" style="display:none;padding:20px"><i class="fas fa-users"></i><p>কোনো রুমমেট নেই</p></div>
               </div>
@@ -1486,7 +1490,7 @@ input:checked + .slider:before{transform:translateX(20px)}
     <!-- ════════════════ PAGE: SPLIT BILL ════════════════ -->
     <div class="page" id="page-split">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div><div class="sec-title i18n" data-key="split_title" style="font-size:17px">💸 খরচ ভাগ</div><div class="sec-sub i18n" data-key="split_sub" style="margin-bottom:0">বন্ধুদের সাথে খরচ ভাগ করুন</div></div>
+        <div><div class="sec-sub i18n" data-key="split_sub" style="margin-bottom:0">বন্ধুদের সাথে খরচ ভাগ করুন</div></div>
         <button class="btn btn-p i18n" data-key="new_split" id="add-split-btn"><i class="fas fa-plus"></i> নতুন ভাগ</button>
       </div>
       <div class="g2" style="gap:16px">
@@ -1508,7 +1512,7 @@ input:checked + .slider:before{transform:translateX(20px)}
     <!-- ════════════════ PAGE: BUDGET ════════════════ -->
     <div class="page" id="page-budget">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div><div class="sec-title i18n" data-key="budget_mgr" style="font-size:17px">বাজেট ম্যানেজার</div><div class="sec-sub i18n" data-key="budget_mgr_sub" style="margin-bottom:0">মাসিক খরচের সীমা নির্ধারণ</div></div>
+        <div><div class="sec-sub i18n" data-key="budget_mgr_sub" style="margin-bottom:0">মাসিক খরচের সীমা নির্ধারণ</div></div>
         <button class="btn btn-p i18n" data-key="set_budget" id="add-budget-btn"><i class="fas fa-plus"></i> বাজেট সেট</button>
       </div>
       <div class="g2" style="gap:16px">
@@ -1521,10 +1525,11 @@ input:checked + .slider:before{transform:translateX(20px)}
         <div class="card" style="padding:18px">
           <div class="sec-title i18n" data-key="budget_chart_title">বাজেটের চিত্র</div>
           <div class="sec-sub i18n" data-key="expense_dist">খরচের বিতরণ</div>
-          <div style="height:220px;position:relative"><canvas id="budget-chart"></canvas></div>
+          <div id="budget-chart-wrap" style="height:220px;position:relative"><canvas id="budget-chart"></canvas></div>
+          <div id="budget-chart-empty" class="empty" style="display:none;padding:32px 16px"><i class="fas fa-chart-pie" style="font-size:36px;color:var(--muted);opacity:0.5;margin-bottom:12px"></i><p class="i18n" data-key="no_budget_chart">বাজেট সেট করলে খরচের চিত্র দেখা যাবে</p></div>
           <div style="margin-top:14px;padding:12px;background:var(--surface);border-radius:var(--rs);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div><div class="label i18n" data-key="total_budget">মোট বাজেট</div><div style="font-size:17px;font-weight:900;color:var(--head);font-family:'Hind Siliguri',sans-serif" id="budget-total-set">৳০</div></div>
-            <div style="text-align:right"><div class="label i18n" data-key="total_spent">মোট খরচ</div><div style="font-size:17px;font-weight:900;color:var(--red);font-family:'Hind Siliguri',sans-serif" id="budget-total-spent">৳০</div></div>
+            <div style="text-align:right"><div class="label i18n" data-key="total_budget_spent">বাজেটভুক্ত খরচ</div><div style="font-size:17px;font-weight:900;color:var(--red);font-family:'Hind Siliguri',sans-serif" id="budget-total-spent">৳০</div></div>
           </div>
         </div>
       </div>
@@ -1533,7 +1538,7 @@ input:checked + .slider:before{transform:translateX(20px)}
     <!-- ════════════════ PAGE: GOALS ════════════════ -->
     <div class="page" id="page-goals">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div><div class="sec-title i18n" data-key="goals_title" style="font-size:17px">লক্ষ্য ও সঞ্চয়</div><div class="sec-sub i18n" data-key="goals_sub" style="margin-bottom:0">আর্থিক লক্ষ্য নির্ধারণ করুন</div></div>
+        <div><div class="sec-sub i18n" data-key="goals_sub" style="margin-bottom:0">আর্থিক লক্ষ্য নির্ধারণ করুন</div></div>
         <button class="btn btn-p i18n" data-key="new_goal" id="add-goal-btn"><i class="fas fa-plus"></i> নতুন লক্ষ্য</button>
       </div>
       <div class="g3" id="goals-grid"></div>
@@ -1543,13 +1548,13 @@ input:checked + .slider:before{transform:translateX(20px)}
     <!-- ════════════════ PAGE: DEBTS ════════════════ -->
     <div class="page" id="page-debts">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div><div class="sec-title i18n" data-key="debts_mgr" style="font-size:17px">ধার-দেনার হিসাব</div><div class="sec-sub i18n" data-key="debts_sub" style="margin-bottom:0">কে কাকে ধার দিলো</div></div>
+        <div><div class="sec-sub i18n" data-key="debts_sub" style="margin-bottom:0">কে কাকে ধার দিলো</div></div>
         <button class="btn btn-p i18n" data-key="new_debt" id="add-debt-btn"><i class="fas fa-plus"></i> নতুন ধার</button>
       </div>
       <div class="g2" style="gap:16px">
         <div class="card" style="padding:18px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-            <div class="stat-icon" style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--red)"><i class="fas fa-arrow-up-right"></i></div>
+            <div class="stat-icon" style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--red)"><i class="fas fa-arrow-trend-up"></i></div>
             <div><div class="sec-title i18n" data-key="i_owe_title" style="margin-bottom:0">আমি ধার নিয়েছি</div><div class="i18n" data-key="i_owe_sub" style="font-size:10px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">যা ফেরত দিতে হবে</div></div>
             <div class="badge br" style="margin-left:auto" id="i-owe-total">৳০</div>
           </div>
@@ -1558,7 +1563,7 @@ input:checked + .slider:before{transform:translateX(20px)}
         </div>
         <div class="card" style="padding:18px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-            <div class="stat-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:var(--green)"><i class="fas fa-arrow-down-left"></i></div>
+            <div class="stat-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:var(--green)"><i class="fas fa-arrow-trend-down"></i></div>
             <div><div class="sec-title i18n" data-key="they_owe_title" style="margin-bottom:0">আমি ধার দিয়েছি</div><div class="i18n" data-key="they_owe_sub" style="font-size:10px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">যা ফেরত পাওয়ার কথা</div></div>
             <div class="badge bg" style="margin-left:auto" id="owed-me-total">৳০</div>
           </div>
@@ -1571,7 +1576,7 @@ input:checked + .slider:before{transform:translateX(20px)}
     <!-- ════════════════ PAGE: REPORTS ════════════════ -->
     <div class="page" id="page-reports">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div><div class="sec-title i18n" data-key="reports_title_full" style="font-size:17px">রিপোর্ট ও বিশ্লেষণ</div><div class="sec-sub i18n" data-key="reports_sub" style="margin-bottom:0">বিস্তারিত আর্থিক চিত্র</div></div>
+        <div><div class="sec-sub i18n" data-key="reports_sub" style="margin-bottom:0">বিস্তারিত আর্থিক চিত্র</div></div>
         <button class="btn btn-s bsm" id="export-pdf2"><i class="fas fa-file-pdf"></i> PDF ডাউনলোড</button>
       </div>
       <div class="g4" style="margin-bottom:14px">
@@ -1600,6 +1605,37 @@ input:checked + .slider:before{transform:translateX(20px)}
       </div>
     </div>
 
+    <!-- ════════════════ PAGE: ACCOUNTS ════════════════ -->
+    <div class="page" id="page-accounts">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div><div class="sec-sub i18n" data-key="accounts_sub" style="margin-bottom:0">সব অ্যাকাউন্টের স্থিতি ও বিবরণ</div></div>
+        <button class="btn btn-p i18n" data-key="new_acc_btn" id="add-acc-btn" onclick="app.openAccModal()"><i class="fas fa-plus"></i> নতুন অ্যাকাউন্ট</button>
+      </div>
+
+      <!-- Accounts Total Summary Card -->
+      <div class="card stat" style="padding:16px 20px;margin-bottom:16px;background:var(--surface)">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div>
+            <div class="sl i18n" data-key="total_acc_bal">মোট অ্যাকাউন্ট ব্যালেন্স</div>
+            <div style="font-size:28px;font-weight:800;color:var(--head);font-family:'Hind Siliguri',sans-serif;margin-top:2px" id="accounts-total-bal">৳০</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="badge" style="background:rgba(16,185,129,.12);color:var(--green);font-size:12px;font-weight:700" id="accounts-count-badge">০টি অ্যাকাউন্ট</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accounts Grid -->
+      <div class="g3" id="accounts-grid"></div>
+
+      <!-- Accounts Empty State -->
+      <div id="accounts-empty" class="empty" style="display:none;padding:32px 16px">
+        <i class="fas fa-wallet" style="font-size:36px;color:var(--muted);opacity:0.5;margin-bottom:12px"></i>
+        <p class="i18n" data-key="no_accounts" style="margin-bottom:16px">কোনো অ্যাকাউন্ট নেই। নতুন অ্যাকাউন্ট যোগ করুন!</p>
+        <button class="btn btn-p i18n" data-key="new_acc_btn" onclick="app.openAccModal()"><i class="fas fa-plus"></i> নতুন অ্যাকাউন্ট</button>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -1615,7 +1651,8 @@ input:checked + .slider:before{transform:translateX(20px)}
 
 <!-- More Menu Sheet for Mobile -->
 <div class="mo" id="m-more-nav">
-  <div class="modal" style="max-width:380px;border-radius:20px 20px 0 0;padding:20px 16px">
+  <div class="modal" style="max-width:380px;border-radius:24px 24px 0 0;padding:12px 16px calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))">
+    <div style="width:36px;height:4px;border-radius:99px;background:var(--border2);margin:0 auto 14px"></div>
     <div class="mh" style="margin-bottom:14px">
       <div class="mt" style="font-size:16px">অন্যান্য মেনু</div>
       <button class="mc" data-close="m-more-nav"><i class="fas fa-xmark"></i></button>
@@ -1635,7 +1672,7 @@ input:checked + .slider:before{transform:translateX(20px)}
       </button>
       <button type="button" class="more-nav-item" onclick="app.navigateFromMore('accounts')">
         <i class="fas fa-wallet" style="color:var(--cyan)"></i>
-        <span>ওয়ালেট</span>
+        <span>অ্যাকাউন্ট</span>
       </button>
     </div>
   </div>
@@ -1705,18 +1742,18 @@ input:checked + .slider:before{transform:translateX(20px)}
 
 <!-- Account Modal -->
 <div class="mo" id="m-acc"><div class="modal" style="max-width:380px">
-  <div class="mh"><div class="mt i18n" id="acc-modal-title" data-key="new_acc_btn">নতুন একাঋন্ট</div><button class="mc" data-close="m-acc"><i class="fas fa-xmark"></i></button></div>
+  <div class="mh"><div class="mt i18n" id="acc-modal-title" data-key="new_acc_btn">নতুন অ্যাকাউন্ট</div><button class="mc" data-close="m-acc"><i class="fas fa-xmark"></i></button></div>
   <div style="display:flex;flex-direction:column;gap:10px">
-    <div class="ig"><label class="label i18n" data-key="acc_name">একাঋন্টের নাম</label><input type="text" class="inp" id="acc-name" data-i18n-placeholder="acc_name_ph" placeholder="যেমন: bKash, ব্যাংক"></div>
-    <div class="ig"><label class="label i18n" data-key="acc_type">একাঋন্টের ধরন</label>
+    <div class="ig"><label class="label i18n" data-key="acc_name">অ্যাকাউন্টের নাম</label><input type="text" class="inp" id="acc-name" data-i18n-placeholder="acc_name_ph" placeholder="যেমন: bKash, ব্যাংক"></div>
+    <div class="ig"><label class="label i18n" data-key="acc_type">অ্যাকাউন্টের ধরন</label>
       <select class="sel" id="acc-type">
-        <option value="cash" class="i18n" data-key="acc_type_cash">💵 নগদ টাকা</option>
+        <option value="cash" class="i18n" data-key="acc_type_cash">💵 ক্যাশ টাকা</option>
         <option value="bank" class="i18n" data-key="acc_type_bank">🏦 ব্যাংক</option>
         <option value="bkash" class="i18n" data-key="acc_type_bkash">📱 বিকাশ</option>
         <option value="nagad" class="i18n" data-key="acc_type_nagad">📱 নগদ</option>
         <option value="rocket" class="i18n" data-key="acc_type_rocket">📱 রকেট</option>
         <option value="card" class="i18n" data-key="acc_type_card">🐳 ক্রেডিট কার্ড</option>
-        <option value="savings" class="i18n" data-key="acc_type_savings">🐷 সংচয়</option>
+        <option value="savings" class="i18n" data-key="acc_type_savings">🐷 সঞ্চয়</option>
         <option value="other" class="i18n" data-key="acc_type_other">📁 অন্যান্য</option>
       </select>
     </div>
@@ -1979,7 +2016,7 @@ input:checked + .slider:before{transform:translateX(20px)}
       </div>
       <div style="flex:1">
         <div style="font-size:16px;font-weight:800;color:var(--head);font-family:'Hind Siliguri',sans-serif;margin-bottom:2px" id="p-name-display">ব্যাচেলর খাতা</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">লোকাল একাউন্ট</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">লোকাল অ্যাকাউন্ট</div>
         <button class="btn btn-s bsm" id="p-rm-photo" style="padding:4px 10px;font-size:10px;color:var(--red);border-color:rgba(239,68,68,0.2);background:rgba(239,68,68,0.05)"><i class="fas fa-trash"></i> ছবি সরান</button>
       </div>
     </div>

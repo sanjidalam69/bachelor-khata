@@ -63,11 +63,17 @@ class BachelorKhata {
     // Default accounts seed
     if (!this.data.accounts.length) {
       this.data.accounts = [
-        { id: this.uid(), name: 'নগদ', type: 'cash', balance: 0, color: '#10b981' },
+        { id: this.uid(), name: 'ক্যাশ', type: 'cash', balance: 0, color: '#10b981' },
         { id: this.uid(), name: 'বিকাশ', type: 'bkash', balance: 0, color: '#f97316' },
         { id: this.uid(), name: 'ব্যাংক', type: 'bank', balance: 0, color: '#3b82f6' },
       ];
       this.save('accounts');
+    } else {
+      let accChanged = false;
+      this.data.accounts.forEach(a => {
+        if (a.name === 'নগদ') { a.name = 'ক্যাশ'; accChanged = true; }
+      });
+      if (accChanged) this.save('accounts');
     }
 
     // Ensure mess structure
@@ -134,6 +140,11 @@ class BachelorKhata {
   }
 
   // ── INIT ──────────────────────────────────────────────────────
+  capitalize(str) {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
   init() {
     this.applyTheme();
     this.applyProfile();
@@ -255,7 +266,15 @@ class BachelorKhata {
       return;
     }
     const monthBar = document.querySelector('.month-bar');
-    if (monthBar) monthBar.style.display = '';
+    if (monthBar) {
+      const monthPages = ['dashboard', 'transactions', 'mess', 'budget', 'reports'];
+      monthBar.style.display = monthPages.includes(page) ? '' : 'none';
+    }
+    const pagesWithOwnBtn = ['debts', 'split', 'goals', 'budget', 'accounts', 'reports'];
+    const quickAddBtn = g('quick-add-btn');
+    if (quickAddBtn) {
+      quickAddBtn.style.display = pagesWithOwnBtn.includes(page) ? 'none' : '';
+    }
     this.page = page;
     localStorage.setItem('bk_last_page', page);
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -303,6 +322,7 @@ class BachelorKhata {
     else if (p==='goals') this.renderGoals();
     else if (p==='debts') this.renderDebts();
     else if (p==='reports') this.renderReports();
+    else if (p==='accounts') this.renderAccounts();
   }
 
   render() {
@@ -905,7 +925,7 @@ class BachelorKhata {
 
   // ── ACCOUNTS ──────────────────────────────────────────────────
   openAccModal(id=null) {
-    g('acc-id').value=id||''; setText('acc-modal-title',id?'একাউন্ট সম্পাদনা':'নতুন একাউন্ট'); g('acc-del-btn').style.display=id?'':'none';
+    g('acc-id').value=id||''; setText('acc-modal-title',id?'অ্যাকাউন্ট সম্পাদনা':'নতুন অ্যাকাউন্ট'); g('acc-del-btn').style.display=id?'':'none';
     if(id){ const a=this.getAcc(id); if(a){g('acc-name').value=a.name;g('acc-type').value=a.type;g('acc-bal').value=a.balance;g('acc-clr').value=a.color;document.querySelectorAll('.clr-opt').forEach(c=>{c.classList.toggle('sel',c.dataset.clr===a.color)});} }
     else { g('acc-name').value='';g('acc-type').value='cash';g('acc-bal').value='0'; }
     this.openModal('m-acc');
@@ -914,15 +934,95 @@ class BachelorKhata {
   saveAccount() {
     const id  =g('acc-id').value; const name=g('acc-name').value.trim(); const type=g('acc-type').value;
     const bal =parseFloat(g('acc-bal').value)||0; const color=g('acc-clr').value;
-    if(!name){this.toast('একাউন্টের নাম দিন।','error');return;}
+    if(!name){this.toast('অ্যাকাউন্টের নাম দিন।','error');return;}
     if(id){this.data.accounts=this.data.accounts.map(a=>a.id===id?{...a,name,type,balance:bal,color}:a);this.toast('আপডেট হয়েছে!','success');}
-    else{this.data.accounts.push({id:this.uid(),name,type,balance:bal,color});this.toast('একাউন্ট তৈরি হয়েছে!','success');}
+    else{this.data.accounts.push({id:this.uid(),name,type,balance:bal,color});this.toast('অ্যাকাউন্ট তৈরি হয়েছে!','success');}
     this.save('accounts'); this.closeModal('m-acc'); this.refreshAccSelects(); this.render();
   }
 
-  deleteAccount() {
-    const id=g('acc-id').value; if(!id||!confirm('একাউন্ট মুছবেন?')) return;
-    this.data.accounts=this.data.accounts.filter(a=>a.id!==id); this.save('accounts'); this.closeModal('m-acc'); this.refreshAccSelects(); this.toast('মুছে গেছে।','info'); this.render();
+  deleteAccount(targetId=null) {
+    const id = targetId || g('acc-id').value;
+    if(!id||!confirm('অ্যাকাউন্ট মুছবেন?')) return;
+    this.data.accounts=this.data.accounts.filter(a=>a.id!==id);
+    this.save('accounts');
+    this.closeModal('m-acc');
+    this.refreshAccSelects();
+    this.toast('মুছে গেছে।','info');
+    this.render();
+  }
+
+  renderAccounts() {
+    const ag = g('accounts-grid');
+    const ae = g('accounts-empty');
+    if (!ag) return;
+
+    if (!this.data.accounts.length) {
+      ag.innerHTML = '';
+      if (ae) ae.style.display = '';
+      if (g('add-acc-btn')) g('add-acc-btn').style.display = 'none';
+      setText('accounts-total-bal', '৳০');
+      setText('accounts-count-badge', this.lang === 'bn' ? '০টি অ্যাকাউন্ট' : '0 accounts');
+      return;
+    }
+
+    if (ae) ae.style.display = 'none';
+    if (g('add-acc-btn')) g('add-acc-btn').style.display = '';
+
+    const totBal = this.totalBal();
+    setText('accounts-total-bal', this.fmt(totBal));
+    setText('accounts-count-badge', this.lang === 'bn' ? `${this.toBnNum(this.data.accounts.length)}টি অ্যাকাউন্ট` : `${this.data.accounts.length} accounts`);
+
+    ag.innerHTML = this.data.accounts.map(a => {
+      const bal = this.accBal(a);
+      const typeIcons = {
+        cash: 'fa-money-bill-wave',
+        bank: 'fa-building-columns',
+        bkash: 'fa-mobile-screen-button',
+        nagad: 'fa-mobile-screen-button',
+        rocket: 'fa-mobile-screen-button',
+        card: 'fa-credit-card',
+        savings: 'fa-piggy-bank',
+        other: 'fa-wallet'
+      };
+      const typeLabels = {
+        cash: this.lang === 'bn' ? 'ক্যাশ টাকা' : 'Cash',
+        bank: this.lang === 'bn' ? 'ব্যাংক' : 'Bank',
+        bkash: this.lang === 'bn' ? 'বিকাশ' : 'bKash',
+        nagad: this.lang === 'bn' ? 'নগদ' : 'Nagad',
+        rocket: this.lang === 'bn' ? 'রকেট' : 'Rocket',
+        card: this.lang === 'bn' ? 'কার্ড' : 'Card',
+        savings: this.lang === 'bn' ? 'সঞ্চয়' : 'Savings',
+        other: this.lang === 'bn' ? 'অন্যান্য' : 'Other'
+      };
+      const icon = typeIcons[a.type] || 'fa-wallet';
+      const label = typeLabels[a.type] || a.type;
+      const clr = a.color || 'var(--p)';
+
+      return `
+        <div class="card" style="padding:18px;display:flex;flex-direction:column;justify-content:space-between;position:relative;border-left:4px solid ${clr}">
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:40px;height:40px;border-radius:12px;background:${clr}18;color:${clr};display:flex;align-items:center;justify-content:center;font-size:16px">
+                  <i class="fas ${icon}"></i>
+                </div>
+                <div>
+                  <div style="font-size:16px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${this.tAccName(a.name)}</div>
+                  <div style="font-size:11px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">${label}</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <button type="button" class="tx-act-btn tx-act-edit" onclick="app.openAccModal('${a.id}')" title="সম্পাদনা"><i class="fas fa-pen"></i></button>
+                <button type="button" class="tx-act-btn tx-act-del" onclick="app.deleteAccount('${a.id}')" title="মুছুন"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+            <div style="margin-top:6px;padding-top:10px;border-top:1px solid var(--border)">
+              <div style="font-size:11px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">বর্তমান ব্যালেন্স</div>
+              <div style="font-size:22px;font-weight:800;color:${bal >= 0 ? 'var(--head)' : 'var(--red)'};font-family:'Hind Siliguri',sans-serif;margin-top:2px">${this.fmt(bal)}</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
   }
 
   refreshAccSelects() { ['f-acc','f-to-acc','q-acc'].forEach(id=>this.fillAcc(id)); }
@@ -1451,6 +1551,12 @@ class BachelorKhata {
     const name = (this.data.settings.initials || '').trim();
     const greetText = name ? `${greet}, ${name}` : greet;
     setText('dash-greeting-text', greetText);
+    const monthsBN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+    const monthsEN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const greetingSub = this.lang === 'en'
+      ? `Summary for ${monthsEN[this.month]} ${this.year}`
+      : `${monthsBN[this.month]} ${this.toBnNum(this.year)} এর সারসংক্ষেপ`;
+    setText('dash-greeting-sub', greetingSub);
     const mTx=this.txForMonth();
     const income=mTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const expense=mTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -1475,8 +1581,6 @@ class BachelorKhata {
     setText('d-debt-total',this.fmt(activeDebts.reduce((s,d)=>s+d.amount,0)));
     setText('d-debt-count', this.lang === 'bn' ? `${activeDebts.length}টি` : `${activeDebts.length} active`);
 
-    const monthsBN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
-    const monthsEN=['January','February','March','April','May','June','July','August','September','October','November','December'];
     const months = this.lang === 'bn' ? monthsBN : monthsEN;
     setText('d-chart-sub',`${months[this.month]} ${this.year}`);
 
@@ -1802,8 +1906,16 @@ class BachelorKhata {
         const iconFa = isInc ? 'arrow-down' : (isTrf ? 'arrow-right-arrow-left' : 'arrow-up');
         const sign = isInc ? '+' : (isTrf ? '' : '-');
         const amtColor = isInc ? '#16A34A' : (isTrf ? '#2563EB' : '#EF4444');
+        let rawTitle = (t.title || '').trim();
+        const transCat = t.category ? this.tCat(t.category) : '';
+        let mainTitle = rawTitle;
+        const isGeneric = !rawTitle || rawTitle === 'খরচ' || rawTitle === 'আয়' || rawTitle === 'Expense' || rawTitle === 'Income' || rawTitle === 'ব্যয়';
+        if (isGeneric) {
+          mainTitle = transCat || (isInc ? 'আয়' : isTrf ? 'ট্রান্সফার' : 'খরচ');
+        }
+
         const acc = this.getAcc(t.accountId);
-        const accName = acc ? acc.name : '';
+        const accName = acc ? this.tAccName(acc.name) : '';
 
         return `
           <div class="tx-row-card">
@@ -1813,7 +1925,7 @@ class BachelorKhata {
               </div>
               <div style="min-width:0;flex:1">
                 <div style="font-size:15px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                  ${t.title || (isInc ? 'আয়' : (isTrf ? 'ট্রান্সফার' : 'ব্যয়'))}
+                  ${mainTitle}
                 </div>
                 <div style="font-size:12px;color:var(--muted);font-weight:500;margin-top:2px;display:flex;align-items:center;gap:6px">
                   ${timeLabel || t.date}
@@ -1948,28 +2060,41 @@ class BachelorKhata {
           const outAmt = mOutPocket[m.id] || 0;
           const diff = (depAmt + outAmt) - share;
           const clr = memberColors[i % memberColors.length];
+          const memberName = this.capitalize(m.name);
           
           const isActive = (this.activeRoommates || []).some(u => u && u.name && u.name.trim().toLowerCase() === m.name.trim().toLowerCase());
           const dotClass = isActive ? 'mess-av-dot online' : 'mess-av-dot offline';
-          const dotTitle = isActive ? 'অ্যাপে যুক্ত (অনলাইন)' : 'ম্যানুয়াল রুমমেট';
+          const dotTitle = isActive ? 'অনলাইন (সক্রিয়)' : 'অফলাইন রুমমেট';
 
-          const initial = m.name ? m.name.trim().charAt(0) : '?';
+          const initial = memberName ? memberName.trim().charAt(0) : '?';
 
           let balanceHtml = '';
           if (totalExpenses === 0) {
             const netPaid = depAmt + outAmt;
             if (netPaid > 0.01) {
-              balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--green);font-family:'Hind Siliguri',sans-serif;text-align:right">+${this.fmt(netPaid)} জমা আছে</div>`;
+              balanceHtml = `
+                <div style="text-align:right;font-family:'Hind Siliguri',sans-serif;line-height:1.2">
+                  <div style="font-size:15px;font-weight:800;color:var(--green)">+${this.fmt(netPaid)}</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--muted)">জমা আছে</div>
+                </div>`;
             } else {
-              balanceHtml = `<div style="font-size:13px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:right">হিসাব সমান</div>`;
+              balanceHtml = `<div style="font-size:12px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:right">হিসাব সমান</div>`;
             }
           } else {
             if (diff > 0.01) {
-              balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--green);font-family:'Hind Siliguri',sans-serif;text-align:right">+${this.fmt(diff)} ফেরত পাবে</div>`;
+              balanceHtml = `
+                <div style="text-align:right;font-family:'Hind Siliguri',sans-serif;line-height:1.2">
+                  <div style="font-size:15px;font-weight:800;color:var(--green)">+${this.fmt(diff)}</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--green)">ফেরত পাবে</div>
+                </div>`;
             } else if (diff < -0.01) {
-              balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--red);font-family:'Hind Siliguri',sans-serif;text-align:right">-${this.fmt(Math.abs(diff))} দিতে হবে</div>`;
+              balanceHtml = `
+                <div style="text-align:right;font-family:'Hind Siliguri',sans-serif;line-height:1.2">
+                  <div style="font-size:15px;font-weight:800;color:var(--red)">-${this.fmt(Math.abs(diff))}</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--red)">দিতে হবে</div>
+                </div>`;
             } else {
-              balanceHtml = `<div style="font-size:13px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:right">হিসাব সমান</div>`;
+              balanceHtml = `<div style="font-size:12px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:right">হিসাব সমান</div>`;
             }
           }
 
@@ -1982,9 +2107,9 @@ class BachelorKhata {
                 </div>
                 <div style="flex:1;min-width:0">
                   <div style="display:flex;align-items:center;gap:8px">
-                    <span style="font-size:15px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.name}</span>
+                    <span style="font-size:15px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${memberName}</span>
                   </div>
-                  <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin-top:2px">
+                  <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin-top:2px;white-space:nowrap">
                     জমা ${this.fmt(depAmt)} · খরচ ${this.fmt(outAmt)}
                   </div>
                 </div>
@@ -2175,9 +2300,25 @@ class BachelorKhata {
     const months = this.lang==='en' ? monthsEN : monthsBN;
     setText('budget-month-lbl',`${months[this.month]} ${this.year}`);
     const mTx=this.txForMonth(); const entries=Object.entries(this.data.budgets); const bl=g('budget-list'); const be=g('budget-empty');
-    if(!entries.length){bl.innerHTML='';be.style.display='';}
+    const chartWrap = g('budget-chart-wrap');
+    const chartEmpty = g('budget-chart-empty');
+    const addBudgetBtn = g('add-budget-btn');
+
+    if(!entries.length){
+      bl.innerHTML=''; be.style.display='';
+      if (chartWrap) chartWrap.style.display = 'none';
+      if (chartEmpty) chartEmpty.style.display = '';
+      if (addBudgetBtn) addBudgetBtn.style.display = 'none';
+      setText('budget-total-set', this.fmt(0));
+      setText('budget-total-spent', this.fmt(0));
+      if (this.charts.bud) { this.charts.bud.destroy(); this.charts.bud = null; }
+    }
     else{
-      be.style.display='none'; let ts=0,tsp=0;
+      be.style.display='none';
+      if (chartWrap) chartWrap.style.display = '';
+      if (chartEmpty) chartEmpty.style.display = 'none';
+      if (addBudgetBtn) addBudgetBtn.style.display = '';
+      let ts=0,tsp=0;
       bl.innerHTML=entries.map(([cat,lim])=>{
         const sp=mTx.filter(t=>t.type==='expense'&&t.category===cat).reduce((s,t)=>s+t.amount,0);
         const pct=Math.min(100,Math.round((sp/lim)*100)); const color=pct>=100?'var(--red)':pct>=80?'var(--amber)':'var(--green)';
@@ -2208,9 +2349,14 @@ class BachelorKhata {
   // ── RENDER: GOALS ─────────────────────────────────────────────
   renderGoals() {
     const gg=g('goals-grid'); const ge=g('goals-empty'); if(!gg) return;
-    if(!this.data.goals.length){gg.innerHTML='';ge.style.display='';}
+    const addGoalBtn = g('add-goal-btn');
+    if(!this.data.goals.length){
+      gg.innerHTML=''; ge.style.display='';
+      if (addGoalBtn) addGoalBtn.style.display = 'none';
+    }
     else{
       ge.style.display='none';
+      if (addGoalBtn) addGoalBtn.style.display = '';
       gg.innerHTML=this.data.goals.map(gl=>{
         const pct=gl.target>0?Math.min(100,Math.round((gl.saved/gl.target)*100)):0;
         const daysLeft=gl.deadline?Math.ceil((new Date(gl.deadline)-new Date())/(1000*60*60*24)):null;
@@ -2259,7 +2405,9 @@ class BachelorKhata {
     const inc=allTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const exp=allTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
     const sr=inc>0?Math.round(((inc-exp)/inc)*100):0;
-    setText('r-income',this.fmtK(inc)); setText('r-expense',this.fmtK(exp)); setText('r-save-rate',`${sr}%`); setText('r-count',allTx.length);
+    const saveRateStr = this.lang === 'bn' ? `${this.toBnNum(sr)}%` : `${sr}%`;
+    const countStr = this.lang === 'bn' ? `${this.toBnNum(allTx.length)}টি` : `${allTx.length}`;
+    setText('r-income',this.fmtK(inc)); setText('r-expense',this.fmtK(exp)); setText('r-save-rate',saveRateStr); setText('r-count',countStr);
     const mBn=['জান','ফেব','মার্চ','এপ্রি','মে','জুন','জুল','আগ','সেপ','অক্টো','নভে','ডিসে'];
     const mEn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const mActive=this.lang==='en'?mEn:mBn;
@@ -3509,7 +3657,7 @@ class BachelorKhata {
         // Navigation
         home: "হোম",
         txs: "লেনদেন",
-        accs: "একাউন্ট",
+        accs: "অ্যাকাউন্ট",
         mess: "মেস",
         chat: "চ্যাট",
         split: "ভাগ",
@@ -3535,7 +3683,7 @@ class BachelorKhata {
         // Page titles
         dashboard_title: "ড্যাশবোর্ড",
         transactions_title: "লেনদেন",
-        accounts_title: "একাউন্ট",
+        accounts_title: "অ্যাকাউন্ট",
         mess_title: "মেস হিসাব",
         mess_sub: "সবার খরচ একসাথে হিসাব রাখুন",
         chat_title: "মেস চ্যাট",
@@ -3560,8 +3708,8 @@ class BachelorKhata {
         write_msg_placeholder: "বার্তা লিখুন...",
 
         // Dashboard Cards
-        tot_bal: "মোট ব্যালেন্স",
-        all_acc: "সব একাউন্ট",
+        tot_bal: "ব্যক্তিগত ব্যালেন্স",
+        all_acc: "সব অ্যাকাউন্ট",
         mess_exp: "এ মাসে মেস খরচ",
         act_debt: "বকেয়া ধার",
         exp_breakdown: "খরচের হিসাব",
@@ -3578,7 +3726,7 @@ class BachelorKhata {
         inc_vs_exp: "আয় বনাম খরচ",
 
         // Forms & Table Headers
-        to_acc: "প্রতি একাউন্ট",
+        to_acc: "গ্রহীতা অ্যাকাউন্ট",
         desc: "বিবরণ",
         desc_ph: "কিসের জন্য?",
         amount_lbl: "পরিমাণ (৳)",
@@ -3592,9 +3740,9 @@ class BachelorKhata {
         freq_weekly: "সাপ্তাহিক",
         freq_yearly: "বার্ষিক",
         add_tx_btn: "লেনদেন যোগ করুন",
-        accounts_heading: "একাউন্ট সমূহ",
+        accounts_heading: "অ্যাকাউন্ট সমূহ",
         accounts_sub: "টাকার হিসাব রাখুন",
-        new_acc_btn: "নতুন একাউন্ট",
+        new_acc_btn: "নতুন অ্যাকাউন্ট",
         this_month: "এ মাসে",
         no_members: "কোনো সদস্য নেই। সদস্য যোগ করুন।",
         expense_type_sub: "কোন খরচ কত",
@@ -3618,7 +3766,7 @@ class BachelorKhata {
         no_sync: "গ্রুপ সিঙ্ক অন নেই",
         no_sync_desc: "চ্যাট ব্যবহার করতে প্রথমে আপনার মেস কোড দিয়ে গ্রুপ সিঙ্কে যুক্ত হতে হবে।",
         turn_on_sync: "গ্রুপ সিঙ্ক অন করুন",
-        split_title: "💸 খরচ ভাগ",
+        split_title: "খরচ ভাগ",
         split_sub: "বন্ধুদের সাথে খরচ ভাগ করুন",
         new_split: "নতুন ভাগ",
         active_splits: "সক্রিয় ভাগ সমূহ",
@@ -3636,9 +3784,9 @@ class BachelorKhata {
         deficit: "জমা দেবে",
         settled: "হিসাব সমান",
         deposit_to_fund: "তহবিলে জমা",
-        no_accounts: "কোনো একাউন্ট নেই",
+        no_accounts: "কোনো অ্যাকাউন্ট নেই",
         category: "ক্যাটাগরি",
-        account: "একাউন্ট",
+        account: "অ্যাকাউন্ট",
         amount: "পরিমাণ",
         actions: "কাজ",
         paid_by: "দেওয়া হয়েছে",
@@ -4068,13 +4216,17 @@ class BachelorKhata {
   }
 
   tAccName(name) {
-    if (this.lang === 'bn') return name;
+    if (!name) return '';
+    let n = name;
+    if (n === 'নগদ') n = 'ক্যাশ';
+    if (this.lang === 'bn') return n;
     const m = {
+      'ক্যাশ': 'Cash',
       'নগদ': 'Cash',
       'বিকাশ': 'bKash',
       'ব্যাংক': 'Bank'
     };
-    return m[name] || name;
+    return m[n] || n;
   }
 
   translatePage() {
