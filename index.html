@@ -1740,6 +1740,9 @@ input:checked + .slider:before{transform:translateX(20px)}
         <button class="btn btn-p" id="p-sync-btn-create" onclick="app.openCreateMessModal()" style="height:44px;font-size:14px;font-weight:700"><i class="fas fa-plus-circle"></i> নতুন মেস তৈরি করুন</button>
         <button class="btn btn-s" id="p-sync-btn-scan" onclick="app.openJoinRoomModal()" style="height:44px;font-size:14px;font-weight:700"><i class="fas fa-key"></i> কোড আছে? জয়েন করুন</button>
       </div>
+      <button type="button" id="p-sync-btn-reset-offline" onclick="app.resetMessData()" style="background:none;border:none;color:var(--red,#ef4444);font-size:12.5px;font-weight:700;font-family:'Hind Siliguri',sans-serif;text-decoration:underline;cursor:pointer;margin-top:6px;display:none">
+        মেস ডেটা মুছে নতুন করে শুরু করুন
+      </button>
     </div>
 
     <!-- Sync Connected state UI -->

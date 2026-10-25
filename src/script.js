@@ -303,6 +303,10 @@ class BachelorKhata {
     const toBnNum = (n) => n.toString().replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
     return `${toBnNum(day)} ${month}, ${toBnNum(year)}`;
   }
+  toBnNum(n) {
+    if (this.lang !== 'bn') return String(n);
+    return String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+  }
   getAcc(id) { return this.data.accounts.find(a => a.id===id); }
 
   accBal(acc) {
@@ -1665,7 +1669,7 @@ class BachelorKhata {
     setText('mess-total-deposit', this.fmt(totalDeposited));
     setText('mess-total', this.fmt(totalExpenses));
     setText('mess-fund-bal', this.fmt(fundBalance));
-    setText('mess-member-count', mc);
+    setText('mess-member-count', this.toBnNum(mc));
     setText('mess-per-head', mc > 0 ? this.fmt(share) : '৳০');
 
     const isConnected = !!this.data.settings.syncId;
@@ -1678,10 +1682,10 @@ class BachelorKhata {
       if (isConnected) {
         statusLiveDot.className = 'mess-live-dot';
         const activeCount = (this.activeRoommates || []).length || mc;
-        statusChipText.textContent = `${shortCode || 'কানেক্টেড'} · ${activeCount} জন`;
+        statusChipText.textContent = `${shortCode || 'কানেক্টেড'} · ${this.toBnNum(activeCount)} জন`;
       } else if (mc > 0) {
         statusLiveDot.className = 'mess-live-dot offline';
-        statusChipText.textContent = `অফলাইন মেস · ${mc} জন`;
+        statusChipText.textContent = `অফলাইন মেস · ${this.toBnNum(mc)} জন`;
       } else {
         statusLiveDot.className = 'mess-live-dot offline';
         statusChipText.textContent = 'মেস সংযোগ';
@@ -2373,6 +2377,11 @@ class BachelorKhata {
       if (connUI) connUI.style.display = 'none';
       if (hSync) hSync.style.display = 'none';
       if (pStatus) pStatus.textContent = '';
+      const resetOfflineBtn = g('p-sync-btn-reset-offline');
+      const hasOfflineData = (this.data.mess?.members?.length > 0 || this.data.mess?.entries?.length > 0);
+      if (resetOfflineBtn) {
+        resetOfflineBtn.style.display = hasOfflineData ? 'block' : 'none';
+      }
     }
   }
 
@@ -2722,18 +2731,59 @@ class BachelorKhata {
   }
 
   async handleSyncDisconnect() {
-    if (confirm('আপনি কি নিশ্চিত যে এই মেস থেকে বের হতে চান?')) {
+    if (confirm('আপনি কি নিশ্চিত যে এই মেস থেকে বের হতে চান? এই মেসের সকল তথ্য ও হিসাব এই ডিভাইস থেকে মুছে যাবে।')) {
       if (this.data.settings.syncId) {
-        db.ref('rooms/' + this.data.settings.syncId).off('value');
+        const roomId = this.data.settings.syncId;
+        const myName = (this.data.settings.initials || '').trim();
+        db.ref('rooms/' + roomId).off('value');
+        if (myName) {
+          db.ref('rooms/' + roomId + '/devices').once('value').then(snap => {
+            const list = snap.val();
+            if (Array.isArray(list)) {
+              const updated = list.filter(u => u && u.name && u.name.trim().toLowerCase() !== myName.toLowerCase());
+              db.ref('rooms/' + roomId + '/devices').set(updated).catch(() => {});
+            }
+          }).catch(() => {});
+        }
       }
       this.data.settings.syncId = '';
       this.data.settings.shortCode = '';
       this.data.settings.lastSync = '';
       this.save('settings');
+
+      // Clear local mess and bazar data
+      this.data.mess = {
+        members: [],
+        entries: [],
+        subcategories: {}
+      };
+      this.data.bazar = [];
+      this.save('mess');
+      this.save('bazar');
+
+      this.activeRoommates = [];
       this.applySyncUI();
       this.render();
       this.closeModal('m-group-sync');
-      this.toast('মেস থেকে সফলভাবে বের হওয়া হয়েছে।', 'info');
+      this.toast('মেস থেকে সফলভাবে বের হওয়া হয়েছে এবং মেসের ডেটা মুছে গেছে।', 'info');
+    }
+  }
+
+  resetMessData() {
+    if (confirm('আপনি কি নিশ্চিত যে মেসের সকল রুমমেট, খরচ ও ডেটা মুছে ফেলতে চান?')) {
+      this.data.mess = {
+        members: [],
+        entries: [],
+        subcategories: {}
+      };
+      this.data.bazar = [];
+      this.save('mess');
+      this.save('bazar');
+      this.activeRoommates = [];
+      this.applySyncUI();
+      this.render();
+      this.closeModal('m-group-sync');
+      this.toast('মেসের সকল ডেটা মুছে ফেলা হয়েছে।', 'info');
     }
   }
 
