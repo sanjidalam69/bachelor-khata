@@ -890,17 +890,28 @@ class BachelorKhata {
   }
 
   toggleMemberMenu(id, e) {
-    if (e) e.stopPropagation();
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     const menu = g(`m-menu-${id}`);
-    const isOpen = menu && menu.classList.contains('show');
+    const card = menu ? menu.closest('.mess-member-card') : null;
+    const isAlreadyOpen = menu && menu.classList.contains('show');
+    
     this.closeAllMemberMenus();
-    if (menu && !isOpen) {
+    
+    if (menu && !isAlreadyOpen) {
       menu.classList.add('show');
+      if (card) card.classList.add('menu-open');
     }
   }
 
   closeAllMemberMenus() {
-    document.querySelectorAll('.mess-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    document.querySelectorAll('.mess-dropdown-menu.show').forEach(m => {
+      m.classList.remove('show');
+      const card = m.closest('.mess-member-card');
+      if (card) card.classList.remove('menu-open');
+    });
   }
 
   toggleMessEntryType(type) {
@@ -1848,10 +1859,10 @@ class BachelorKhata {
                   </button>
                   <div id="m-menu-${m.id}" class="mess-dropdown-menu">
                     <button type="button" class="mess-menu-item" onclick="app.editMessMember('${m.id}'); app.closeAllMemberMenus();">
-                      <i class="fas fa-pen" style="font-size:12px;width:14px"></i> সম্পাদনা
+                      <i class="fas fa-pen" style="font-size:12px;width:16px;color:var(--muted)"></i> নাম সম্পাদনা
                     </button>
                     <button type="button" class="mess-menu-item danger" onclick="app.deleteMessMember('${m.id}'); app.closeAllMemberMenus();">
-                      <i class="fas fa-trash" style="font-size:12px;width:14px"></i> মুছুন
+                      <i class="fas fa-trash" style="font-size:12px;width:16px"></i> মেস থেকে বাদ দিন
                     </button>
                   </div>
                 </div>

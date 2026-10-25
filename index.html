@@ -617,18 +617,68 @@ input:checked + .slider:before{transform:translateX(20px)}
 
 #mess-onboarding-card{max-width:560px;margin:24px auto;padding:36px 24px;text-align:center;border-radius:20px;background:var(--surface);border:1px solid var(--border)}
 
+.mess-menu-btn{
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--text);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:15px;
+  transition:all .2s var(--ease);
+  padding:0;
+  flex-shrink:0;
+}
+.mess-menu-btn:hover{
+  background:var(--hover);
+  color:var(--head);
+  border-color:var(--border2);
+  transform:scale(1.05);
+}
+.mess-menu-btn:active{
+  transform:scale(0.95);
+}
+:root.light .mess-menu-btn{
+  background:#F1F5F9;
+  border-color:#E2E8F0;
+  color:#475569;
+}
+:root.light .mess-menu-btn:hover{
+  background:#E2E8F0;
+  color:#0F172A;
+}
+
+.mess-member-card.menu-open{
+  z-index:50 !important;
+  position:relative;
+}
+
 .mess-dropdown-menu{
   display:none;
   position:absolute;
   right:0;
-  top:42px;
+  top:calc(100% + 4px);
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:12px;
-  box-shadow:0 10px 28px rgba(0,0,0,0.3);
-  z-index:100;
-  min-width:130px;
+  box-shadow:0 12px 30px rgba(0,0,0,0.35);
+  z-index:999;
+  min-width:160px;
   padding:6px;
+}
+:root.light .mess-dropdown-menu{
+  background:#FFFFFF;
+  border-color:#E2E8F0;
+  box-shadow:0 12px 30px rgba(15,23,42,0.15);
+}
+.mess-dropdown-menu.show{
+  display:flex !important;
+  flex-direction:column;
+  gap:2px;
   animation:popIn .18s var(--ease);
 }
 @keyframes popIn {
@@ -637,10 +687,11 @@ input:checked + .slider:before{transform:translateX(20px)}
 }
 .mess-menu-item{
   width:100%;
+  height:38px;
   display:flex;
   align-items:center;
-  gap:8px;
-  padding:8px 10px;
+  gap:10px;
+  padding:0 12px;
   border-radius:8px;
   background:none;
   border:none;
@@ -650,10 +701,21 @@ input:checked + .slider:before{transform:translateX(20px)}
   font-family:'Hind Siliguri',sans-serif;
   cursor:pointer;
   text-align:left;
-  transition:background .15s;
+  transition:all .15s;
+  white-space:nowrap;
 }
-.mess-menu-item:hover{background:var(--surface2)}
-.mess-menu-item.danger{color:var(--red,#ef4444)}
+.mess-menu-item:hover{
+  background:var(--surface2);
+}
+:root.light .mess-menu-item:hover{
+  background:#F1F5F9;
+}
+.mess-menu-item.danger{
+  color:var(--red,#ef4444);
+}
+.mess-menu-item.danger:hover{
+  background:rgba(239,68,68,0.1);
+}
 
 .mess-member{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
 .mess-member:last-child{border-bottom:none}
@@ -1213,7 +1275,7 @@ input:checked + .slider:before{transform:translateX(20px)}
           <div class="g2" style="gap:16px">
             <!-- Left Column: Roommates & Chart -->
             <div style="display:flex;flex-direction:column;gap:14px">
-              <div class="card" style="padding:18px">
+              <div class="card" style="padding:18px;overflow:visible">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
                   <div>
                     <div class="sec-title" style="margin-bottom:2px">রুমমেটদের হিসাব</div>
