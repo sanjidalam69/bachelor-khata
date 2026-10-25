@@ -546,7 +546,55 @@ input:checked + .slider:before{transform:translateX(20px)}
 .cd.cx{background:transparent;cursor:default}
 .cdh{text-align:center;font-size:8px;font-weight:800;text-transform:uppercase;color:var(--muted);padding:4px 0}
 
-/*── MESS ──*/
+/*── MESS PAGE REDESIGN ──*/
+.mess-hero-card{
+  background:linear-gradient(135deg, #059669, #0F766E);
+  border-radius:20px;
+  padding:22px 20px;
+  color:#FFFFFF;
+  margin-bottom:14px;
+  box-shadow:0 8px 24px rgba(5,150,105,0.22);
+}
+:root.dark .mess-hero-card, :root:not(.light) .mess-hero-card{
+  background:linear-gradient(135deg, #0F766E, #115E59);
+  box-shadow:0 8px 24px rgba(15,118,110,0.25);
+}
+.mess-hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.mess-hero-lbl{font-size:13.5px;font-weight:500;color:rgba(255,255,255,0.88);font-family:'Hind Siliguri',sans-serif}
+.mess-hero-chip{background:rgba(255,255,255,0.18);border-radius:99px;padding:4px 12px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:#FFFFFF;font-family:'Hind Siliguri',sans-serif}
+.mess-hero-balance{font-size:36px;font-weight:800;letter-spacing:-0.5px;color:#FFFFFF;margin:6px 0 16px 0;font-family:'Hind Siliguri',sans-serif;line-height:1.1}
+.mess-stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.mess-stat-pill{background:rgba(255,255,255,0.16);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:12px;padding:10px 8px;text-align:center}
+.mess-stat-pill .lbl{font-size:11.5px;color:rgba(255,255,255,0.82);font-family:'Hind Siliguri',sans-serif}
+.mess-stat-pill .val{font-size:15px;font-weight:800;color:#FFFFFF;margin-top:2px;font-family:'Hind Siliguri',sans-serif}
+
+.mess-action-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.btn-mess-expense{height:48px;border-radius:14px;background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-size:15px;font-weight:700;font-family:'Hind Siliguri',sans-serif;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(16,185,129,0.3);transition:all .2s}
+.btn-mess-expense:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(16,185,129,0.38)}
+.btn-mess-deposit{height:48px;border-radius:14px;background:transparent;border:1.5px solid var(--p);color:var(--p);font-size:15px;font-weight:700;font-family:'Hind Siliguri',sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
+.btn-mess-deposit:hover{background:var(--p-soft);transform:translateY(-1px)}
+
+.mess-status-chip{background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:6px 14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'Hind Siliguri',sans-serif;color:var(--head);transition:all .2s}
+.mess-status-chip:hover{border-color:var(--p);background:var(--surface2)}
+.mess-live-dot{width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 6px rgba(16,185,129,0.8);display:inline-block}
+.mess-live-dot.offline{background:#94A3B8;box-shadow:none}
+
+.mess-member-card{min-height:64px;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:all .2s}
+.mess-member-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.mess-member-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#FFFFFF;flex-shrink:0;position:relative;font-family:'Hind Siliguri',sans-serif}
+.mess-av-dot{position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;border:2px solid var(--surface)}
+.mess-av-dot.online{background:#10B981}
+.mess-av-dot.offline{background:#94A3B8}
+
+.payer-chips-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.payer-chip{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;font-family:'Hind Siliguri',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;user-select:none}
+.payer-chip:hover{border-color:var(--p);color:var(--head)}
+.payer-chip.active{background:var(--p);color:#FFFFFF;border-color:var(--p);font-weight:700}
+
+.deposit-equal-wrap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:12px;border:1px solid var(--border);margin-bottom:12px}
+
+#mess-onboarding-card{padding:36px 20px;text-align:center;border-radius:20px;background:var(--surface);border:1px solid var(--border);margin:12px 0}
+
 .mess-member{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
 .mess-member:last-child{border-bottom:none}
 .mess-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;background:linear-gradient(135deg,var(--p),#ec4899);font-family:'Hind Siliguri',sans-serif}
@@ -1024,14 +1072,14 @@ input:checked + .slider:before{transform:translateX(20px)}
     <!-- ════════════════ PAGE: MESS ════════════════ -->
     <div class="page" id="page-mess">
       <div id="mess-page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div><div class="sec-title" style="font-size:17px" id="mess-page-title">🍛 মেস হিসাব</div><div class="sec-sub" style="margin-bottom:0" id="mess-page-sub">সবার খরচ একসাথে হিসাব রাখুন</div></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-s bsm" id="mess-sync-btn"><i class="fas fa-cloud"></i> গ্রুপ সিঙ্ক</button>
-          
+        <div class="mess-status-chip" id="mess-status-chip" onclick="app.openMessStatus()" title="মেস সংযোগ বিবরণ">
+          <span class="mess-live-dot offline" id="mess-live-dot"></span>
+          <span id="mess-status-text">মেস সংযোগ</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <!-- Summary Action Buttons -->
-          <button class="btn btn-s bsm mess-summary-action" id="export-mess-pdf"><i class="fas fa-file-pdf"></i> PDF ডাউনলোড</button>
-          <button class="btn btn-s bsm mess-summary-action" id="add-mess-member-btn"><i class="fas fa-user-plus"></i> সদস্য যোগ</button>
-          <button class="btn btn-p mess-summary-action" id="add-mess-entry-btn"><i class="fas fa-plus"></i> খরচ যোগ</button>
+          <button class="btn btn-s bsm mess-summary-action" id="export-mess-pdf" title="PDF ডাউনলোড"><i class="fas fa-file-pdf"></i> PDF</button>
+          <button class="btn btn-s bsm mess-summary-action" id="add-mess-member-btn" title="ফোন ছাড়া রুমমেট যোগ"><i class="fas fa-user-plus"></i> রুমমেট যোগ</button>
           
           <!-- Bazar Action Buttons -->
           <button class="btn btn-s bsm mess-bazar-action" id="clear-done-btn" style="display:none"><i class="fas fa-broom"></i> সম্পন্ন মুছুন</button>
@@ -1046,47 +1094,106 @@ input:checked + .slider:before{transform:translateX(20px)}
 
       <!-- Sub-page: Summary -->
       <div id="mess-subpage-summary">
-        <div class="g2" style="gap:16px">
-          <!-- Summary -->
-          <div style="display:flex;flex-direction:column;gap:14px">
-            <div class="card" style="padding:18px">
-              <div class="sec-title i18n" data-key="mess_summary">এ মাসের সারসংক্ষেপ</div>
-              <div class="sec-sub i18n" id="mess-month-lbl" data-key="this_month">এ মাসে</div>
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="mess-stat-row">
-                <div style="text-align:center;padding:10px;background:var(--surface);border-radius:var(--rs)"><div class="sl i18n" data-key="total_expense">মোট খরচ</div><div class="sv" style="font-size:16px" id="mess-total">৳০</div></div>
-                <div style="text-align:center;padding:10px;background:var(--surface);border-radius:var(--rs)"><div class="sl i18n" data-key="mess_fund">মেস তহবিল</div><div class="sv" style="font-size:16px;color:var(--green)" id="mess-fund-bal">৳০</div></div>
-                <div style="text-align:center;padding:10px;background:var(--surface);border-radius:var(--rs)"><div class="sl i18n" data-key="members">সদস্য</div><div class="sv" style="font-size:16px" id="mess-member-count">০</div></div>
-                <div style="text-align:center;padding:10px;background:var(--p-soft);border:1px solid var(--p);border-radius:var(--rs)"><div class="sl i18n" data-key="per_head">জন প্রতি</div><div class="sv" style="font-size:16px;color:var(--p)" id="mess-per-head">৳০</div></div>
-              </div>
-              <div id="mess-members-list"></div>
-              <div id="mess-members-empty" class="empty" style="display:none;padding:20px"><i class="fas fa-users"></i><p class="i18n" data-key="no_members">কোনো সদস্য নেই। সদস্য যোগ করুন।</p></div>
+        <!-- Onboarding Screen (shown when no mess or roomies connected) -->
+        <div id="mess-onboarding-card" style="display:none">
+          <div style="width:58px;height:58px;border-radius:50%;background:var(--p-soft);color:var(--p);font-size:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+            <i class="fas fa-users-rectangle"></i>
+          </div>
+          <div style="font-size:18px;font-weight:800;color:var(--head);font-family:'Hind Siliguri',sans-serif;margin-bottom:6px">মেস হিসাব শুরু করুন</div>
+          <div style="font-size:13px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;max-width:320px;margin:0 auto 20px;line-height:1.5">
+            রুমমেটদের সাথে মেসের যাবতীয় খরচ ও তহবিলের হিসাব রাখুন একদম স্বচ্ছ ও সহজে।
+          </div>
+          <div style="max-width:280px;margin:0 auto;display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-p" id="onboard-create-btn" onclick="app.openCreateMessModal()" style="height:46px;font-size:15px;font-weight:700">
+              <i class="fas fa-plus-circle"></i> নতুন মেস তৈরি করুন
+            </button>
+            <button class="btn btn-s" id="onboard-join-btn" onclick="app.openJoinRoomModal()" style="height:46px;font-size:15px;font-weight:700">
+              <i class="fas fa-key"></i> কোড আছে? জয়েন করুন
+            </button>
+            <button type="button" id="onboard-manual-btn" onclick="app.openMessMemberModal()" style="background:none;border:none;color:var(--muted);font-size:12.5px;font-family:'Hind Siliguri',sans-serif;text-decoration:underline;cursor:pointer;margin-top:6px">
+              ফোন ছাড়া রুমমেট যোগ করুন
+            </button>
+          </div>
+        </div>
+
+        <!-- Mess Content Wrap (shown when mess exists or roomies exist) -->
+        <div id="mess-content-wrap">
+          <!-- Gradient Hero Summary Card -->
+          <div class="mess-hero-card">
+            <div class="mess-hero-top">
+              <div class="mess-hero-lbl">তহবিলে আছে</div>
+              <div class="mess-hero-chip" id="mess-hero-members-chip"><i class="fas fa-users"></i> <span id="mess-member-count">০</span> জন</div>
             </div>
-            <!-- Mess Chart -->
-            <div class="card" style="padding:18px">
-              <div class="sec-title i18n" data-key="expense_type">মেস খরচের ধরন</div>
-              <div class="sec-sub i18n" data-key="expense_type_sub">কোন খরচ কত</div>
-              <div style="height:180px;position:relative"><canvas id="mess-chart"></canvas></div>
+            <div class="mess-hero-balance" id="mess-fund-bal">৳০</div>
+            <div class="mess-stat-grid">
+              <div class="mess-stat-pill">
+                <div class="lbl">মোট জমা</div>
+                <div class="val" id="mess-total-deposit">৳০</div>
+              </div>
+              <div class="mess-stat-pill">
+                <div class="lbl">মোট খরচ</div>
+                <div class="val" id="mess-total">৳০</div>
+              </div>
+              <div class="mess-stat-pill">
+                <div class="lbl">জন প্রতি</div>
+                <div class="val" id="mess-per-head">৳০</div>
+              </div>
             </div>
           </div>
-          <!-- Entries List -->
-          <div class="card" style="padding:18px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-              <div class="sec-title i18n" data-key="expense_list" style="margin-bottom:0">মেস খরচের তালিকা</div>
+
+          <!-- Big Equal Action Buttons -->
+          <div class="mess-action-row">
+            <button class="btn-mess-expense" id="add-mess-expense-btn" onclick="app.openMessEntryModal('expense')">
+              <i class="fas fa-minus-circle"></i> খরচ যোগ
+            </button>
+            <button class="btn-mess-deposit" id="add-mess-deposit-btn" onclick="app.openMessEntryModal('deposit')">
+              <i class="fas fa-plus-circle"></i> জমা দিন
+            </button>
+          </div>
+
+          <div class="g2" style="gap:16px">
+            <!-- Left Column: Roommates & Chart -->
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div class="card" style="padding:18px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <div>
+                    <div class="sec-title" style="margin-bottom:2px">রুমমেটদের হিসাব</div>
+                    <div class="sec-sub" id="mess-month-lbl" style="margin-bottom:0">এ মাসে</div>
+                  </div>
+                  <button class="btn btn-s bsm" onclick="app.openMessMemberModal()" style="font-size:12px;padding:4px 10px"><i class="fas fa-user-plus"></i> যোগ</button>
+                </div>
+                <div id="mess-members-list"></div>
+                <div id="mess-members-empty" class="empty" style="display:none;padding:20px"><i class="fas fa-users"></i><p>কোনো রুমমেট নেই</p></div>
+              </div>
+
+              <!-- Mess Chart -->
+              <div class="card" style="padding:18px">
+                <div class="sec-title">মেস খরচের ধরন</div>
+                <div class="sec-sub">কোন খাতে কত খরচ</div>
+                <div style="height:180px;position:relative"><canvas id="mess-chart"></canvas></div>
+              </div>
             </div>
-            <div class="tw" style="max-height:480px;overflow-y:auto">
-              <table>
-                <thead>
-                  <tr>
-                    <th class="i18n" data-key="date">তারিখ</th>
-                    <th class="i18n" data-key="desc">বিবরণ</th>
-                    <th class="i18n" data-key="paid_by">দেওয়া হয়েছে</th>
-                    <th style="text-align:right" class="i18n" data-key="amount">পরিমাণ</th>
-                    <th class="i18n" data-key="actions">কাজ</th>
-                  </tr>
-                </thead>
-                <tbody id="mess-entries-list"></tbody>
-              </table>
-              <div id="mess-entries-empty" class="empty" style="display:none"><i class="fas fa-bowl-food"></i><p class="i18n" data-key="no_mess_exp">কোনো মেস খরচ নেই</p></div>
+
+            <!-- Right Column: Entries List -->
+            <div class="card" style="padding:18px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <div class="sec-title" style="margin-bottom:0">মেস খরচের তালিকা</div>
+              </div>
+              <div class="tw" style="max-height:480px;overflow-y:auto">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>তারিখ</th>
+                      <th>বিবরণ</th>
+                      <th>পরিশোধকারী</th>
+                      <th style="text-align:right">পরিমাণ</th>
+                      <th>কাজ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mess-entries-list"></tbody>
+                </table>
+                <div id="mess-entries-empty" class="empty" style="display:none"><i class="fas fa-bowl-food"></i><p>কোনো মেস খরচ নেই</p></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1406,22 +1513,41 @@ input:checked + .slider:before{transform:translateX(20px)}
 <!-- Mess Entry Modal -->
 <div class="mo" id="m-mess-entry"><div class="modal" style="max-width:400px">
   <div class="mh"><div class="mt i18n" id="mess-entry-title" data-key="mess_entry_title">মেস খরচ/জমা যোগ</div><button class="mc" data-close="m-mess-entry"><i class="fas fa-xmark"></i></button></div>
-  <div class="tabs">
+  <div class="tabs" style="margin-bottom:12px">
     <button type="button" class="tab active i18n" data-metype="expense" data-key="expense_lbl">খরচ</button>
     <button type="button" class="tab i18n" data-metype="deposit" data-key="deposit_to_fund">তহবিলে জমা</button>
   </div>
   <input type="hidden" id="me-type" value="expense">
-  <div style="display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;flex-direction:column;gap:11px">
     <div class="ig"><label class="label i18n" id="me-title-lbl" data-key="desc">বিবরণ</label><input type="text" class="inp" id="me-title" data-i18n-placeholder="me_desc_ph" placeholder="যেমন: বাজার, গ্যাস বিল"></div>
     <div class="irow">
       <div class="ig" id="me-amount-g"><label class="label i18n" id="me-amount-lbl" data-key="total_amount_lbl">মোট পরিমাণ (৳)</label><input type="number" class="inp" id="me-amount" placeholder="০" step="1"></div>
       <div class="ig"><label class="label i18n" data-key="date">তারিখ</label><input type="date" class="inp" id="me-date"></div>
     </div>
-    <div class="ig" id="me-payer-g"><label class="label i18n" id="me-payer-lbl" data-key="payer_lbl">কার খরচ / পরিশোধকারী</label><select class="sel" id="me-payer"></select></div>
-    <div class="ig" id="me-deposit-grid-g" style="display:none">
-      <label class="label i18n" data-key="contrib_list_lbl">কার তেকে কত জমা (৳)</label>
-      <div style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:8px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border)" id="me-deposit-list"></div>
+    
+    <!-- Payer Section with Chips -->
+    <div class="ig" id="me-payer-g">
+      <label class="label i18n" id="me-payer-lbl" data-key="payer_lbl">কে পরিশোধকারী?</label>
+      <select class="sel" id="me-payer" style="display:none"></select>
+      <div class="payer-chips-wrap" id="me-payer-chips"></div>
+      <div style="font-size:11.5px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin-top:6px;line-height:1.4">
+        <i class="fas fa-info-circle"></i> মেস তহবিল থেকে টাকা দিলে 'মেস তহবিল' রাখুন। নিজের পকেট থেকে দিলে নিজের নাম বেছে নিন, মাস শেষে বাকিরা টাকা ফেরত দেবে।
+      </div>
     </div>
+
+    <!-- Deposit Grid with Equal Tool -->
+    <div class="ig" id="me-deposit-grid-g" style="display:none">
+      <div class="deposit-equal-wrap" id="deposit-equal-wrap">
+        <div style="display:flex;align-items:center;gap:6px;flex:1">
+          <span style="font-size:12px;font-weight:600;color:var(--head);font-family:'Hind Siliguri',sans-serif">প্রত্যেকে:</span>
+          <input type="number" class="inp" id="deposit-equal-amount" placeholder="৳ পরিমাণ" style="height:34px;font-size:13px;padding:4px 8px;flex:1" step="1">
+        </div>
+        <button type="button" class="btn btn-s bsm" id="deposit-apply-all-btn" style="height:34px;font-size:12px;font-weight:700;white-space:nowrap"><i class="fas fa-check-double"></i> সবাইকে দিন</button>
+      </div>
+      <label class="label i18n" data-key="contrib_list_lbl">কার থেকে কত জমা (৳)</label>
+      <div style="max-height:170px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border)" id="me-deposit-list"></div>
+    </div>
+
     <div class="ig" id="me-cat-g"><label class="label i18n" data-key="category">ক্যাটাগরি</label>
       <select class="sel" id="me-cat">
         <option value="বাজার" class="i18n" data-key="cat_bazar">👒 বাজার</option>
@@ -1601,68 +1727,79 @@ input:checked + .slider:before{transform:translateX(20px)}
   </div>
 </div></div>
 
-<!-- Group Sync Modal -->
-<div class="mo" id="m-group-sync"><div class="modal" style="max-width:340px">
-  <div class="mh"><div class="mt">গ্রুপ সিঙ্ক (মেস ও বাজার)</div><button class="mc" data-close="m-group-sync"><i class="fas fa-xmark"></i></button></div>
+<!-- Mess Connection Modal -->
+<div class="mo" id="m-group-sync"><div class="modal" style="max-width:350px">
+  <div class="mh"><div class="mt">মেস সংযোগ</div><button class="mc" data-close="m-group-sync"><i class="fas fa-xmark"></i></button></div>
   <div style="display:flex;flex-direction:column;gap:12px">
-    <!-- Sync Not Connected state UI -->
-    <div id="p-sync-disconnected-ui" style="display:flex;flex-direction:column;gap:8px">
-      <div style="font-size:10px;color:var(--muted);line-height:1.4;font-family:'Hind Siliguri',sans-serif">
-        মেস ও বাজারের হিসাব বন্ধুদের সাথে সিঙ্ক করতে একটি কোড তৈরি করুন অথবা কোড দিয়ে মেসে যোগ দিন।
+    <!-- Sync Disconnected state UI -->
+    <div id="p-sync-disconnected-ui" style="display:flex;flex-direction:column;gap:10px;text-align:center">
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.4;font-family:'Hind Siliguri',sans-serif">
+        মেস ও বাজারের হিসাব বন্ধুদের সাথে সিঙ্ক করতে নতুন মেস তৈরি করুন অথবা কোড দিয়ে জয়েন করুন।
       </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-p" id="p-sync-btn-create" style="flex:1;font-size:12px"><i class="fas fa-plus"></i> নতুন মেস তৈরি করুন</button>
-        <button class="btn btn-g" id="p-sync-btn-scan" style="flex:1;font-size:12px"><i class="fas fa-sign-in-alt"></i> মেসে যোগ দিন</button>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-p" id="p-sync-btn-create" onclick="app.openCreateMessModal()" style="height:44px;font-size:14px;font-weight:700"><i class="fas fa-plus-circle"></i> নতুন মেস তৈরি করুন</button>
+        <button class="btn btn-s" id="p-sync-btn-scan" onclick="app.openJoinRoomModal()" style="height:44px;font-size:14px;font-weight:700"><i class="fas fa-key"></i> কোড আছে? জয়েন করুন</button>
       </div>
     </div>
 
     <!-- Sync Connected state UI -->
-    <div id="p-sync-connected-ui" style="display:none;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surface2);border-radius:var(--rs);border:1px dashed rgba(16,185,129,0.4)">
-        <div><div style="font-size:10px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আপনার মেসের কোড:</div><div style="font-size:22px;font-weight:900;color:var(--p);letter-spacing:4px" id="p-sync-code-text">------</div></div>
-        <button class="ib" id="p-sync-btn-copy" title="কপি করুন"><i class="fas fa-copy"></i></button>
+    <div id="p-sync-connected-ui" style="display:none;flex-direction:column;gap:12px">
+      <div style="padding:14px;background:var(--surface2);border-radius:14px;border:1px solid var(--border);text-align:center">
+        <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আপনার মেস কোড</div>
+        <div style="font-size:28px;font-weight:900;color:var(--p);letter-spacing:6px;font-family:monospace;margin:6px 0" id="p-sync-code-text">------</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+          <button class="btn btn-s bsm" id="p-sync-btn-copy" style="flex:1;height:38px;font-size:13px;font-weight:700"><i class="fas fa-copy"></i> কপি কোড</button>
+          <button type="button" class="btn btn-s bsm" id="p-sync-btn-whatsapp" onclick="app.shareMessWhatsApp()" style="flex:1;height:38px;font-size:13px;font-weight:700;background:#25D366;color:#FFFFFF;border:none"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+        </div>
       </div>
       
-      <!-- Active members list -->
-      <div style="padding:10px;background:var(--surface);border-radius:var(--rs);margin-top:2px" id="p-active-members-wrap">
-        <div style="font-size:10.5px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin-bottom:6px;display:flex;justify-content:space-between">
-          <span>যুক্ত আছেন:</span>
-          <span style="font-weight:800;color:var(--p)"><span id="p-active-count">০</span> জন সক্রিয়</span>
+      <!-- Connected members list -->
+      <div style="padding:12px;background:var(--surface);border-radius:12px;border:1px solid var(--border)" id="p-active-members-wrap">
+        <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700">যুক্ত আছেন:</span>
+          <span style="font-weight:800;color:var(--green);font-size:12px"><span id="p-active-count">০</span> জন সক্রিয়</span>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px" id="p-active-list">
-          <span style="font-size:10px;color:var(--muted)">লোড হচ্ছে...</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px" id="p-active-list">
+          <span style="font-size:11px;color:var(--muted)">লোড হচ্ছে...</span>
         </div>
       </div>
 
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-d" id="p-sync-btn-disconnect" style="flex:1;font-size:12px">লিংক সরান</button>
-        <button class="btn btn-g" id="p-sync-now" style="flex:1;font-size:12px"><i class="fas fa-rotate"></i> সিঙ্ক করুন</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-s bsm" onclick="app.openMessMemberModal()" style="flex:1;height:38px;font-size:12px;font-weight:700"><i class="fas fa-user-plus"></i> রুমমেট যোগ</button>
+        <button class="btn btn-s bsm" id="p-sync-now" style="flex:1;height:38px;font-size:12px;font-weight:700"><i class="fas fa-rotate"></i> সিঙ্ক করুন</button>
       </div>
+
+      <button type="button" id="p-sync-btn-disconnect" style="background:none;border:none;color:var(--red,#ef4444);font-size:12.5px;font-weight:700;font-family:'Hind Siliguri',sans-serif;text-decoration:underline;cursor:pointer;margin:6px auto 0;display:block">
+        মেস থেকে বের হন
+      </button>
     </div>
     
-    <div style="font-size:9.5px;color:var(--muted);margin-top:2px" id="p-sync-status"></div>
+    <div style="font-size:10px;color:var(--muted);text-align:center" id="p-sync-status"></div>
   </div>
 </div></div>
 
 <!-- Join Room Modal -->
 <div class="mo" id="m-join-room"><div class="modal" style="max-width:340px">
-  <div class="mh"><div class="mt">মেসে যোগ দিন</div><button class="mc" data-close="m-join-room"><i class="fas fa-xmark"></i></button></div>
+  <div class="mh"><div class="mt">কোড দিয়ে জয়েন করুন</div><button class="mc" data-close="m-join-room"><i class="fas fa-xmark"></i></button></div>
   <div style="display:flex;flex-direction:column;gap:12px;text-align:center">
-    <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আপনার রুমমেটের তৈরি করা মেস কোডটি এখানে লিখুন।</div>
-    <input type="text" class="inp" id="join-room-code" placeholder="যেমন: MESS01" maxlength="10" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800">
+    <div style="font-size:12.5px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;line-height:1.4">আপনার রুমমেটের তৈরি করা ৬ অক্ষরের মেস কোডটি লিখুন:</div>
+    <input type="text" class="inp" id="join-room-code" placeholder="যেমন: K7X9MN" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
   </div>
-  <div class="mf"><button class="btn btn-s" data-close="m-join-room" style="flex:1">বাতিল</button><button class="btn btn-p" id="join-room-btn" style="flex:1">যুক্ত হোন</button></div>
+  <div class="mf"><button class="btn btn-s" data-close="m-join-room" style="flex:1">বাতিল</button><button class="btn btn-p" id="join-room-btn" style="flex:1"><i class="fas fa-sign-in-alt"></i> জয়েন করুন</button></div>
 </div></div>
 
 <!-- Create Mess Modal -->
 <div class="mo" id="m-create-mess"><div class="modal" style="max-width:340px">
   <div class="mh"><div class="mt">নতুন মেস তৈরি করুন</div><button class="mc" data-close="m-create-mess"><i class="fas fa-xmark"></i></button></div>
   <div style="display:flex;flex-direction:column;gap:12px;text-align:center">
-    <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আপনার মেসের জন্য একটি ৬ ডিজিটের কোড লিখুন। এই কোড দিয়ে অন্যরা মেসে জয়েন করতে পারবে।</div>
-    <input type="text" class="inp" id="create-mess-code" placeholder="যেমন: MESS01" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800">
-    <div style="font-size:10px;color:var(--amber);font-family:'Hind Siliguri',sans-serif"><i class="fas fa-info-circle"></i> শুধু ইংরেজি বড় হাতের অক্ষর ও সংখ্যা ব্যবহার করুন</div>
+    <div style="font-size:12.5px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;line-height:1.4">আপনার মেসের জন্য এই ৬ অক্ষরের কোডটি তৈরি হয়েছে। এই কোড দিয়ে বন্ধুরা মেসে জয়েন করতে পারবে।</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="text" class="inp" id="create-mess-code" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800;flex:1" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+      <button type="button" class="btn btn-s bsm" onclick="app.refreshCreateCode()" title="নতুন কোড জেনারেট" style="height:46px;padding:0 14px"><i class="fas fa-arrows-rotate"></i></button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-family:'Hind Siliguri',sans-serif"><i class="fas fa-info-circle"></i> চাইলে কোডটি পরিবর্তন করতে পারেন (০/O ও ১/I বাদে)</div>
   </div>
-  <div class="mf"><button class="btn btn-s" data-close="m-create-mess" style="flex:1">বাতিল</button><button class="btn btn-p" id="create-mess-btn" style="flex:1"><i class="fas fa-plus"></i> তৈরি করুন</button></div>
+  <div class="mf"><button class="btn btn-s" data-close="m-create-mess" style="flex:1">বাতিল</button><button class="btn btn-p" id="create-mess-btn" style="flex:1"><i class="fas fa-check"></i> তৈরি করুন</button></div>
 </div></div>
 
 <!-- Welcome / Name Onboarding Modal -->

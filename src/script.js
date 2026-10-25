@@ -160,6 +160,16 @@ class BachelorKhata {
     this.translatePage();
     this.navigate(this.page);
     this.checkWelcomeOnboarding();
+
+    // Check URL parameters for auto-joining mess via shared link (?join=CODE)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const joinParam = urlParams.get('join') || urlParams.get('room');
+      if (joinParam) {
+        this.navigate('mess');
+        setTimeout(() => this.openJoinRoomModal(joinParam), 300);
+      }
+    } catch(e) {}
   }
 
   // ── NAVIGATION ────────────────────────────────────────────────
@@ -856,23 +866,30 @@ class BachelorKhata {
     this.ensureMessStructure();
     g('me-type').value=type;
     document.querySelectorAll('[data-metype]').forEach(b=>b.classList.toggle('active',b.dataset.metype===type));
-    this.fillMessPayer();
+    
     if(type==='deposit'){
       g('me-title-lbl').textContent='বিবরণ (ঐচ্ছিক)';
       g('me-title').placeholder='যেমন: তহবিলে জমা';
       g('me-cat-g').style.display='none';
+      if(g('me-subcat-g')) g('me-subcat-g').style.display='none';
       g('me-amount-g').style.display='none';
       g('me-payer-g').style.display='none';
       g('me-deposit-grid-g').style.display='';
       
       // Populate deposit list
       const dl=g('me-deposit-list');
-      dl.innerHTML=this.data.mess.members.map(m=>`
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <span style="font-size:13px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${m.name}</span>
-          <input type="number" class="inp dep-member-inp" data-mid="${m.id}" placeholder="০" style="width:100px;text-align:right" min="0" step="1">
-        </div>
-      `).join('');
+      if(dl){
+        if(!this.data.mess.members || this.data.mess.members.length === 0){
+          dl.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">কোনো রুমমেট নেই। আগে রুমমেট যোগ করুন।</div>';
+        } else {
+          dl.innerHTML=this.data.mess.members.map(m=>`
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:13.5px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">👤 ${m.name}</span>
+              <input type="number" class="inp dep-member-inp" data-mid="${m.id}" placeholder="০" style="width:110px;text-align:right;font-size:14px;font-weight:700" min="0" step="1">
+            </div>
+          `).join('');
+        }
+      }
     }else{
       g('me-title-lbl').textContent='বিবরণ';
       g('me-title').placeholder='যেমন: বাজার, গ্যাস বিল';
@@ -880,23 +897,56 @@ class BachelorKhata {
       g('me-amount-g').style.display='';
       g('me-payer-g').style.display='';
       g('me-deposit-grid-g').style.display='none';
+      this.fillMessPayer();
     }
   }
 
   fillMessPayer() {
     this.ensureMessStructure();
-    const el=g('me-payer'); if(!el) return;
-    const type=g('me-type')?.value||'expense';
-    if(type==='deposit'){
-      el.innerHTML=this.data.mess.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
-    }else{
-      el.innerHTML='<option value="mess-fund">📦 মেস তহবিল (সবার খরচ)</option>'+this.data.mess.members.map(m=>`<option value="${m.id}">${m.name} (ব্যক্তিগত খরচ)</option>`).join('');
-    }
+    const selectedId = g('me-payer')?.value || 'mess-fund';
+    this.renderMessPayerChips(selectedId);
   }
 
-  openMessEntry(id=null) {
+  renderMessPayerChips(selectedId = 'mess-fund') {
+    const wrap = g('me-payer-chips');
+    const select = g('me-payer');
+    if (!wrap) return;
+
+    if (select) {
+      select.innerHTML = '<option value="mess-fund">📦 মেস তহবিল</option>' +
+        (this.data.mess.members || []).map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+      select.value = selectedId;
+    }
+
+    let chipsHtml = `
+      <div class="payer-chip ${selectedId === 'mess-fund' ? 'active' : ''}" data-payer="mess-fund" onclick="app.selectMessPayer('mess-fund')">
+        📦 মেস তহবিল
+      </div>
+    `;
+    (this.data.mess.members || []).forEach(m => {
+      chipsHtml += `
+        <div class="payer-chip ${selectedId === m.id ? 'active' : ''}" data-payer="${m.id}" onclick="app.selectMessPayer('${m.id}')">
+          👤 ${m.name}
+        </div>
+      `;
+    });
+    wrap.innerHTML = chipsHtml;
+  }
+
+  selectMessPayer(payerId) {
+    const select = g('me-payer');
+    if (select) select.value = payerId;
+    const chips = document.querySelectorAll('#me-payer-chips .payer-chip');
+    chips.forEach(c => {
+      c.classList.toggle('active', c.dataset.payer === payerId);
+    });
+  }
+
+  openMessEntry(id=null, forceType=null) {
     this.ensureMessStructure();
-    g('me-id').value=id||''; setText('mess-entry-title',id?'মেস খরচ/জমা সম্পাদনা':'মেস খরচ/জমা যোগ'); g('me-del-btn').style.display=id?'':'none';
+    g('me-id').value=id||''; 
+    setText('mess-entry-title',id?'মেস খরচ/জমা সম্পাদনা':'মেস খরচ/জমা যোগ'); 
+    g('me-del-btn').style.display=id?'':'none';
     if(id){
       const e=this.data.mess.entries.find(e=>e.id===id);
       if(e){
@@ -908,7 +958,7 @@ class BachelorKhata {
           if(inp) inp.value=e.amount;
         }else{
           g('me-amount').value=e.amount;
-          g('me-payer').value=e.payerId;
+          this.selectMessPayer(e.payerId);
           const resolvedCat = this.resolveLegacyCat(e.category)||'অন্যান্য';
           g('me-cat').value=resolvedCat;
           this.updateSubcatDropdown(resolvedCat, e.subcategory||'');
@@ -916,13 +966,21 @@ class BachelorKhata {
       }
     }
     else {
-      this.toggleMessEntryType('expense');
+      const typeToSet = forceType || 'expense';
+      this.toggleMessEntryType(typeToSet);
       g('me-title').value='';
       g('me-amount').value='';
       g('me-date').value=new Date().toISOString().split('T')[0];
+      const eqInp = g('deposit-equal-amount');
+      if (eqInp) eqInp.value = '';
+      this.selectMessPayer('mess-fund');
       this.updateSubcatDropdown(g('me-cat').value, '');
     }
     this.openModal('m-mess-entry');
+  }
+
+  openMessEntryModal(tab = 'expense') {
+    this.openMessEntry(null, tab);
   }
 
   saveMessEntry() {
@@ -1583,125 +1641,230 @@ class BachelorKhata {
     const monthsBN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
     const monthsEN=['January','February','March','April','May','June','July','August','September','October','November','December'];
     const months = this.lang === 'bn' ? monthsBN : monthsEN;
-    setText('mess-month-lbl',`${months[this.month]} ${this.year}`);
-    const mEntries=this.data.mess.entries.filter(e => this.isCurrentMonth(e.date));
+    setText('mess-month-lbl', `${months[this.month]} ${this.year}`);
+    const mEntries = this.data.mess.entries.filter(e => this.isCurrentMonth(e.date));
     
     // Deposits
     const deposits = mEntries.filter(e => e.type === 'deposit');
-    const totalDeposited = deposits.reduce((s,e) => s+e.amount, 0);
+    const totalDeposited = deposits.reduce((s,e) => s + e.amount, 0);
 
-    // Expenses
+    // Total mess expenses
     const expenses = mEntries.filter(e => e.type !== 'deposit');
-    const totalExpenses = expenses.reduce((s,e) => s+e.amount, 0);
+    const totalExpenses = expenses.reduce((s,e) => s + e.amount, 0);
 
-    // Shared expenses of the mess (payerId = 'mess-fund')
-    const sharedExpenses = expenses.filter(e => e.payerId === 'mess-fund');
-    const totalSharedExpenses = sharedExpenses.reduce((s,e) => s+e.amount, 0);
+    // Expenses paid directly from mess fund cash box
+    const fundExpenses = expenses.filter(e => e.payerId === 'mess-fund');
+    const totalFundExpenses = fundExpenses.reduce((s,e) => s + e.amount, 0);
 
-    // Fund balance (Remaining cash in box: deposits minus all cash box expenses)
-    const fundBalance = totalDeposited - totalExpenses;
+    // Fund balance (Remaining cash in box: deposits minus fund cash box expenses)
+    const fundBalance = totalDeposited - totalFundExpenses;
 
-    const mc=this.data.mess.members.length;
-    const share = mc>0 ? totalSharedExpenses/mc : 0;
+    const mc = this.data.mess.members.length;
+    const share = mc > 0 ? totalExpenses / mc : 0;
 
-    setText('mess-total',this.fmt(totalSharedExpenses));
-    setText('mess-fund-bal',this.fmt(fundBalance));
-    setText('mess-member-count',mc);
-    setText('mess-per-head',mc>0?this.fmt(share):'৳০');
+    setText('mess-total-deposit', this.fmt(totalDeposited));
+    setText('mess-total', this.fmt(totalExpenses));
+    setText('mess-fund-bal', this.fmt(fundBalance));
+    setText('mess-member-count', mc);
+    setText('mess-per-head', mc > 0 ? this.fmt(share) : '৳০');
 
-    // Members list with contribution
-    const ml=g('mess-members-list'); const me=g('mess-members-empty');
-    if(!mc){ml.innerHTML='';me.style.display='';}
-    else{
-      me.style.display='none';
-      const mDeposits={};
-      const mOutPocket={};
+    const isConnected = !!this.data.settings.syncId;
+    const shortCode = this.data.settings.shortCode || '';
+
+    // Update Status Chip in header
+    const statusChipText = g('mess-status-text');
+    const statusLiveDot = g('mess-live-dot');
+    if (statusChipText && statusLiveDot) {
+      if (isConnected) {
+        statusLiveDot.className = 'mess-live-dot';
+        const activeCount = (this.activeRoommates || []).length || mc;
+        statusChipText.textContent = `${shortCode || 'কানেক্টেড'} · ${activeCount} জন`;
+      } else if (mc > 0) {
+        statusLiveDot.className = 'mess-live-dot offline';
+        statusChipText.textContent = `অফলাইন মেস · ${mc} জন`;
+      } else {
+        statusLiveDot.className = 'mess-live-dot offline';
+        statusChipText.textContent = 'মেস সংযোগ';
+      }
+    }
+
+    // Toggle Onboarding Card vs Mess Content
+    const obCard = g('mess-onboarding-card');
+    const contentWrap = g('mess-content-wrap');
+    if (!mc && !isConnected) {
+      if (obCard) obCard.style.display = 'block';
+      if (contentWrap) contentWrap.style.display = 'none';
+      return;
+    } else {
+      if (obCard) obCard.style.display = 'none';
+      if (contentWrap) contentWrap.style.display = 'block';
+    }
+
+    // Members list with contribution & balance
+    const ml = g('mess-members-list');
+    const me = g('mess-members-empty');
+    if (!mc) {
+      if (ml) ml.innerHTML = '';
+      if (me) me.style.display = '';
+    } else {
+      if (me) me.style.display = 'none';
+      const mDeposits = {};
+      const mOutPocket = {};
       
-      deposits.forEach(e=>{mDeposits[e.payerId]=(mDeposits[e.payerId]||0)+e.amount;});
-      expenses.forEach(e=>{
+      deposits.forEach(e => { mDeposits[e.payerId] = (mDeposits[e.payerId] || 0) + e.amount; });
+      expenses.forEach(e => {
         if (e.payerId !== 'mess-fund') {
-          mOutPocket[e.payerId]=(mOutPocket[e.payerId]||0)+e.amount;
+          mOutPocket[e.payerId] = (mOutPocket[e.payerId] || 0) + e.amount;
         }
       });
 
-      ml.innerHTML=this.data.mess.members.map((m,i)=>{
-        const depAmt=mDeposits[m.id]||0;
-        const outAmt=mOutPocket[m.id]||0;
-        const diff=depAmt - share - outAmt;
-        const clr=['#f97316','#3b82f6','#10b981','#a855f7','#f43f5e'][i%5];
-        
-        const isActive = (this.activeRoommates || []).some(u => u && u.name && u.name.trim().toLowerCase() === m.name.trim().toLowerCase());
-        const activeIndicator = isActive ? ' <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:var(--green,#10b981);box-shadow:0 0 5px var(--green,#10b981);margin-left:5px" title="অনলাইন"></span>' : '';
+      const memberColors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4'];
 
-        return `<div class="mess-member">
-          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-            <div class="mess-av" style="background:${clr}">${m.name[0]}</div>
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-size:13px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;display:inline-flex;align-items:center">${m.name}${activeIndicator}</span>
-                <button onclick="app.editMessMember('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:9px" title="${this.t('edit')}"><i class="fas fa-pen"></i></button>
-                <button onclick="app.deleteMessMember('${m.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:9px;opacity:0.6" title="${this.t('delete')}"><i class="fas fa-trash"></i></button>
+      if (ml) {
+        ml.innerHTML = this.data.mess.members.map((m, i) => {
+          const depAmt = mDeposits[m.id] || 0;
+          const outAmt = mOutPocket[m.id] || 0;
+          const diff = (depAmt + outAmt) - share;
+          const clr = memberColors[i % memberColors.length];
+          
+          const isActive = (this.activeRoommates || []).some(u => u && u.name && u.name.trim().toLowerCase() === m.name.trim().toLowerCase());
+          const dotClass = isActive ? 'mess-av-dot online' : 'mess-av-dot offline';
+          const dotTitle = isActive ? 'অ্যাপে যুক্ত (অনলাইন)' : 'ম্যানুয়াল রুমমেট';
+
+          const initial = m.name ? m.name.trim().charAt(0) : '?';
+
+          let balanceHtml = '';
+          if (diff > 0.01) {
+            balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--green);font-family:'Hind Siliguri',sans-serif;text-align:right">+${this.fmt(diff)} পাবে</div>`;
+          } else if (diff < -0.01) {
+            balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--red);font-family:'Hind Siliguri',sans-serif;text-align:right">-${this.fmt(Math.abs(diff))} দেবে</div>`;
+          } else {
+            balanceHtml = `<div style="font-size:13px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:right">হিসাব সমান</div>`;
+          }
+
+          return `
+            <div class="mess-member-card">
+              <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+                <div class="mess-member-av" style="background:${clr}">
+                  ${initial}
+                  <span class="${dotClass}" title="${dotTitle}"></span>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:15px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.name}</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin-top:2px">
+                    জমা ${this.fmt(depAmt)} · খরচ ${this.fmt(outAmt)}
+                  </div>
+                </div>
               </div>
-              <div style="font-size:10px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">${this.t('deposit')}: ${this.fmt(depAmt)} | ${this.t('personal_exp')}: ${this.fmt(outAmt)}</div>
+              <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+                ${balanceHtml}
+                <div style="display:flex;gap:4px">
+                  <button onclick="app.editMessMember('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;font-size:12px;border-radius:6px" title="সম্পাদনা"><i class="fas fa-pen"></i></button>
+                  <button onclick="app.deleteMessMember('${m.id}')" style="background:none;border:none;color:var(--red);opacity:0.7;cursor:pointer;padding:6px;font-size:12px;border-radius:6px" title="মুছুন"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
             </div>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:13px;font-weight:800;color:${diff>0?'var(--green)':diff<0?'var(--red)':'var(--muted)'};font-family:'Hind Siliguri',sans-serif">
-              ${diff>0?'+':''}${this.fmt(Math.abs(diff))}
-            </div>
-            <div style="font-size:9px;font-weight:700;color:${diff>0?'var(--green)':diff<0?'var(--red)':'var(--muted)'};font-family:'Hind Siliguri',sans-serif">
-              ${diff>0?this.t('surplus'):diff<0?this.t('deficit'):this.t('settled')}
-            </div>
-          </div>
-        </div>`;
-      }).join('');
+          `;
+        }).join('');
+      }
     }
 
     // Entries table
-    const el=g('mess-entries-list'); const ee=g('mess-entries-empty');
-    if(!mEntries.length){el.innerHTML='';ee.style.display='';}
-    else{
-      ee.style.display='none';
-      el.innerHTML=mEntries.map((e,idx)=>({ ...e, idx })).sort((a,b)=>{
-        const diff=new Date(b.date)-new Date(a.date);
-        if(diff!==0) return diff;
-        return b.idx-a.idx;
-      }).map(e=>{
-        const isDep = e.type === 'deposit';
-        let payerName = '-';
-        if (e.payerId === 'mess-fund') {
-          payerName = '📦 ' + this.t('mess_fund');
-        } else {
-          const payer=this.data.mess.members.find(m=>m.id===e.payerId);
-          if (payer) payerName = payer.name;
-        }
-        const color = isDep ? 'var(--green)' : 'var(--p)';
-        return `<tr>
-          <td style="font-size:10px;color:var(--muted);white-space:nowrap">${e.date}</td>
-          <td>
-            <div style="font-size:12px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${e.title}</div>
-            <div style="font-size:9px;color:var(--muted)">${isDep?this.t('deposit_to_fund'):(this.tCat(e.category)+(e.subcategory?` • ${e.subcategory}`:''))}</div>
-          </td>
-          <td style="font-size:11px;color:var(--text);font-family:'Hind Siliguri',sans-serif">${payerName}</td>
-          <td style="text-align:right;font-size:12px;font-weight:800;color:${color};white-space:nowrap">${isDep?'+':''}${this.fmt(e.amount)}</td>
-          <td><div style="display:flex;gap:3px"><button onclick="app.openMessEntry('${e.id}')" class="btn btn-s bsm bico"><i class="fas fa-pen" style="font-size:9px"></i></button><button onclick="app.deleteMessEntry2('${e.id}')" class="btn btn-d bsm bico"><i class="fas fa-trash" style="font-size:9px"></i></button></div></td>
-        </tr>`;
-      }).join('');
+    const el = g('mess-entries-list');
+    const ee = g('mess-entries-empty');
+    if (!mEntries.length) {
+      if (el) el.innerHTML = '';
+      if (ee) ee.style.display = '';
+    } else {
+      if (ee) ee.style.display = 'none';
+      if (el) {
+        el.innerHTML = mEntries.map((e, idx) => ({ ...e, idx })).sort((a,b) => {
+          const diff = new Date(b.date) - new Date(a.date);
+          if (diff !== 0) return diff;
+          return b.idx - a.idx;
+        }).map(e => {
+          const isDep = e.type === 'deposit';
+          let payerName = '-';
+          if (e.payerId === 'mess-fund') {
+            payerName = '📦 মেস তহবিল';
+          } else {
+            const payer = this.data.mess.members.find(m => m.id === e.payerId);
+            if (payer) payerName = payer.name;
+          }
+          const color = isDep ? 'var(--green)' : 'var(--p)';
+          return `<tr>
+            <td style="font-size:12px;color:var(--muted);white-space:nowrap">${e.date}</td>
+            <td>
+              <div style="font-size:13px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${e.title}</div>
+              <div style="font-size:10px;color:var(--muted)">${isDep ? 'তহবিলে জমা' : (this.tCat(e.category) + (e.subcategory ? ` • ${e.subcategory}` : ''))}</div>
+            </td>
+            <td style="font-size:12px;color:var(--text);white-space:nowrap">${payerName}</td>
+            <td style="text-align:right;font-size:13px;font-weight:800;color:${color};white-space:nowrap">${isDep ? '+' : ''}${this.fmt(e.amount)}</td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <button onclick="app.openMessEntry('${e.id}')" class="btn btn-s bsm bico" title="সম্পাদনা"><i class="fas fa-pen" style="font-size:10px"></i></button>
+                <button onclick="app.deleteMessEntry2('${e.id}')" class="btn btn-d bsm bico" title="মুছুন"><i class="fas fa-trash" style="font-size:10px"></i></button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('');
+      }
     }
 
     // Mess chart
-    const catT={}; expenses.forEach(e=>{
+    const catT = {};
+    expenses.forEach(e => {
       const translatedCat = this.tCat(e.category);
-      catT[translatedCat]=(catT[translatedCat]||0)+e.amount;
+      catT[translatedCat] = (catT[translatedCat] || 0) + e.amount;
     });
-    const labels=Object.keys(catT); const data=Object.values(catT);
-    if(this.charts.mess)this.charts.mess.destroy();
-    const ctx=g('mess-chart'); if(ctx&&labels.length){
-      const muted=getMuted();
+    const labels = Object.keys(catT);
+    const data = Object.values(catT);
+    if (this.charts.mess) this.charts.mess.destroy();
+    const ctx = g('mess-chart');
+    if (ctx && labels.length) {
+      const muted = getMuted();
       requestAnimationFrame(() => {
-        this.charts.mess=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:['#f97316','#f43f5e','#3b82f6','#10b981','#a855f7','#f59e0b'],borderColor:'transparent',borderWidth:0}]},options:{cutout:'72%',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:muted,font:{size:9,weight:'700',family:'Hind Siliguri'},padding:7,usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.label}: ${this.fmt(c.parsed)}`}}}}});
+        this.charts.mess = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels,
+            datasets: [{
+              data,
+              backgroundColor: ['#10B981', '#F59E0B', '#3B82F6', '#8B5CF6', '#EC4899', '#06B6D4'],
+              borderColor: 'transparent',
+              borderWidth: 0
+            }]
+          },
+          options: {
+            cutout: '72%',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: muted,
+                  font: { size: 10, weight: '700', family: 'Hind Siliguri' },
+                  padding: 7,
+                  usePointStyle: true
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: c => `${c.label}: ${this.fmt(c.parsed)}`
+                }
+              }
+            }
+          }
+        });
       });
     }
+  }
+
+  deleteMessEntry(id) {
+    this.deleteMessEntry2(id);
   }
 
   deleteMessEntry2(id) {
@@ -2145,16 +2308,29 @@ class BachelorKhata {
 
   // ── CLOUD SYNC & SHARING ───────────────────────────────────────
   bindSync() {
-    g('p-sync-btn-create')?.addEventListener('click', () => this.openModal('m-create-mess'));
+    g('p-sync-btn-create')?.addEventListener('click', () => this.openCreateMessModal());
     g('create-mess-btn')?.addEventListener('click', () => this.handleSyncCreateUI());
-    g('p-sync-btn-scan')?.addEventListener('click', () => this.openModal('m-join-room'));
+    g('p-sync-btn-scan')?.addEventListener('click', () => this.openJoinRoomModal());
     g('join-room-btn')?.addEventListener('click', () => this.handleJoinRoom());
     g('p-sync-btn-copy')?.addEventListener('click', () => this.handleCopyCode());
     g('p-sync-btn-disconnect')?.addEventListener('click', () => this.handleSyncDisconnect());
     g('p-sync-now')?.addEventListener('click', () => this.handleSyncNow());
     g('header-sync-btn')?.addEventListener('click', () => this.handleSyncNow());
-    g('mess-sync-btn')?.addEventListener('click', () => this.openModal('m-group-sync'));
-    g('bazar-sync-btn')?.addEventListener('click', () => this.openModal('m-group-sync'));
+    g('mess-sync-btn')?.addEventListener('click', () => this.openMessStatus());
+    g('bazar-sync-btn')?.addEventListener('click', () => this.openMessStatus());
+    
+    // Equal deposit helper
+    g('deposit-apply-all-btn')?.addEventListener('click', () => {
+      const val = parseFloat(g('deposit-equal-amount')?.value) || 0;
+      if (val <= 0) {
+        this.toast('দয়া করে টাকার পরিমাণ লিখুন।', 'warning');
+        return;
+      }
+      const inputs = document.querySelectorAll('.dep-member-inp');
+      inputs.forEach(inp => { inp.value = val; });
+      this.toast(`সবার ঘরে ৳${val} বসানো হয়েছে।`, 'info');
+    });
+
     this.applySyncUI();
   }
 
@@ -2546,16 +2722,66 @@ class BachelorKhata {
   }
 
   async handleSyncDisconnect() {
-    if (confirm('মেস লিংক সরাতে চান? এর পর থেকে অফলাইনে ডেটা সেভ হবে।')) {
+    if (confirm('আপনি কি নিশ্চিত যে এই মেস থেকে বের হতে চান?')) {
       if (this.data.settings.syncId) {
         db.ref('rooms/' + this.data.settings.syncId).off('value');
       }
       this.data.settings.syncId = '';
+      this.data.settings.shortCode = '';
       this.data.settings.lastSync = '';
       this.save('settings');
       this.applySyncUI();
-      this.toast('মেস লিংক সফলভাবে সরানো হয়েছে।', 'info');
+      this.render();
+      this.closeModal('m-group-sync');
+      this.toast('মেস থেকে সফলভাবে বের হওয়া হয়েছে।', 'info');
     }
+  }
+
+  openMessStatus() {
+    this.applySyncUI();
+    this.openModal('m-group-sync');
+  }
+
+  shareMessWhatsApp() {
+    const code = this.data.settings.shortCode || this.data.settings.syncId;
+    if (!code) {
+      this.toast('কোনো মেস কোড পাওয়া যায়নি।', 'warning');
+      return;
+    }
+    const cleanCode = code.startsWith('room_') ? code.replace('room_', '') : code;
+    const url = `${window.location.origin}${window.location.pathname}?join=${encodeURIComponent(cleanCode)}`;
+    const text = `আমাদের মেসে জয়েন করতে ব্যাচেলর খাতা অ্যাপে এই কোডটি ব্যবহার করুন:\n\n🔑 মেস কোড: *${cleanCode}*\n\nবা সরাসরি এই লিংকে ট্যাপ করুন:\n${url}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, '_blank');
+  }
+
+  openCreateMessModal() {
+    const codeInp = g('create-mess-code');
+    if (codeInp) {
+      codeInp.value = this.generateShortCode();
+    }
+    this.openModal('m-create-mess');
+  }
+
+  refreshCreateCode() {
+    const codeInp = g('create-mess-code');
+    if (codeInp) {
+      codeInp.value = this.generateShortCode();
+    }
+  }
+
+  openJoinRoomModal(prefilledCode = '') {
+    const codeInp = g('join-room-code');
+    if (codeInp) {
+      codeInp.value = (prefilledCode || '').toUpperCase().trim();
+    }
+    this.openModal('m-join-room');
+  }
+
+  openMessMemberModal() {
+    g('mm-id').value = '';
+    g('mm-name').value = '';
+    this.openModal('m-mess-member');
   }
 
   async handleSyncNow() {
