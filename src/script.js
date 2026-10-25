@@ -176,6 +176,9 @@ class BachelorKhata {
     document.querySelectorAll('.nbtn,.mnbtn').forEach(b => b.classList.remove('active'));
     g(`page-${page}`)?.classList.add('active');
     document.querySelectorAll(`[data-page="${page}"]`).forEach(b => b.classList.add('active'));
+    if (['budget', 'goals', 'reports', 'accounts'].includes(page)) {
+      g('mob-more-btn')?.classList.add('active');
+    }
     const titles = {
       dashboard: this.t('dashboard_title'),
       transactions: this.t('transactions_title'),
@@ -190,6 +193,15 @@ class BachelorKhata {
     };
     setText('page-title', titles[page] || page);
     this.renderPage(page);
+  }
+
+  toggleMoreMenu() {
+    this.openModal('m-more-nav');
+  }
+
+  navigateFromMore(page) {
+    this.closeModal('m-more-nav');
+    this.navigate(page);
   }
 
   renderPage(p) {
@@ -1075,13 +1087,55 @@ class BachelorKhata {
   renderCatChart(mTx) {
     const cats={}; mTx.filter(t=>t.type==='expense').forEach(t=>{const translatedCat=this.tCat(t.category);cats[translatedCat]=(cats[translatedCat]||0)+t.amount;});
     const labels=Object.keys(cats); const data=Object.values(cats);
-    const COLORS=['#f97316','#f43f5e','#10b981','#f59e0b','#3b82f6','#a855f7','#06b6d4','#ec4899','#14b8a6','#ef4444'];
+    const COLORS=['#10B981','#3B82F6','#F59E0B','#8B5CF6','#EC4899','#06B6D4','#F97316','#14B8A6','#6366F1','#EF4444'];
     if(this.charts.cat)this.charts.cat.destroy();
     const ctx=g('cat-chart'); if(!ctx) return;
+    const catEmpty=g('cat-empty');
     const muted=getMuted();
+
+    if(!labels.length){
+      ctx.style.display = 'none';
+      if(catEmpty) catEmpty.style.display = 'flex';
+      return;
+    }
+    ctx.style.display = 'block';
+    if(catEmpty) catEmpty.style.display = 'none';
+
     requestAnimationFrame(() => {
-      if(!labels.length){this.charts.cat=new Chart(ctx,{type:'doughnut',data:{labels:[this.t('no_tx')],datasets:[{data:[1],backgroundColor:['rgba(255,255,255,.05)'],borderColor:'transparent',borderWidth:0}]},options:{cutout:'78%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});return;}
-      this.charts.cat=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:COLORS,borderColor:'transparent',borderWidth:0,hoverOffset:6}]},options:{cutout:'78%',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:muted,font:{size:9,weight:'700',family:'Hind Siliguri'},padding:8,usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.label}: ${this.fmt(c.parsed)}`}}}}});
+      this.charts.cat=new Chart(ctx,{
+        type:'doughnut',
+        data:{
+          labels,
+          datasets:[{
+            data,
+            backgroundColor:COLORS,
+            borderColor:document.documentElement.classList.contains('light')?'#FFFFFF':'#121A2B',
+            borderWidth:2,
+            hoverOffset:5
+          }]
+        },
+        options:{
+          cutout:'75%',
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{
+              position:'bottom',
+              labels:{
+                color:muted,
+                font:{size:10,weight:'600',family:'Hind Siliguri'},
+                padding:8,
+                usePointStyle:true
+              }
+            },
+            tooltip:{
+              callbacks:{
+                label:c=>`${c.label}: ${this.fmt(c.parsed)}`
+              }
+            }
+          }
+        }
+      });
     });
   }
 
@@ -1171,9 +1225,21 @@ class BachelorKhata {
 
   renderRecent(mTx) {
     const txList = mTx || this.data.transactions;
-    const recent=[...txList].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
-    if(!recent.length){g('recent-list').innerHTML=`<div class="empty"><i class="fas fa-receipt"></i><p>${this.t('no_tx')}</p></div>`;return;}
-    g('recent-list').innerHTML=recent.map(t=>{
+    const recent=[...txList].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+    const listEl = g('recent-list');
+    if(!listEl) return;
+    if(!recent.length){
+      listEl.innerHTML=`
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 16px;text-align:center;gap:10px">
+          <i class="fas fa-receipt" style="font-size:48px;opacity:0.3;color:var(--muted)"></i>
+          <p style="font-size:14px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin:0">${this.t('no_tx') || 'কোনো লেনদেন নেই'}</p>
+          <button type="button" class="btn" onclick="app.openQuickModal('expense')" style="background:transparent;border:1px solid var(--p);color:var(--p);border-radius:20px;padding:7px 18px;font-size:13px;font-weight:700;font-family:'Hind Siliguri',sans-serif;cursor:pointer;margin-top:4px">
+            <i class="fas fa-plus" style="font-size:11px;margin-right:4px"></i> প্রথম লেনদেন যোগ করুন
+          </button>
+        </div>`;
+      return;
+    }
+    listEl.innerHTML=recent.map(t=>{
       const acc=this.getAcc(t.accountId); const isInc=t.type==='income'; const isTr=t.type==='transfer';
       const color=isInc?'var(--green)':isTr?'var(--blue)':'var(--red)'; const sign=isInc?'+':isTr?'⇄':'-';
       const timeDisplay=t.time ? ` · ${this.fmtTime(t.time)}` : '';
@@ -1746,11 +1812,7 @@ class BachelorKhata {
       if (photo) { sImg.src = photo; sImg.style.display = ''; sTxt.style.display = 'none'; }
       else { 
         sImg.style.display = 'none'; 
-        if (i && i !== 'SA') {
-          sTxt.textContent = initText;
-        } else {
-          sTxt.innerHTML = '<i class="fas fa-user" style="font-size:12px"></i>';
-        }
+        sTxt.textContent = initText || 'S';
         sTxt.style.display = ''; 
       }
     }
@@ -2622,14 +2684,12 @@ class BachelorKhata {
   toast(msg, type='info') {
     const wrap=g('tw'); if(!wrap) return;
     const el=document.createElement('div'); el.className='toast';
-    const icons={info:'fa-info-circle',success:'fa-circle-check',error:'fa-circle-exclamation',warning:'fa-triangle-exclamation'};
-    const bgColors={info:'#3b82f6',success:'#10b981',error:'#f43f5e',warning:'#f59e0b'};
-    el.style.background = bgColors[type] || bgColors.info;
-    el.style.color = '#fff';
-    el.style.border = 'none';
-    el.innerHTML=`<i class="fas ${icons[type]||'fa-info-circle'}" style="color:#fff;font-size:16px;flex-shrink:0"></i><span style="font-family:'Hind Siliguri',sans-serif;font-size:13px;font-weight:600">${msg}</span>`;
+    const icons={info:'fa-circle-info',success:'fa-circle-check',error:'fa-circle-exclamation',warning:'fa-triangle-exclamation'};
+    const iconColors={info:'#3b82f6',success:'#10b981',error:'#ef4444',warning:'#f59e0b'};
+    const icColor = iconColors[type] || iconColors.info;
+    el.innerHTML=`<i class="fas ${icons[type]||'fa-circle-info'}" style="color:${icColor};font-size:15px;flex-shrink:0"></i><span style="font-family:'Hind Siliguri',sans-serif;font-size:12.5px;font-weight:600">${msg}</span>`;
     wrap.appendChild(el); setTimeout(()=>el.classList.add('show'),15);
-    setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),500);},3500);
+    setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),400);},3000);
   }
 
   switchMessSubtab(tab) {
@@ -2696,7 +2756,7 @@ class BachelorKhata {
         m6: "জুল", m7: "আগ", m8: "সেপ", m9: "অক্টো", m10: "নভে", m11: "ডিসে",
         
         // Page titles
-        dashboard_title: "📒 ড্যাশবোর্ড",
+        dashboard_title: "ড্যাশবোর্ড",
         transactions_title: "লেনদেন",
         accounts_title: "একাউন্ট",
         mess_title: "🍛 মেস হিসাব",
@@ -2903,7 +2963,7 @@ class BachelorKhata {
         m6: "Jul", m7: "Aug", m8: "Sep", m9: "Oct", m10: "Nov", m11: "Dec",
         
         // Page titles
-        dashboard_title: "📒 Dashboard",
+        dashboard_title: "Dashboard",
         transactions_title: "Transactions",
         accounts_title: "Accounts",
         mess_title: "🍛 Mess Summary",
