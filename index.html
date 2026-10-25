@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<meta name="theme-color" content="#FFFFFF" id="meta-theme-color">
+<meta name="theme-color" content="#F1F5F4" id="meta-theme-color">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>ব্যাচেলর খাতা — হিসাব রাখো, টেনশন ভাগ করো</title>
 <meta name="description" content="ব্যাচেলরদের জন্য স্মার্ট আর্থিক ট্র্যাকার — মেস হিসাব, বাজার লিস্ট, খরচ ভাগ সহ।">
@@ -13,15 +13,27 @@
     try {
       var pref = localStorage.getItem('bk_theme_pref');
       var theme = (pref === 'dark') ? 'dark' : 'light';
+      var isDark = (theme === 'dark');
+      var barBg = isDark ? '#0B1220' : '#F1F5F4';
       var meta = document.getElementById('meta-theme-color');
-      if (theme === 'dark') {
+      if (isDark) {
         document.documentElement.classList.remove('light');
         document.documentElement.classList.add('dark');
-        if (meta) meta.setAttribute('content', '#0B1220');
       } else {
         document.documentElement.classList.add('light');
         document.documentElement.classList.remove('dark');
-        if (meta) meta.setAttribute('content', '#FFFFFF');
+      }
+      if (meta) meta.setAttribute('content', barBg);
+      if (window.Capacitor && window.Capacitor.Plugins) {
+        var Plugins = window.Capacitor.Plugins;
+        var EdgeToEdge = Plugins.EdgeToEdge || Plugins.AndroidEdgeToEdgeSupport;
+        var StatusBar = Plugins.StatusBar;
+        if (EdgeToEdge && EdgeToEdge.setBackgroundColor) {
+          EdgeToEdge.setBackgroundColor({ color: barBg }).catch(function(){});
+        }
+        if (StatusBar && StatusBar.setStyle) {
+          StatusBar.setStyle({ style: isDark ? 'DARK' : 'LIGHT' }).catch(function(){});
+        }
       }
     } catch(e){}
   })();
