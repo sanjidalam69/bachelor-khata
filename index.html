@@ -351,26 +351,48 @@ tbody tr:last-child td{border-bottom:none}
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0;opacity:0;pointer-events:none;transition:opacity .2s var(--ease)}
 :root.light .mo{background:rgba(15,23,42,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .mo.open{opacity:1;pointer-events:all}
-.modal{background:#121A2B;border:1px solid #1F2A40;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);box-shadow:none}
+.modal{background:#121A2B;border:1px solid #1F2A40;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:520px;max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);box-shadow:none}
 .mo.open .modal{transform:translateY(0)}
 @media(min-width:641px){
   .mo{align-items:center;padding:16px}
-  .modal{border-radius:20px;transform:scale(.96);max-width:480px;transition:transform .2s var(--ease),opacity .2s var(--ease);opacity:0}
+  .modal{border-radius:20px;transform:scale(.96);max-width:480px;max-height:calc(100dvh - 48px);transition:transform .2s var(--ease),opacity .2s var(--ease);opacity:0}
   .mo.open .modal{transform:scale(1);opacity:1}
 }
 :root.light .modal{background:#FFFFFF;border:none;box-shadow:0 24px 60px rgba(15,23,42,.25)}
-.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0}
 .mt{font-size:18px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;letter-spacing:-.01em}
-.mc{width:36px;height:36px;border-radius:50%;background:#0B1220;border:none;color:#E8EEF7;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s var(--ease)}
+.mc{width:36px;height:36px;border-radius:50%;background:#0B1220;border:none;color:#E8EEF7;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s var(--ease);flex-shrink:0}
 :root.light .mc{background:#EEF2F5;color:#64748B}
 .mc:hover{transform:scale(1.08)}
 .mc:active{transform:scale(0.92)}
 .modal-drag-handle{display:none}
 @media(max-width:640px){
-  .modal-drag-handle{display:block;width:40px;height:4px;border-radius:99px;background:#2B3750;margin:0 auto 12px auto}
+  .modal-drag-handle{display:block;width:40px;height:4px;border-radius:99px;background:#2B3750;margin:0 auto 12px auto;flex-shrink:0}
   :root.light .modal-drag-handle{background:#CBD5E1}
 }
-.mf{display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+.modal-body{flex:1;overflow-y:auto;padding-right:2px;display:flex;flex-direction:column;gap:12px}
+.mf{display:grid !important;grid-template-columns:1fr 1.4fr !important;gap:12px !important;margin-top:14px !important;padding-top:12px !important;border-top:1px solid var(--border) !important;flex-shrink:0 !important}
+.mf .btn{height:48px !important;font-size:15px !important;font-weight:700 !important;border-radius:12px !important;display:inline-flex !important;align-items:center !important;justify-content:center !important}
+@media(max-width:640px){
+  .modal{padding:16px 18px calc(16px + env(safe-area-inset-bottom)) !important}
+}
+
+/* Number input spinner removal */
+input.no-spin::-webkit-outer-spin-button,
+input.no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input.no-spin {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+#p-active-list .badge{
+  text-transform: none !important;
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+}
 
 /*── TOAST ──*/
 #tw{position:fixed;bottom:24px;top:auto !important;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;max-width:360px;width:calc(100% - 32px);align-items:center}
@@ -593,7 +615,45 @@ input:checked + .slider:before{transform:translateX(20px)}
 
 .deposit-equal-wrap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:12px;border:1px solid var(--border);margin-bottom:12px}
 
-#mess-onboarding-card{padding:36px 20px;text-align:center;border-radius:20px;background:var(--surface);border:1px solid var(--border);margin:12px 0}
+#mess-onboarding-card{max-width:560px;margin:24px auto;padding:36px 24px;text-align:center;border-radius:20px;background:var(--surface);border:1px solid var(--border)}
+
+.mess-dropdown-menu{
+  display:none;
+  position:absolute;
+  right:0;
+  top:42px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:0 10px 28px rgba(0,0,0,0.3);
+  z-index:100;
+  min-width:130px;
+  padding:6px;
+  animation:popIn .18s var(--ease);
+}
+@keyframes popIn {
+  from{opacity:0;transform:translateY(-6px) scale(0.95)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.mess-menu-item{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:8px;
+  background:none;
+  border:none;
+  color:var(--head);
+  font-size:13px;
+  font-weight:600;
+  font-family:'Hind Siliguri',sans-serif;
+  cursor:pointer;
+  text-align:left;
+  transition:background .15s;
+}
+.mess-menu-item:hover{background:var(--surface2)}
+.mess-menu-item.danger{color:var(--red,#ef4444)}
 
 .mess-member{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
 .mess-member:last-child{border-bottom:none}
@@ -1071,15 +1131,14 @@ input:checked + .slider:before{transform:translateX(20px)}
 
     <!-- ════════════════ PAGE: MESS ════════════════ -->
     <div class="page" id="page-mess">
-      <div id="mess-page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div id="mess-page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:nowrap">
         <div class="mess-status-chip" id="mess-status-chip" onclick="app.openMessStatus()" title="মেস সংযোগ বিবরণ">
           <span class="mess-live-dot offline" id="mess-live-dot"></span>
           <span id="mess-status-text">মেস সংযোগ</span>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0" id="mess-top-actions">
           <!-- Summary Action Buttons -->
-          <button class="btn btn-s bsm mess-summary-action" id="export-mess-pdf" title="PDF ডাউনলোড"><i class="fas fa-file-pdf"></i> PDF</button>
-          <button class="btn btn-s bsm mess-summary-action" id="add-mess-member-btn" title="ফোন ছাড়া রুমমেট যোগ"><i class="fas fa-user-plus"></i> রুমমেট যোগ</button>
+          <button class="btn btn-s bsm mess-summary-action" id="export-mess-pdf" title="PDF ডাউনলোড" style="display:none"><i class="fas fa-file-pdf"></i> PDF</button>
           
           <!-- Bazar Action Buttons -->
           <button class="btn btn-s bsm mess-bazar-action" id="clear-done-btn" style="display:none"><i class="fas fa-broom"></i> সম্পন্ন মুছুন</button>
@@ -1087,7 +1146,7 @@ input:checked + .slider:before{transform:translateX(20px)}
       </div>
 
       <!-- Mess Sub-navigation tabs -->
-      <div class="tabs" style="margin-bottom:16px;max-width:480px">
+      <div class="tabs" style="margin-bottom:16px;max-width:420px;width:min(100%, 420px)">
         <button type="button" class="tab active" id="mess-subtab-summary" onclick="app.switchMessSubtab('summary')">📊 মেস হিসাব</button>
         <button type="button" class="tab" id="mess-subtab-bazar" onclick="app.switchMessSubtab('bazar')">🛒 বাজার লিস্ট</button>
       </div>
@@ -1095,7 +1154,7 @@ input:checked + .slider:before{transform:translateX(20px)}
       <!-- Sub-page: Summary -->
       <div id="mess-subpage-summary">
         <!-- Onboarding Screen (shown when no mess or roomies connected) -->
-        <div id="mess-onboarding-card" style="display:none">
+        <div id="mess-onboarding-card" style="display:none;max-width:560px;margin:24px auto;padding:36px 24px;text-align:center;border-radius:20px;background:var(--surface);border:1px solid var(--border)">
           <div style="width:58px;height:58px;border-radius:50%;background:var(--p-soft);color:var(--p);font-size:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
             <i class="fas fa-users-rectangle"></i>
           </div>
@@ -1185,7 +1244,7 @@ input:checked + .slider:before{transform:translateX(20px)}
                     <tr>
                       <th>তারিখ</th>
                       <th>বিবরণ</th>
-                      <th>পরিশোধকারী</th>
+                      <th>জমাদাতা/পরিশোধকারী</th>
                       <th style="text-align:right">পরিমাণ</th>
                       <th>কাজ</th>
                     </tr>
@@ -1500,78 +1559,114 @@ input:checked + .slider:before{transform:translateX(20px)}
 </div></div>
 
 <!-- Mess Member Modal -->
-<!-- Mess Member Modal -->
-<div class="mo" id="m-mess-member"><div class="modal" style="max-width:340px">
-  <div class="mh"><div class="mt i18n" data-key="mess_member">মেস সদস্য</div><button class="mc" data-close="m-mess-member"><i class="fas fa-xmark"></i></button></div>
-  <div style="display:flex;flex-direction:column;gap:10px">
+<div class="mo" id="m-mess-member"><div class="modal" style="max-width:380px">
+  <div class="modal-drag-handle"></div>
+  <div class="mh"><div class="mt" id="mm-title">রুমমেট যোগ করুন</div><button class="mc" data-close="m-mess-member"><i class="fas fa-xmark"></i></button></div>
+  <div class="modal-body">
     <input type="hidden" id="mm-id" value="">
-    <div class="ig"><label class="label i18n" data-key="member_name">সদস্যের নাম</label><input type="text" class="inp" id="mm-name" data-i18n-placeholder="member_name_ph" placeholder="যেমন: রাফি, সাকিব"></div>
+    <div class="ig">
+      <label class="label">রুমমেটের নাম</label>
+      <input type="text" class="inp" id="mm-name" placeholder="যেমন: রাফি, সাকিব" style="height:48px;font-size:15px;font-weight:600">
+    </div>
   </div>
-  <div class="mf"><button class="btn btn-s i18n" data-close="m-mess-member" data-key="cancel">বাতিল</button><button class="btn btn-p i18n" id="mm-save" data-key="add_item">যোগ করুন</button></div>
+  <div class="mf">
+    <button class="btn btn-s" data-close="m-mess-member">বাতিল</button>
+    <button class="btn btn-p" id="mm-save">যোগ করুন</button>
+  </div>
 </div></div>
 
 <!-- Mess Entry Modal -->
-<div class="mo" id="m-mess-entry"><div class="modal" style="max-width:400px">
-  <div class="mh"><div class="mt i18n" id="mess-entry-title" data-key="mess_entry_title">মেস খরচ/জমা যোগ</div><button class="mc" data-close="m-mess-entry"><i class="fas fa-xmark"></i></button></div>
-  <div class="tabs" style="margin-bottom:12px">
-    <button type="button" class="tab active i18n" data-metype="expense" data-key="expense_lbl">খরচ</button>
-    <button type="button" class="tab i18n" data-metype="deposit" data-key="deposit_to_fund">তহবিলে জমা</button>
+<div class="mo" id="m-mess-entry"><div class="modal" style="max-width:440px">
+  <div class="modal-drag-handle"></div>
+  <div class="mh">
+    <div class="mt" id="mess-entry-title">মেস খরচ/জমা যোগ</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button type="button" class="ib" id="me-del-btn" style="display:none;width:36px;height:36px;border-radius:50%;color:var(--red,#ef4444)" title="মুছুন"><i class="fas fa-trash"></i></button>
+      <button class="mc" data-close="m-mess-entry"><i class="fas fa-xmark"></i></button>
+    </div>
+  </div>
+  <div class="tabs" style="margin-bottom:12px;flex-shrink:0">
+    <button type="button" class="tab active" data-metype="expense" onclick="app.toggleMessEntryType('expense')">খরচ</button>
+    <button type="button" class="tab" data-metype="deposit" onclick="app.toggleMessEntryType('deposit')">তহবিলে জমা</button>
   </div>
   <input type="hidden" id="me-type" value="expense">
-  <div style="display:flex;flex-direction:column;gap:11px">
-    <div class="ig"><label class="label i18n" id="me-title-lbl" data-key="desc">বিবরণ</label><input type="text" class="inp" id="me-title" data-i18n-placeholder="me_desc_ph" placeholder="যেমন: বাজার, গ্যাস বিল"></div>
-    <div class="irow">
-      <div class="ig" id="me-amount-g"><label class="label i18n" id="me-amount-lbl" data-key="total_amount_lbl">মোট পরিমাণ (৳)</label><input type="number" class="inp" id="me-amount" placeholder="০" step="1"></div>
-      <div class="ig"><label class="label i18n" data-key="date">তারিখ</label><input type="date" class="inp" id="me-date"></div>
+  <div class="modal-body">
+    <!-- 1. Amount Group (Top, prominent, 56px, 24px bold) -->
+    <div class="ig" id="me-amount-g">
+      <label class="label" id="me-amount-lbl">মোট পরিমাণ (৳)</label>
+      <input type="number" class="inp no-spin" id="me-amount" placeholder="৳ ০" step="any" inputmode="decimal" style="height:56px;font-size:24px;font-weight:800;text-align:center">
+    </div>
+
+    <!-- 2. Title Group (under amount) -->
+    <div class="ig" id="me-title-g">
+      <label class="label" id="me-title-lbl">বিবরণ</label>
+      <input type="text" class="inp" id="me-title" placeholder="যেমন: বাজার, গ্যাস বিল" style="height:46px">
+    </div>
+
+    <!-- 3. Date Group (Full width in both tabs) -->
+    <div class="ig" id="me-date-g">
+      <label class="label">তারিখ</label>
+      <input type="date" class="inp" id="me-date" style="height:46px">
     </div>
     
-    <!-- Payer Section with Chips -->
+    <!-- Payer Section with Chips (Expense Tab) -->
     <div class="ig" id="me-payer-g">
-      <label class="label i18n" id="me-payer-lbl" data-key="payer_lbl">কে পরিশোধকারী?</label>
+      <label class="label" id="me-payer-lbl">কে পরিশোধকারী?</label>
       <select class="sel" id="me-payer" style="display:none"></select>
       <div class="payer-chips-wrap" id="me-payer-chips"></div>
       <div style="font-size:11.5px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin-top:6px;line-height:1.4">
-        <i class="fas fa-info-circle"></i> মেস তহবিল থেকে টাকা দিলে 'মেস তহবিল' রাখুন। নিজের পকেট থেকে দিলে নিজের নাম বেছে নিন, মাস শেষে বাকিরা টাকা ফেরত দেবে।
+        <i class="fas fa-info-circle"></i> মেস তহবিল থেকে টাকা দিলে 'মেস তহবিল' রাখুন। নিজের পকেট থেকে দিলে নিজের নাম বেছে নিন, মাস শেষে ফেরত পাবেন।
       </div>
     </div>
 
-    <!-- Deposit Grid with Equal Tool -->
+    <!-- Deposit Grid with Equal Tool and Live Total (Deposit Tab) -->
     <div class="ig" id="me-deposit-grid-g" style="display:none">
       <div class="deposit-equal-wrap" id="deposit-equal-wrap">
         <div style="display:flex;align-items:center;gap:6px;flex:1">
           <span style="font-size:12px;font-weight:600;color:var(--head);font-family:'Hind Siliguri',sans-serif">প্রত্যেকে:</span>
-          <input type="number" class="inp" id="deposit-equal-amount" placeholder="৳ পরিমাণ" style="height:34px;font-size:13px;padding:4px 8px;flex:1" step="1">
+          <input type="number" class="inp no-spin" id="deposit-equal-amount" placeholder="৳ পরিমাণ" inputmode="decimal" style="height:36px;font-size:13px;padding:4px 8px;flex:1" step="1">
         </div>
-        <button type="button" class="btn btn-s bsm" id="deposit-apply-all-btn" style="height:34px;font-size:12px;font-weight:700;white-space:nowrap"><i class="fas fa-check-double"></i> সবাইকে দিন</button>
+        <button type="button" class="btn btn-s bsm" id="deposit-apply-all-btn" style="height:36px;font-size:12px;font-weight:700;white-space:nowrap"><i class="fas fa-check-double"></i> সবাইকে দিন</button>
       </div>
-      <label class="label i18n" data-key="contrib_list_lbl">কার থেকে কত জমা (৳)</label>
-      <div style="max-height:170px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border)" id="me-deposit-list"></div>
+      <label class="label">কার থেকে কত জমা (৳)</label>
+      <div style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border)" id="me-deposit-list"></div>
+      
+      <!-- Live Deposit Total Display -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-radius:12px;border:1px solid var(--border);margin-top:8px">
+        <span style="font-size:13px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">মোট জমা:</span>
+        <span style="font-size:17px;font-weight:800;color:var(--green);font-family:'Hind Siliguri',sans-serif" id="deposit-live-total">৳০</span>
+      </div>
     </div>
 
-    <div class="ig" id="me-cat-g"><label class="label i18n" data-key="category">ক্যাটাগরি</label>
-      <select class="sel" id="me-cat">
-        <option value="বাজার" class="i18n" data-key="cat_bazar">👒 বাজার</option>
-        <option value="গ্যাস" class="i18n" data-key="cat_gas">🔥 গ্যাস</option>
-        <option value="বিদ্যুৎ" class="i18n" data-key="cat_elec">💡 বিদ্যুৎ</option>
-        <option value="পানি" class="i18n" data-key="cat_water">💧 পানি</option>
-        <option value="ওয়াইফাই" class="i18n" data-key="cat_wifi">📶 ওয়াইফাই বিল</option>
-        <option value="বাসা ভাড়া" class="i18n" data-key="cat_rent">🏠 বাসা ভাড়া</option>
-        <option value="বুয়া/খালা" class="i18n" data-key="cat_maid">👩‍🍳 বুয়া/খালা বিল</option>
-        <option value="রান্না" class="i18n" data-key="cat_cook">🍳 রান্না সামগ্রী</option>
-        <option value="পরিষ্কার" class="i18n" data-key="cat_clean">🧹 পরিষ্কার</option>
-        <option value="অন্যান্য" class="i18n" data-key="cat_other">📁 অন্যান্য</option>
+    <!-- Category (Expense Tab) -->
+    <div class="ig" id="me-cat-g">
+      <label class="label">ক্যাটাগরি</label>
+      <select class="sel" id="me-cat" style="height:46px">
+        <option value="বাজার">👒 বাজার</option>
+        <option value="গ্যাস">🔥 গ্যাস</option>
+        <option value="বিদ্যুৎ">💡 বিদ্যুৎ</option>
+        <option value="পানি">💧 পানি</option>
+        <option value="ওয়াইফাই">📶 ওয়াইফাই বিল</option>
+        <option value="বাসা ভাড়া">🏠 বাসা ভাড়া</option>
+        <option value="বুয়া/খালা">👩‍🍳 বুয়া/খালা বিল</option>
+        <option value="রান্না">🍳 রান্না সামগ্রী</option>
+        <option value="পরিষ্কার">🧹 পরিষ্কার</option>
+        <option value="অন্যান্য">📁 অন্যান্য</option>
       </select>
     </div>
-    <div class="ig" id="me-subcat-g" style="display:none;margin-top:10px">
+    <div class="ig" id="me-subcat-g" style="display:none;margin-top:4px">
       <label class="label">উপ-ক্যাটাগরি (ঐচ্ছিক)</label>
       <div style="display:flex;gap:6px">
-        <select class="sel" id="me-subcat" style="flex:1"></select>
-        <button type="button" class="btn btn-s bsm" id="me-add-subcat-btn" style="padding:0 12px;height:38px;border-radius:var(--rs)" title="নতুন উপ-ক্যাটাগরি যোগ"><i class="fas fa-plus"></i></button>
-        <button type="button" class="btn btn-d bsm" id="me-del-subcat-btn" style="padding:0 12px;height:38px;border-radius:var(--rs);display:none" title="উপ-ক্যাটাগরি মুছুন"><i class="fas fa-trash"></i></button>
+        <select class="sel" id="me-subcat" style="flex:1;height:42px"></select>
+        <button type="button" class="btn btn-s bsm" id="me-add-subcat-btn" style="padding:0 12px;height:42px;border-radius:var(--rs)" title="নতুন উপ-ক্যাটাগরি যোগ"><i class="fas fa-plus"></i></button>
+        <button type="button" class="btn btn-d bsm" id="me-del-subcat-btn" style="padding:0 12px;height:42px;border-radius:var(--rs);display:none" title="উপ-ক্যাটাগরি মুছুন"><i class="fas fa-trash"></i></button>
       </div>
     </div>
   </div>
-  <div class="mf"><button class="btn btn-d bsm" id="me-del-btn" style="display:none"><i class="fas fa-trash"></i></button><button class="btn btn-s i18n" data-close="m-mess-entry" data-key="cancel">বাতিল</button><button class="btn btn-p i18n" id="me-save" data-key="save">সংরক্ষণ</button></div>
+  <div class="mf">
+    <button class="btn btn-s" data-close="m-mess-entry">বাতিল</button>
+    <button class="btn btn-p" id="me-save">সংরক্ষণ</button>
+  </div>
   <input type="hidden" id="me-id" value="">
 </div></div>
 
@@ -1728,9 +1823,10 @@ input:checked + .slider:before{transform:translateX(20px)}
 </div></div>
 
 <!-- Mess Connection Modal -->
-<div class="mo" id="m-group-sync"><div class="modal" style="max-width:350px">
+<div class="mo" id="m-group-sync"><div class="modal" style="max-width:360px">
+  <div class="modal-drag-handle"></div>
   <div class="mh"><div class="mt">মেস সংযোগ</div><button class="mc" data-close="m-group-sync"><i class="fas fa-xmark"></i></button></div>
-  <div style="display:flex;flex-direction:column;gap:12px">
+  <div class="modal-body">
     <!-- Sync Disconnected state UI -->
     <div id="p-sync-disconnected-ui" style="display:flex;flex-direction:column;gap:10px;text-align:center">
       <div style="font-size:12.5px;color:var(--muted);line-height:1.4;font-family:'Hind Siliguri',sans-serif">
@@ -1760,7 +1856,7 @@ input:checked + .slider:before{transform:translateX(20px)}
       <div style="padding:12px;background:var(--surface);border-radius:12px;border:1px solid var(--border)" id="p-active-members-wrap">
         <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-weight:700">যুক্ত আছেন:</span>
-          <span style="font-weight:800;color:var(--green);font-size:12px"><span id="p-active-count">০</span> জন সক্রিয়</span>
+          <span style="font-weight:800;color:var(--green);font-size:12px" id="p-active-count-wrap"><span id="p-active-count">০</span> জন সক্রিয়</span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px" id="p-active-list">
           <span style="font-size:11px;color:var(--muted)">লোড হচ্ছে...</span>
@@ -1782,27 +1878,35 @@ input:checked + .slider:before{transform:translateX(20px)}
 </div></div>
 
 <!-- Join Room Modal -->
-<div class="mo" id="m-join-room"><div class="modal" style="max-width:340px">
+<div class="mo" id="m-join-room"><div class="modal" style="max-width:380px">
+  <div class="modal-drag-handle"></div>
   <div class="mh"><div class="mt">কোড দিয়ে জয়েন করুন</div><button class="mc" data-close="m-join-room"><i class="fas fa-xmark"></i></button></div>
-  <div style="display:flex;flex-direction:column;gap:12px;text-align:center">
-    <div style="font-size:12.5px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;line-height:1.4">আপনার রুমমেটের তৈরি করা ৬ অক্ষরের মেস কোডটি লিখুন:</div>
-    <input type="text" class="inp" id="join-room-code" placeholder="যেমন: K7X9MN" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+  <div class="modal-body" style="text-align:center">
+    <div style="font-size:13px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;line-height:1.4">আপনার রুমমেটের দেওয়া ৬ অক্ষরের মেস কোডটি লিখুন:</div>
+    <input type="text" class="inp" id="join-room-code" placeholder="যেমন: WEK8J7" maxlength="6" style="height:56px;font-size:26px;text-align:center;letter-spacing:6px;text-transform:uppercase;font-weight:800;font-family:monospace" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
   </div>
-  <div class="mf"><button class="btn btn-s" data-close="m-join-room" style="flex:1">বাতিল</button><button class="btn btn-p" id="join-room-btn" style="flex:1"><i class="fas fa-sign-in-alt"></i> জয়েন করুন</button></div>
+  <div class="mf">
+    <button class="btn btn-s" data-close="m-join-room">বাতিল</button>
+    <button class="btn btn-p" id="join-room-btn"><i class="fas fa-sign-in-alt"></i> জয়েন করুন</button>
+  </div>
 </div></div>
 
 <!-- Create Mess Modal -->
-<div class="mo" id="m-create-mess"><div class="modal" style="max-width:340px">
+<div class="mo" id="m-create-mess"><div class="modal" style="max-width:380px">
+  <div class="modal-drag-handle"></div>
   <div class="mh"><div class="mt">নতুন মেস তৈরি করুন</div><button class="mc" data-close="m-create-mess"><i class="fas fa-xmark"></i></button></div>
-  <div style="display:flex;flex-direction:column;gap:12px;text-align:center">
-    <div style="font-size:12.5px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;line-height:1.4">আপনার মেসের জন্য এই ৬ অক্ষরের কোডটি তৈরি হয়েছে। এই কোড দিয়ে বন্ধুরা মেসে জয়েন করতে পারবে।</div>
+  <div class="modal-body" style="text-align:center">
+    <div style="font-size:13px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;line-height:1.4">আপনার মেসের জন্য এই ৬ অক্ষরের কোডটি তৈরি হয়েছে। এই কোড দিয়ে বন্ধুরা মেসে জয়েন করতে পারবে।</div>
     <div style="display:flex;gap:8px;align-items:center">
-      <input type="text" class="inp" id="create-mess-code" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-weight:800;flex:1" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-      <button type="button" class="btn btn-s bsm" onclick="app.refreshCreateCode()" title="নতুন কোড জেনারেট" style="height:46px;padding:0 14px"><i class="fas fa-arrows-rotate"></i></button>
+      <input type="text" class="inp" id="create-mess-code" maxlength="6" style="height:56px;font-size:26px;text-align:center;letter-spacing:6px;text-transform:uppercase;font-weight:800;font-family:monospace;flex:1" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+      <button type="button" class="btn btn-s bsm" onclick="app.refreshCreateCode()" title="নতুন কোড জেনারেট" style="height:56px;padding:0 16px"><i class="fas fa-arrows-rotate"></i></button>
     </div>
-    <div style="font-size:11px;color:var(--muted);font-family:'Hind Siliguri',sans-serif"><i class="fas fa-info-circle"></i> চাইলে কোডটি পরিবর্তন করতে পারেন (০/O ও ১/I বাদে)</div>
+    <div style="font-size:11.5px;color:var(--muted);font-family:'Hind Siliguri',sans-serif"><i class="fas fa-info-circle"></i> চাইলে কোডটি পরিবর্তন করতে পারেন (0/O ও 1/I বাদে)</div>
   </div>
-  <div class="mf"><button class="btn btn-s" data-close="m-create-mess" style="flex:1">বাতিল</button><button class="btn btn-p" id="create-mess-btn" style="flex:1"><i class="fas fa-check"></i> তৈরি করুন</button></div>
+  <div class="mf">
+    <button class="btn btn-s" data-close="m-create-mess">বাতিল</button>
+    <button class="btn btn-p" id="create-mess-btn"><i class="fas fa-check"></i> তৈরি করুন</button>
+  </div>
 </div></div>
 
 <!-- Welcome / Name Onboarding Modal -->

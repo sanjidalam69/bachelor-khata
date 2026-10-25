@@ -176,6 +176,11 @@ class BachelorKhata {
   bindNav() {
     document.querySelectorAll('[data-page]').forEach(b => b.addEventListener('click', () => this.navigate(b.dataset.page)));
     g('quick-add-btn')?.addEventListener('click', () => this.openModal('m-quick'));
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.mess-menu-btn') && !e.target.closest('.mess-dropdown-menu')) {
+        this.closeAllMemberMenus();
+      }
+    });
   }
 
   navigate(page) {
@@ -292,7 +297,7 @@ class BachelorKhata {
     const toBn = s => String(s).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
     return `${period} ${toBn(h12)}:${toBn(mPad)}`;
   }
-  fmtDateBn(dateStr) {
+  fmtDateBn(dateStr, includeYear = false) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
@@ -300,8 +305,11 @@ class BachelorKhata {
     const monthNames = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
     const month = monthNames[d.getMonth()];
     const year = d.getFullYear();
-    const toBnNum = (n) => n.toString().replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
-    return `${toBnNum(day)} ${month}, ${toBnNum(year)}`;
+    const toBn = (n) => String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+    if (includeYear || year !== new Date().getFullYear()) {
+      return `${toBn(day)} ${month}, ${toBn(year)}`;
+    }
+    return `${toBn(day)} ${month}`;
   }
   toBnNum(n) {
     if (this.lang !== 'bn') return String(n);
@@ -825,7 +833,9 @@ class BachelorKhata {
 
   openMessMemberModal() {
     this.ensureMessStructure();
-    g('mm-id').value=''; g('mm-name').value='';
+    g('mm-id').value = '';
+    g('mm-name').value = '';
+    setText('mm-title', 'রুমমেট যোগ করুন');
     this.openModal('m-mess-member');
   }
 
@@ -849,8 +859,11 @@ class BachelorKhata {
 
   editMessMember(id) {
     this.ensureMessStructure();
-    const m=this.data.mess.members.find(m=>m.id===id); if(!m) return;
-    g('mm-id').value=id; g('mm-name').value=m.name;
+    const m = this.data.mess.members.find(m => m.id === id);
+    if (!m) return;
+    g('mm-id').value = id;
+    g('mm-name').value = m.name;
+    setText('mm-title', 'রুমমেট সম্পাদনা');
     this.openModal('m-mess-member');
   }
 
@@ -864,6 +877,20 @@ class BachelorKhata {
       db.ref('rooms/' + this.data.settings.syncId + '/mess/members').set(this.data.mess.members).catch(()=>{});
     }
     this.fillMessPayer(); this.toast('সদস্য বাদ দেওয়া হয়েছে।','info'); this.render();
+  }
+
+  toggleMemberMenu(id, e) {
+    if (e) e.stopPropagation();
+    const menu = g(`m-menu-${id}`);
+    const isOpen = menu && menu.classList.contains('show');
+    this.closeAllMemberMenus();
+    if (menu && !isOpen) {
+      menu.classList.add('show');
+    }
+  }
+
+  closeAllMemberMenus() {
+    document.querySelectorAll('.mess-dropdown-menu.show').forEach(m => m.classList.remove('show'));
   }
 
   toggleMessEntryType(type) {
@@ -886,14 +913,23 @@ class BachelorKhata {
         if(!this.data.mess.members || this.data.mess.members.length === 0){
           dl.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">কোনো রুমমেট নেই। আগে রুমমেট যোগ করুন।</div>';
         } else {
-          dl.innerHTML=this.data.mess.members.map(m=>`
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
-              <span style="font-size:13.5px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">👤 ${m.name}</span>
-              <input type="number" class="inp dep-member-inp" data-mid="${m.id}" placeholder="০" style="width:110px;text-align:right;font-size:14px;font-weight:700" min="0" step="1">
-            </div>
-          `).join('');
+          const memberColors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4'];
+          dl.innerHTML=this.data.mess.members.map((m, i)=> {
+            const clr = memberColors[i % memberColors.length];
+            const initial = m.name ? m.name.trim().charAt(0) : '?';
+            return `
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:${clr};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${initial}</div>
+                  <span style="font-size:13.5px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${m.name}</span>
+                </div>
+                <input type="number" inputmode="decimal" class="inp dep-member-inp no-spin" data-mid="${m.id}" placeholder="০" style="width:110px;text-align:right;font-size:14px;font-weight:700" min="0" step="any" oninput="app.updateDepositLiveTotal()">
+              </div>
+            `;
+          }).join('');
         }
       }
+      this.updateDepositLiveTotal();
     }else{
       g('me-title-lbl').textContent='বিবরণ';
       g('me-title').placeholder='যেমন: বাজার, গ্যাস বিল';
@@ -902,6 +938,19 @@ class BachelorKhata {
       g('me-payer-g').style.display='';
       g('me-deposit-grid-g').style.display='none';
       this.fillMessPayer();
+    }
+  }
+
+  updateDepositLiveTotal() {
+    const inputs = document.querySelectorAll('.dep-member-inp');
+    let sum = 0;
+    inputs.forEach(inp => {
+      const val = parseFloat(inp.value) || 0;
+      if (val > 0) sum += val;
+    });
+    const el = g('deposit-live-total');
+    if (el) {
+      el.textContent = `মোট জমা: ${this.fmt(sum)}`;
     }
   }
 
@@ -922,15 +971,19 @@ class BachelorKhata {
       select.value = selectedId;
     }
 
+    const memberColors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4'];
     let chipsHtml = `
       <div class="payer-chip ${selectedId === 'mess-fund' ? 'active' : ''}" data-payer="mess-fund" onclick="app.selectMessPayer('mess-fund')">
         📦 মেস তহবিল
       </div>
     `;
-    (this.data.mess.members || []).forEach(m => {
+    (this.data.mess.members || []).forEach((m, i) => {
+      const clr = memberColors[i % memberColors.length];
+      const initial = m.name ? m.name.trim().charAt(0) : '?';
       chipsHtml += `
-        <div class="payer-chip ${selectedId === m.id ? 'active' : ''}" data-payer="${m.id}" onclick="app.selectMessPayer('${m.id}')">
-          👤 ${m.name}
+        <div class="payer-chip ${selectedId === m.id ? 'active' : ''}" data-payer="${m.id}" onclick="app.selectMessPayer('${m.id}')" style="display:inline-flex;align-items:center;gap:6px">
+          <span style="width:18px;height:18px;border-radius:50%;background:${clr};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">${initial}</span>
+          <span>${m.name}</span>
         </div>
       `;
     });
@@ -960,6 +1013,7 @@ class BachelorKhata {
         if(e.type==='deposit'){
           const inp=document.querySelector(`.dep-member-inp[data-mid="${e.payerId}"]`);
           if(inp) inp.value=e.amount;
+          this.updateDepositLiveTotal();
         }else{
           g('me-amount').value=e.amount;
           this.selectMessPayer(e.payerId);
@@ -979,6 +1033,7 @@ class BachelorKhata {
       if (eqInp) eqInp.value = '';
       this.selectMessPayer('mess-fund');
       this.updateSubcatDropdown(g('me-cat').value, '');
+      this.updateDepositLiveTotal();
     }
     this.openModal('m-mess-entry');
   }
@@ -1681,15 +1736,19 @@ class BachelorKhata {
     if (statusChipText && statusLiveDot) {
       if (isConnected) {
         statusLiveDot.className = 'mess-live-dot';
-        const activeCount = (this.activeRoommates || []).length || mc;
-        statusChipText.textContent = `${shortCode || 'কানেক্টেড'} · ${this.toBnNum(activeCount)} জন`;
+        statusChipText.textContent = shortCode || 'কানেক্টেড';
       } else if (mc > 0) {
         statusLiveDot.className = 'mess-live-dot offline';
-        statusChipText.textContent = `অফলাইন মেস · ${this.toBnNum(mc)} জন`;
+        statusChipText.textContent = 'অফলাইন মেস';
       } else {
         statusLiveDot.className = 'mess-live-dot offline';
         statusChipText.textContent = 'মেস সংযোগ';
       }
+    }
+
+    const pdfBtn = g('export-mess-pdf');
+    if (pdfBtn) {
+      pdfBtn.style.display = (mc > 0 || isConnected) ? 'inline-flex' : 'none';
     }
 
     // Toggle Onboarding Card vs Mess Content
@@ -1738,12 +1797,21 @@ class BachelorKhata {
           const initial = m.name ? m.name.trim().charAt(0) : '?';
 
           let balanceHtml = '';
-          if (diff > 0.01) {
-            balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--green);font-family:'Hind Siliguri',sans-serif;text-align:right">+${this.fmt(diff)} পাবে</div>`;
-          } else if (diff < -0.01) {
-            balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--red);font-family:'Hind Siliguri',sans-serif;text-align:right">-${this.fmt(Math.abs(diff))} দেবে</div>`;
+          if (totalExpenses === 0) {
+            const netPaid = depAmt + outAmt;
+            if (netPaid > 0.01) {
+              balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--green);font-family:'Hind Siliguri',sans-serif;text-align:right">+${this.fmt(netPaid)} জমা আছে</div>`;
+            } else {
+              balanceHtml = `<div style="font-size:13px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:right">হিসাব সমান</div>`;
+            }
           } else {
-            balanceHtml = `<div style="font-size:13px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:right">হিসাব সমান</div>`;
+            if (diff > 0.01) {
+              balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--green);font-family:'Hind Siliguri',sans-serif;text-align:right">+${this.fmt(diff)} ফেরত পাবে</div>`;
+            } else if (diff < -0.01) {
+              balanceHtml = `<div style="font-size:14px;font-weight:700;color:var(--red);font-family:'Hind Siliguri',sans-serif;text-align:right">-${this.fmt(Math.abs(diff))} দিতে হবে</div>`;
+            } else {
+              balanceHtml = `<div style="font-size:13px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;text-align:right">হিসাব সমান</div>`;
+            }
           }
 
           return `
@@ -1764,9 +1832,18 @@ class BachelorKhata {
               </div>
               <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
                 ${balanceHtml}
-                <div style="display:flex;gap:4px">
-                  <button onclick="app.editMessMember('${m.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;font-size:12px;border-radius:6px" title="সম্পাদনা"><i class="fas fa-pen"></i></button>
-                  <button onclick="app.deleteMessMember('${m.id}')" style="background:none;border:none;color:var(--red);opacity:0.7;cursor:pointer;padding:6px;font-size:12px;border-radius:6px" title="মুছুন"><i class="fas fa-trash"></i></button>
+                <div style="position:relative;flex-shrink:0">
+                  <button type="button" class="mess-menu-btn" onclick="app.toggleMemberMenu('${m.id}', event)" title="অপশন" aria-label="অপশন">
+                    <i class="fas fa-ellipsis-vertical"></i>
+                  </button>
+                  <div id="m-menu-${m.id}" class="mess-dropdown-menu">
+                    <button type="button" class="mess-menu-item" onclick="app.editMessMember('${m.id}'); app.closeAllMemberMenus();">
+                      <i class="fas fa-pen" style="font-size:12px;width:14px"></i> সম্পাদনা
+                    </button>
+                    <button type="button" class="mess-menu-item danger" onclick="app.deleteMessMember('${m.id}'); app.closeAllMemberMenus();">
+                      <i class="fas fa-trash" style="font-size:12px;width:14px"></i> মুছুন
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1797,19 +1874,20 @@ class BachelorKhata {
             const payer = this.data.mess.members.find(m => m.id === e.payerId);
             if (payer) payerName = payer.name;
           }
-          const color = isDep ? 'var(--green)' : 'var(--p)';
+          const color = isDep ? 'var(--green)' : 'var(--red)';
+          const prefix = isDep ? '+' : '-';
           return `<tr>
-            <td style="font-size:12px;color:var(--muted);white-space:nowrap">${e.date}</td>
+            <td style="font-size:12px;color:var(--muted);white-space:nowrap">${this.fmtDateBn(e.date)}</td>
             <td>
               <div style="font-size:13px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${e.title}</div>
               <div style="font-size:10px;color:var(--muted)">${isDep ? 'তহবিলে জমা' : (this.tCat(e.category) + (e.subcategory ? ` • ${e.subcategory}` : ''))}</div>
             </td>
             <td style="font-size:12px;color:var(--text);white-space:nowrap">${payerName}</td>
-            <td style="text-align:right;font-size:13px;font-weight:800;color:${color};white-space:nowrap">${isDep ? '+' : ''}${this.fmt(e.amount)}</td>
+            <td style="text-align:right;font-size:13px;font-weight:800;color:${color};white-space:nowrap">${prefix}${this.fmt(e.amount)}</td>
             <td>
-              <div style="display:flex;gap:4px">
-                <button onclick="app.openMessEntry('${e.id}')" class="btn btn-s bsm bico" title="সম্পাদনা"><i class="fas fa-pen" style="font-size:10px"></i></button>
-                <button onclick="app.deleteMessEntry2('${e.id}')" class="btn btn-d bsm bico" title="মুছুন"><i class="fas fa-trash" style="font-size:10px"></i></button>
+              <div style="display:flex;gap:6px">
+                <button onclick="app.openMessEntry('${e.id}')" class="btn btn-s" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:8px" title="সম্পাদনা"><i class="fas fa-pen" style="font-size:12px"></i></button>
+                <button onclick="app.deleteMessEntry2('${e.id}')" class="btn btn-d" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:8px" title="মুছুন"><i class="fas fa-trash" style="font-size:12px"></i></button>
               </div>
             </td>
           </tr>`;
@@ -2332,6 +2410,7 @@ class BachelorKhata {
       }
       const inputs = document.querySelectorAll('.dep-member-inp');
       inputs.forEach(inp => { inp.value = val; });
+      this.updateDepositLiveTotal();
       this.toast(`সবার ঘরে ৳${val} বসানো হয়েছে।`, 'info');
     });
 
@@ -2478,11 +2557,11 @@ class BachelorKhata {
       
       const countEl = g('p-active-count');
       const listEl = g('p-active-list');
-      if (countEl) countEl.textContent = list.length;
+      if (countEl) countEl.textContent = this.toBnNum(list.length) + ' জন সক্রিয়';
       if (listEl) {
         listEl.innerHTML = list.map(u => {
           const isMe = u.name && myName && u.name.trim().toLowerCase() === myName.toLowerCase();
-          return `<span class="badge ${isMe ? 'bg' : 'bp'}" style="font-family:'Hind Siliguri',sans-serif">${u.name}${isMe ? ' (তুমি)' : ''}</span>`;
+          return `<span class="badge ${isMe ? 'bg' : 'bp'}" style="font-family:'Hind Siliguri',sans-serif;text-transform:none">${u.name}${isMe ? ' (তুমি)' : ''}</span>`;
         }).join('');
       }
 
@@ -2526,7 +2605,7 @@ class BachelorKhata {
       }
 
       // 4. Update sync timestamp and ALWAYS RE-RENDER INSTANTLY ON EVERY EVENT!
-      this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this.data.settings.lastSync = this.fmtTime(new Date());
       localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
       this.applySyncUI();
       this.render();
@@ -2547,7 +2626,7 @@ class BachelorKhata {
 
       await db.ref().update(updates);
 
-      this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this.data.settings.lastSync = this.fmtTime(new Date());
       localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
       this.applySyncUI();
     } catch(err) {
@@ -2598,7 +2677,12 @@ class BachelorKhata {
       return;
     }
 
-    this.toast('কোড চেক করা হচ্ছে...', 'info');
+    const btn = g('create-mess-btn');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> তৈরি হচ্ছে...';
+    }
     
     try {
       // Check if code already exists
@@ -2630,7 +2714,7 @@ class BachelorKhata {
 
       this.data.settings.syncId = roomId;
       this.data.settings.shortCode = code;
-      this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this.data.settings.lastSync = this.fmtTime(new Date());
       this.save('settings');
 
       this.attachFirebaseListeners();
@@ -2641,6 +2725,11 @@ class BachelorKhata {
     } catch(err) {
       console.error(err);
       this.toast('মেস তৈরি করা যায়নি। পুনরায় চেষ্টা করুন।', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
     }
   }
 
@@ -2672,9 +2761,12 @@ class BachelorKhata {
       return;
     }
 
-    this.toast('মেস ডেটা লোড করা হচ্ছে...', 'info');
     const btn = g('join-room-btn');
-    if(btn) { btn.disabled = true; btn.textContent = 'অপেক্ষা করুন...'; }
+    const origHtml = btn ? btn.innerHTML : '';
+    if(btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> যাচাই করা হচ্ছে...';
+    }
     
     let targetRoomId = inputCode.trim();
     let shortCodeToSave = targetRoomId.toUpperCase();
@@ -2697,6 +2789,7 @@ class BachelorKhata {
       if (confirm('মেস কোড পাওয়া গেছে! আপনি কি এই ডেটা লোড করতে চান? আপনার বর্তমান সমস্ত লোকাল ডেটা মুছে যাবে!')) {
         this.data.settings.syncId = targetRoomId;
         this.data.settings.shortCode = shortCodeToSave;
+        this.data.settings.lastSync = this.fmtTime(new Date());
         this.save('settings');
 
         this.data.mess = this.ensureMessStructure(obj ? obj.mess : null);
@@ -2726,8 +2819,12 @@ class BachelorKhata {
     } catch(err) {
       console.error(err);
       this.toast('মেস পাওয়া যায়নি। কোডটি সঠিক কিনা যাচাই করুন।', 'error');
+    } finally {
+      if(btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
     }
-    if(btn) { btn.disabled = false; btn.textContent = 'যুক্ত হোন'; }
   }
 
   async handleSyncDisconnect() {
@@ -2829,8 +2926,10 @@ class BachelorKhata {
   }
 
   openMessMemberModal() {
+    this.ensureMessStructure();
     g('mm-id').value = '';
     g('mm-name').value = '';
+    setText('mm-title', 'রুমমেট যোগ করুন');
     this.openModal('m-mess-member');
   }
 
@@ -2854,7 +2953,7 @@ class BachelorKhata {
           this.data.bazar = toArr(obj.bazar);
           localStorage.setItem('bk_bazar', JSON.stringify(this.data.bazar));
         }
-        this.data.settings.lastSync = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        this.data.settings.lastSync = this.fmtTime(new Date());
         localStorage.setItem('bk_set', JSON.stringify(this.data.settings));
         this.applySyncUI();
         this.render();
@@ -3173,6 +3272,7 @@ class BachelorKhata {
   // ── TOAST ─────────────────────────────────────────────────────
   toast(msg, type='info') {
     const wrap=g('tw'); if(!wrap) return;
+    wrap.innerHTML = '';
     const el=document.createElement('div'); el.className='toast';
     const icons={info:'fa-circle-info',success:'fa-circle-check',error:'fa-circle-exclamation',warning:'fa-triangle-exclamation'};
     const iconColors={info:'#3b82f6',success:'#10b981',error:'#ef4444',warning:'#f59e0b'};
