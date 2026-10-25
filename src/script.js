@@ -193,6 +193,9 @@ class BachelorKhata {
     };
     setText('page-title', titles[page] || page);
     this.renderPage(page);
+    if (page === 'dashboard') {
+      setTimeout(() => this.centerActiveMonthTab(), 100);
+    }
   }
 
   toggleMoreMenu() {
@@ -234,12 +237,18 @@ class BachelorKhata {
     });
     document.querySelectorAll(`.mtab[data-month="${this.month}"]`).forEach(t => t.classList.add('active'));
     setTimeout(() => this.centerActiveMonthTab(), 100);
+    setTimeout(() => this.centerActiveMonthTab(), 350);
   }
 
   centerActiveMonthTab() {
-    document.querySelectorAll(`.mtab[data-month="${this.month}"]`).forEach(t => {
-      t.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    });
+    const activeTab = document.querySelector(`.mtab[data-month="${this.month}"]`);
+    const container = document.getElementById('month-tabs');
+    if (activeTab && container) {
+      const scrollPos = activeTab.offsetLeft - (container.clientWidth / 2) + (activeTab.clientWidth / 2);
+      container.scrollTo({ left: Math.max(0, scrollPos), behavior: 'smooth' });
+    } else if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
   }
 
   // ── HELPERS ───────────────────────────────────────────────────
