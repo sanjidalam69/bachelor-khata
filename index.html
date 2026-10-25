@@ -15,102 +15,126 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   /* ── DARK THEME ── */
-  --bg:#121212;--bg2:#1c1c1e;
-  --surface:#1c1c1e;--surface2:#2c2c2e;
-  --border:rgba(255,255,255,0.05);--border2:rgba(255,255,255,0.1);
-  --text:#a1a1aa;--head:#f4f4f5;--muted:#71717a;
-  /* Primary */
-  --p:#3b82f6;--p2:#60a5fa;--p3:#2563eb;
-  --pg:#3b82f6;--p-light:rgba(59,130,246,0.15);
+  --bg:#0B1220;--bg2:#0F1626;
+  --surface:#121A2B;--surface2:#182238;
+  --border:#1F2A40;--border2:rgba(255,255,255,0.1);
+  --text:#94A3B8;--head:#F8FAFC;--muted:#64748B;
+  /* Primary Green */
+  --p:#34D399;--p2:#6EE7B7;--p3:#10B981;
+  --pg:#34D399;--p-light:rgba(52,211,153,0.14);--p-soft:rgba(52,211,153,0.14);
   /* Accent colors */
-  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;
-  --blue:#3b82f6;--cyan:#06b6d4;--pink:#ec4899;--rose:#f43f5e;
+  --green:#4ADE80;--red:#F87171;--amber:#FBBF24;
+  --blue:#60A5FA;--cyan:#38BDF8;--pink:#F472B6;--rose:#FB7185;
   /* Semantic */
-  --success-bg:rgba(34,197,94,.1);--success-bd:rgba(34,197,94,.2);
-  --danger-bg:rgba(239,68,68,.1);--danger-bd:rgba(239,68,68,.2);
-  --warn-bg:rgba(245,158,11,.1);--warn-bd:rgba(245,158,11,.2);
+  --income:#4ADE80;--expense:#F87171;
+  --success-bg:rgba(74,222,128,.12);--success-bd:rgba(74,222,128,.25);
+  --danger-bg:rgba(248,113,113,.12);--danger-bd:rgba(248,113,113,.25);
+  --warn-bg:rgba(251,191,36,.12);--warn-bd:rgba(251,191,36,.25);
   /* Radius */
   --r:16px;--rs:12px;--rxs:8px;
   --spring:cubic-bezier(.175,.885,.32,1.275);--ease:cubic-bezier(.16,1,.3,1);
-  --sw:70px;
-  --sidebar-bg: #121212;
-  --p-grad: #3b82f6;
-  --btn-shadow: none;
+  --sw:88px;
+  --sidebar-bg:#0F1626;
+  --p-grad:linear-gradient(135deg, #10B981, #0D9488);
+  --btn-shadow:none;
 }
 :root.light{
   /* ── LIGHT THEME ── */
-  --bg:#f4f4f5;--bg2:#ffffff;
-  --surface:#ffffff;--surface2:#f4f4f5;
-  --border:rgba(0,0,0,.05);--border2:rgba(0,0,0,.1);
-  --text:#52525b;--head:#18181b;--muted:#71717a;
-  --p:#2563eb;--p2:#3b82f6;--p3:#1d4ed8;
-  --pg:#2563eb;--p-light:rgba(37,99,235,.1);
-  --sidebar-bg: #f4f4f5;
-  --p-grad: #2563eb;
-  --btn-shadow: none;
+  --bg:#F1F5F4;--bg2:#FFFFFF;
+  --surface:#FFFFFF;--surface2:#E8ECEB;
+  --border:#E3E9EC;--border2:#CBD5E1;
+  --text:#475569;--head:#0F172A;--muted:#64748B;
+  /* Primary Green */
+  --p:#10B981;--p2:#34D399;--p3:#059669;
+  --pg:#10B981;--p-light:rgba(16,185,129,.12);--p-soft:#D1FAE5;
+  /* Accent colors */
+  --green:#16A34A;--red:#EF4444;--amber:#F59E0B;
+  --blue:#2563EB;--cyan:#06B6D4;--pink:#EC4899;
+  /* Semantic */
+  --income:#16A34A;--expense:#EF4444;
+  --success-bg:rgba(22,163,74,.1);--success-bd:rgba(22,163,74,.2);
+  --danger-bg:rgba(239,68,68,.1);--danger-bd:rgba(239,68,68,.2);
+  --warn-bg:rgba(245,158,11,.1);--warn-bd:rgba(245,158,11,.2);
+  --sidebar-bg:#FFFFFF;
+  --p-grad:linear-gradient(135deg, #10B981, #0D9488);
+  --btn-shadow:none;
 }
-html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+html,body{height:100%;font-family:'Hind Siliguri','Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;margin:0;padding:0}
 .bn{font-family:'Hind Siliguri','Inter',system-ui,sans-serif}
-::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(56,189,248,.25);border-radius:99px}
-::-webkit-scrollbar-thumb:hover{background:rgba(56,189,248,.45)}
-::selection{background:rgba(56,189,248,.35);color:#fff}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(16,185,129,.25);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:rgba(16,185,129,.45)}
+::selection{background:rgba(16,185,129,.25);color:#fff}
 
 /*── LAYOUT ──*/
-.app{display:flex;min-height:100vh}
-.sidebar{width:var(--sw);flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:16px 0;background:var(--sidebar-bg);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;z-index:200;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:4px 0 24px rgba(0,0,0,0.1)}
-.sidebar-logo{width:42px;height:42px;border-radius:14px;background:var(--p-grad);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:20px;box-shadow:0 0 24px var(--pg),0 4px 14px rgba(14,165,233,.3);flex-shrink:0;transition:all .3s var(--spring)}
-.sidebar-logo:hover{transform:scale(1.12) rotate(-5deg);box-shadow:0 0 30px var(--pg),0 6px 18px rgba(14,165,233,.4)}
-.sidebar-nav{display:flex;flex-direction:column;gap:4px;flex:1;width:100%;padding:0 10px;overflow-y:auto;scrollbar-width:none}
+.app{display:flex;min-height:100vh;background:var(--bg)}
+.sidebar{width:var(--sw);flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:16px 0;background:var(--sidebar-bg);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;z-index:200;box-shadow:2px 0 16px rgba(0,0,0,0.03)}
+.sidebar-logo{width:42px;height:42px;border-radius:14px;background:var(--p-grad);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:20px;box-shadow:0 0 24px rgba(16,185,129,.25),0 4px 14px rgba(16,185,129,.3);flex-shrink:0;transition:all .3s var(--spring)}
+.sidebar-logo:hover{transform:scale(1.1) rotate(-5deg);box-shadow:0 0 30px rgba(16,185,129,.35)}
+.sidebar-nav{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;width:100%;padding:0 12px;overflow-y:auto;scrollbar-width:none}
 .sidebar-nav::-webkit-scrollbar{display:none}
-.nbtn{width:54px;height:52px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:15px;transition:all .3s var(--spring);position:relative;flex-shrink:0}
-.nbtn span{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;line-height:1.1;font-family:'Hind Siliguri',sans-serif}
-.nbtn:hover{background:var(--surface2);color:var(--head);transform:scale(1.08) translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.05)}
-.nbtn.active{background:linear-gradient(145deg,rgba(14,165,233,.18),rgba(2,132,199,.05));color:var(--p);border:1px solid rgba(14,165,233,.4);box-shadow:0 8px 24px rgba(14,165,233,.15),inset 0 1px 0 rgba(255,255,255,.06)}
-.nbtn.active::before{content:'';position:absolute;left:-2px;top:50%;transform:translateY(-50%);width:4px;height:24px;background:var(--p-grad);border-radius:0 4px 4px 0;box-shadow:0 0 10px rgba(14,165,233,.6)}
+.nbtn{width:64px;height:60px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:15px;transition:all .2s ease;position:relative;flex-shrink:0;margin-bottom:4px}
+.nbtn i{font-size:22px}
+.nbtn span{font-size:11px;font-weight:700;letter-spacing:.02em;line-height:1.1;font-family:'Hind Siliguri',sans-serif}
+.nbtn:hover{background:var(--surface2);color:var(--head)}
+.nbtn.active{background:var(--p-soft);color:var(--p);border-left:3px solid var(--p);box-shadow:none}
+.nbtn.active::before{display:none}
 .sidebar-bot{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 10px;width:100%;flex-shrink:0}
-.ib{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;background:var(--surface);color:var(--muted);font-size:14px;transition:all .2s ease}
-.ib:hover{color:var(--head);background:var(--surface2);transform:scale(1.05)}
-.av{width:38px;height:38px;border-radius:50%;overflow:hidden;cursor:pointer;border:2px solid var(--border);transition:all .2s ease;display:flex;align-items:center;justify-content:center;background:var(--p);flex-shrink:0;}
-.av:hover{border-color:var(--p);transform:scale(1.05)}
+.ib{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:15px;transition:all .2s ease}
+.ib:hover{color:var(--head);border-color:var(--border2);background:var(--surface2)}
+.av{width:40px;height:40px;border-radius:50%;overflow:hidden;cursor:pointer;border:2px solid var(--border);transition:all .2s ease;display:flex;align-items:center;justify-content:center;background:var(--p);flex-shrink:0;color:#fff;font-weight:800;font-size:14px}
+.av:hover{border-color:var(--p)}
 .av img{width:100%;height:100%;object-fit:cover}
-.av span{font-size:13px;font-weight:800;color:#fff;font-family:'Hind Siliguri',sans-serif}
+.av span{font-size:14px;font-weight:800;color:#fff;font-family:'Hind Siliguri',sans-serif}
 
 /*── MAIN ──*/
-.main{flex:1;margin-left:var(--sw);display:flex;flex-direction:column;min-width:0;min-height:100vh}
-.topbar{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(3,7,18,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);position:sticky;top:0;z-index:100;gap:10px}
-:root.light .topbar{background:rgba(255,255,255,.9)}
+.main{flex:1;margin-left:var(--sw);display:flex;flex-direction:column;min-width:0;min-height:100vh;background:var(--bg)}
+.topbar{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;gap:12px}
+:root.light .topbar{background:var(--bg);border-bottom:1px solid var(--border)}
 .tbar-left{display:flex;align-items:center;gap:10px;min-width:0}
-.page-title{font-size:18px;font-weight:800;color:var(--head);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Hind Siliguri',sans-serif;letter-spacing:-.01em}
+.page-title{font-size:20px;font-weight:700;color:var(--head);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Hind Siliguri',sans-serif;letter-spacing:-.01em}
 :root.light .page-title{color:var(--head)}
-.tbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
 
 /*── MONTH TABS ──*/
-.mtabs{display:flex;overflow-x:auto;gap:8px;scrollbar-width:none;padding:0 4px}
+.month-bar{display:flex;justify-content:flex-start;align-items:center;padding:0 24px 10px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:60px;z-index:99;width:100%}
+:root.light .month-bar{background:var(--bg);border-bottom:1px solid var(--border)}
+.mtabs{display:flex;overflow-x:auto;gap:8px;scrollbar-width:none;padding:0;align-items:center}
 .mtabs::-webkit-scrollbar{display:none}
-.mtab{padding:6px 16px;border-radius:99px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--muted);border:1px solid transparent;white-space:nowrap;transition:all .2s;background:transparent;font-family:inherit;}
-.mtab:hover{color:var(--head);background:rgba(255,255,255,.05);}
-.mtab.active{background:var(--head) !important;color:var(--bg) !important;}
-
-:root.light .mtab{color:#64748b;}
-:root.light .mtab:hover{background:rgba(0,0,0,.04);}
-:root.light .mtab.active{background:#0f172a !important;color:#fff !important;}
+.mtab{height:36px;padding:0 12px;border-radius:99px;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);border:1px solid var(--border);white-space:nowrap;transition:all .2s;background:var(--surface);font-family:'Hind Siliguri',sans-serif;display:inline-flex;align-items:center;justify-content:center}
+.mtab:hover{color:var(--head);border-color:var(--p)}
+.mtab.active{background:var(--p) !important;color:#FFFFFF !important;border-color:var(--p) !important;font-weight:700}
+:root:not(.light) .mtab.active{color:#06281F !important}
 
 /*── PAGES ──*/
-.page{display:none;padding:16px 18px 80px;animation:fadeUp .35s var(--spring) both;transform-origin:top center}
+.page{display:none;padding:16px 20px 80px;animation:fadeUp .35s var(--spring) both;transform-origin:top center}
 .page.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(15px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 /*── CARDS ──*/
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);position:relative;overflow:hidden;transition:all .3s var(--spring)}
-.card:hover{transform:translateY(-2px);border-color:var(--border2)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);position:relative;overflow:hidden;transition:all .2s var(--ease)}
 :root.light .card{background:var(--surface);border-color:var(--border);box-shadow:none}
-:root.light .card:hover{transform:translateY(-2px);border-color:var(--border2)}
-.ch:hover{transform:translateY(-2px);background:var(--surface2)}
-:root.light .ch:hover{transform:translateY(-2px);background:var(--surface2)}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover{transform:translateY(-2px);border-color:var(--border2)}
+  :root.light .card:hover{transform:translateY(-2px);border-color:var(--border2)}
+  .ch:hover{transform:translateY(-2px);background:var(--surface2)}
+  :root.light .ch:hover{transform:translateY(-2px);background:var(--surface2)}
+}
+
+/*── HERO STAT CARD & STYLES ──*/
+.hero-stat-card{background:linear-gradient(135deg, #10B981, #0D9488);color:#FFFFFF !important;box-shadow:0 4px 20px rgba(16,185,129,0.18)}
+:root:not(.light) .hero-stat-card{background:linear-gradient(135deg, #0F766E, #115E59) !important;box-shadow:0 4px 20px rgba(15,118,110,0.25)}
+.stat-icon-blue{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:#DBEAFE;color:#2563EB}
+:root:not(.light) .stat-icon-blue{background:rgba(96,165,250,0.14);color:#60A5FA}
+.badge-blue{height:24px;border-radius:12px;padding:0 10px;font-size:11px;font-weight:700;background:#DBEAFE;color:#1D4ED8;border:none;display:inline-flex;align-items:center}
+:root:not(.light) .badge-blue{background:rgba(96,165,250,0.15);color:#93C5FD}
+.stat-icon-amber{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:#FEF3C7;color:#D97706}
+:root:not(.light) .stat-icon-amber{background:rgba(251,191,36,0.14);color:#FBBF24}
+.badge-amber{height:24px;border-radius:12px;padding:0 10px;font-size:11px;font-weight:700;background:#FEF3C7;color:#B45309;border:none;display:inline-flex;align-items:center}
+:root:not(.light) .badge-amber{background:rgba(251,191,36,0.15);color:#FCD34D}
 
 /*── HERO CARD ──*/
 .hero-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative;transition:all .3s var(--spring)}
-.hero-card:hover{transform:scale(1.01)}
 :root.light .hero-card{background:var(--surface2);border-color:var(--border);box-shadow:none}
 
 /*── GRID ──*/
@@ -199,10 +223,10 @@ tbody tr:last-child td{border-bottom:none}
 .mf{display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
 
 /*── TOAST ──*/
-#tw{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:7px;pointer-events:none;max-width:320px;width:calc(100% - 28px);align-items:center}
-.toast{background:rgba(13,11,32,.96);border:1px solid rgba(56,189,248,.25);border-radius:99px;padding:12px 18px;display:flex;align-items:center;gap:9px;font-size:11.5px;font-weight:600;color:var(--head);box-shadow:0 12px 32px -6px rgba(0,0,0,.4),0 0 0 1px rgba(56,189,248,.1);transform:translateY(-12px) scale(.95);opacity:0;transition:all .35s var(--spring);pointer-events:auto;backdrop-filter:blur(20px);font-family:'Hind Siliguri',sans-serif}
+#tw{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:340px;width:calc(100% - 32px);align-items:center}
+.toast{background:#18181B;border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:10px 18px;display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;color:#FFFFFF;box-shadow:0 10px 25px -5px rgba(0,0,0,0.25);transform:translateY(-10px) scale(.95);opacity:0;transition:all .3s var(--spring);pointer-events:auto;backdrop-filter:blur(16px);font-family:'Hind Siliguri',sans-serif}
 .toast.show{transform:translateY(0) scale(1);opacity:1}
-:root.light .toast{background:rgba(255,255,255,.98);border-color:rgba(15,23,42,.1);color:#0f172a;box-shadow:0 8px 24px rgba(15,23,42,.08)}
+:root:not(.light) .toast{background:#F4F4F5;border-color:rgba(0,0,0,0.1);color:#0B1220;box-shadow:0 10px 25px -5px rgba(0,0,0,0.5)}
 
 /*── TABS ──*/
 .tabs{display:flex;gap:2px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:3px;margin-bottom:14px}
@@ -280,12 +304,8 @@ tbody tr:last-child td{border-bottom:none}
 .ins-ico{width:36px;height:36px;border-radius:var(--rxs);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 
 /*── BG ──*/
-.bblobs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.bblob{position:absolute;border-radius:50%;filter:blur(80px);will-change:transform}
-.bb1{width:55vw;height:55vw;top:-20%;left:-12%;background:radial-gradient(circle,rgba(56,189,248,.09),rgba(109,40,217,.04) 50%,transparent 70%);animation:bl1 28s ease-in-out infinite}
-.bb2{width:45vw;height:45vw;bottom:-18%;right:-12%;background:radial-gradient(circle,rgba(236,72,153,.07),rgba(56,189,248,.04) 50%,transparent 70%);animation:bl2 34s ease-in-out infinite}
-@keyframes bl1{0%,100%{transform:translate(0,0)}40%{transform:translate(20px,14px)}70%{transform:translate(-12px,26px)}}
-@keyframes bl2{0%,100%{transform:translate(0,0)}50%{transform:translate(-22px,-14px)}}
+.bblobs{display:none !important}
+.bblob{display:none !important}
 
 /*── EMPTY ──*/
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px;text-align:center;color:var(--muted)}
@@ -303,14 +323,15 @@ tbody tr:last-child td{border-bottom:none}
 .clr-opt:hover,.clr-opt.sel{border-color:white;transform:scale(1.15)}
 
 /*── MOBILE NAV ──*/
-.mobnav{display:none;position:fixed;bottom:0;left:0;right:0;height:66px;background:rgba(6,4,18,.94);border-top:1px solid rgba(56,189,248,.15);z-index:200;justify-content:flex-start;align-items:center;padding:0 6px 6px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 -4px 20px rgba(0,0,0,.4),0 -1px 0 rgba(56,189,248,.08);overflow-x:auto;overflow-y:hidden;white-space:nowrap;gap:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.mobnav::-webkit-scrollbar{display:none}
-.mnbtn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 8px;border-radius:10px;cursor:pointer;color:var(--muted);border:none;background:transparent;font-family:inherit;font-size:16px;transition:all .2s var(--ease);min-width:46px;flex-shrink:0}
-.mnbtn span{font-size:8.5px;font-weight:700;text-transform:uppercase;font-family:'Hind Siliguri',sans-serif;letter-spacing:.04em;margin-top:1px}
-.mnbtn.active{color:var(--p);background:rgba(56,189,248,.08);border-radius:10px}
-.mnbtn.active i{filter:drop-shadow(0 0 5px rgba(56,189,248,.6))}
-:root.light .mobnav{background:rgba(255,255,255,.98);border-top-color:rgba(15,23,42,.08);box-shadow:0 -2px 12px rgba(15,23,42,.06)}
-:root.light .mnbtn.active{background:rgba(3,105,161,.08)}
+.mobnav{display:none;position:fixed;bottom:0;left:0;right:0;height:64px;background:var(--sidebar-bg);border-top:1px solid var(--border);z-index:200;justify-content:space-around;align-items:center;padding:0 4px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 -4px 20px rgba(0,0,0,0.06)}
+.mnbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 8px;border-radius:99px;cursor:pointer;color:var(--muted);border:none;background:transparent;font-family:inherit;font-size:16px;transition:all .2s var(--ease);flex:1;max-width:62px}
+.mnbtn span{font-size:10px;font-weight:700;font-family:'Hind Siliguri',sans-serif;line-height:1;margin-top:2px}
+.mnbtn.active{color:var(--p);background:var(--p-soft)}
+:root.light .mobnav{background:var(--sidebar-bg);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,0.04)}
+
+.more-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;color:var(--head);cursor:pointer;font-family:'Hind Siliguri',sans-serif;font-size:13px;font-weight:600;transition:all .2s}
+.more-nav-item i{font-size:22px}
+.more-nav-item:hover{border-color:var(--p);background:var(--p-soft);color:var(--p)}
 
 /*── ACCOUNT CARD ──*/
 .acc-card{padding:18px;cursor:pointer;border-radius:var(--r);transition:transform .22s var(--ease)}
@@ -337,14 +358,18 @@ tbody tr:last-child td{border-bottom:none}
 
 /*── RESPONSIVE ──*/
 @media(max-width:1100px){
-  #dash-charts{grid-template-columns:1fr 1fr !important}
+  .dash-row-2{grid-template-columns:1fr !important}
 }
 @media(max-width:900px){
   .gmain{grid-template-columns:1fr !important}
   .g4{grid-template-columns:repeat(2,1fr)}
   .g3{grid-template-columns:repeat(2,1fr)}
-  #dash-charts{grid-template-columns:1fr !important}
   #transfer-row{grid-template-columns:1fr 1fr !important}
+}
+@media(max-width:768px){
+  .dash-hero-grid{grid-template-columns:1fr 1fr !important}
+  .hero-stat-card{grid-column:span 2 !important;height:auto !important;min-height:175px !important}
+  .hero-stat-card #d-balance{font-size:36px !important}
 }
 @media(max-width:640px){
   .sidebar{display:none}
@@ -352,35 +377,24 @@ tbody tr:last-child td{border-bottom:none}
   .mobnav{display:flex}
   .page{padding:12px 12px 76px !important}
   .g4,.g3,.g2{grid-template-columns:1fr !important;gap:12px}
-  .topbar{padding:0 12px;height:52px;gap:8px}
-  .tbar-right{gap:6px}
-  .topbar .ib,.topbar .av{width:34px !important;height:34px !important}
-  .topbar .av span{font-size:11px !important}
-  .topbar .btn{padding:5px 12px !important;font-size:12px !important;height:34px !important}
-  .page-title{font-size:14px !important}
+  .topbar{padding:0 14px;height:56px;gap:8px}
+  .tbar-right{gap:8px}
+  .topbar .ib,.topbar .av{width:40px !important;height:40px !important}
+  .topbar .btn{height:40px !important;padding:0 14px !important;font-size:12.5px !important}
+  .page-title{font-size:18px !important}
   .irow{grid-template-columns:1fr !important}
   .gmain{grid-template-columns:1fr !important;gap:12px}
   table{min-width:340px}
   #transfer-row{display:flex;flex-direction:column;gap:10px !important}
   .card{border-radius:16px}
   .stat{padding:16px;gap:8px}
-  .stat-icon{width:36px;height:36px;font-size:14px;border-radius:10px}
-  .sv{font-size:22px}
-  .sl{font-size:9.5px}
-  #dash-charts{grid-template-columns:1fr !important}
   .modal{padding:16px 14px}
   .mo{align-items:flex-end}
-}
-.month-bar{display:flex;justify-content:center;padding:0 18px 10px;border-bottom:1px solid var(--border);background:rgba(3,7,18,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);position:sticky;top:60px;z-index:99;width:100%}
-:root.light .month-bar{background:rgba(255,255,255,.9);border-bottom:1px solid rgba(15,23,42,.08)}
-@media(max-width:640px){
-  .month-bar{padding:0 10px 8px;top:52px}
+  .month-bar{padding:0 12px 8px;top:56px}
 }
 </style>
 </head>
 <body>
-
-<div class="bblobs" aria-hidden="true"><div class="bblob bb1"></div><div class="bblob bb2"></div></div>
 
 <div class="app" style="position:relative;z-index:1">
 
@@ -404,14 +418,13 @@ tbody tr:last-child td{border-bottom:none}
     <!-- Topbar -->
     <header class="topbar">
       <div class="tbar-left">
-        <h1 class="page-title bn" id="page-title">📒 ড্যাশবোর্ড</h1>
+        <h1 class="page-title bn" id="page-title">ড্যাশবোর্ড</h1>
       </div>
       <div class="tbar-right">
-        <button class="ib" id="header-sync-btn" title="ক্লাউড সিঙ্ক" style="display:none;width:34px;height:34px;font-size:12px;align-items:center;justify-content:center"><i class="fas fa-rotate"></i></button>
-        <button class="btn btn-p bsm" id="quick-add-btn"><i class="fas fa-plus"></i> যোগ</button>
-
-        <button class="ib" id="theme-toggle" title="থিম পরিবর্তন" style="width:34px;height:34px;font-size:14px;background:var(--surface2);border:none"><i class="fas fa-moon"></i></button>
-        <button class="av" id="profile-btn" title="প্রোফাইল"><img id="profile-pic" src="" alt="" style="display:none"><span id="profile-initials"><i class="fas fa-user" style="font-size:12px"></i></span></button>
+        <button class="ib" id="header-refresh-btn" title="রিফ্রেশ" onclick="location.reload()"><i class="fas fa-rotate-right"></i></button>
+        <button class="btn btn-p" id="quick-add-btn"><i class="fas fa-plus"></i> যোগ</button>
+        <button class="ib" id="theme-toggle" title="থিম পরিবর্তন"><i class="fas fa-moon"></i></button>
+        <button class="av" id="profile-btn" title="প্রোফাইল"><img id="profile-pic" src="" alt="" style="display:none"><span id="profile-initials">S</span></button>
       </div>
     </header>
 
@@ -430,62 +443,82 @@ tbody tr:last-child td{border-bottom:none}
     <!-- ════════════════ PAGE: DASHBOARD ════════════════ -->
     <div class="page active" id="page-dashboard">
 
-      <!-- Stats Row 1 -->
-      <div class="g4" style="margin-bottom:14px;align-items:stretch">
-        <div class="card stat ch" style="grid-column:span 2;display:flex;flex-direction:column;justify-content:space-between;height:100%;cursor:pointer" onclick="app.navigate('transactions')">
-          <div style="position:relative;z-index:1">
-            <div class="sl i18n" data-key="tot_bal" style="color:var(--muted)">মোট ব্যালেন্স</div>
-            <div style="font-size:32px;font-weight:900;color:var(--head);letter-spacing:-.02em;margin-top:6px;font-family:'Hind Siliguri',sans-serif" id="d-balance">৳০</div>
+      <!-- Stats Row 1 (12 Columns: Hero 6 + Mess 3 + Debt 3) -->
+      <div class="dash-hero-grid" style="display:grid;grid-template-columns:6fr 3fr 3fr;gap:14px;margin-bottom:14px;align-items:stretch">
+        
+        <!-- Total Balance Card (Hero 6 cols) -->
+        <div class="card hero-stat-card ch" style="padding:18px 22px;display:flex;flex-direction:column;justify-content:space-between;min-height:180px;height:180px;cursor:pointer;border:none" onclick="app.navigate('transactions')">
+          <div>
+            <div style="font-size:13px;font-weight:600;opacity:0.95;color:#FFFFFF;margin-bottom:4px" class="i18n" data-key="tot_bal">মোট ব্যালেন্স</div>
+            <div style="font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1;color:#FFFFFF;font-family:'Hind Siliguri',sans-serif" id="d-balance">৳০</div>
           </div>
-          <div style="display:flex;gap:18px;position:relative;z-index:1;margin-top:16px">
-            <div><div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:2px" class="i18n" data-key="income_lbl">আয়</div><div style="font-size:17px;font-weight:800;color:var(--green);font-family:'Hind Siliguri',sans-serif" id="d-income">৳০</div></div>
-            <div><div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:2px" class="i18n" data-key="expense_lbl">খরচ</div><div style="font-size:17px;font-weight:800;color:var(--red);font-family:'Hind Siliguri',sans-serif" id="d-expense">৳০</div></div>
+          <div style="display:flex;gap:12px;margin-top:16px">
+            <div style="background:rgba(255,255,255,0.16);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+              <span style="font-size:12px;opacity:0.9;color:#FFFFFF" class="i18n" data-key="income_lbl">আয়</span>
+              <span style="font-size:18px;font-weight:600;color:#FFFFFF;font-family:'Hind Siliguri',sans-serif" id="d-income">৳০</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.16);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+              <span style="font-size:12px;opacity:0.9;color:#FFFFFF" class="i18n" data-key="expense_lbl">খরচ</span>
+              <span style="font-size:18px;font-weight:600;color:#FFFFFF;font-family:'Hind Siliguri',sans-serif" id="d-expense">৳০</span>
+            </div>
           </div>
         </div>
 
-        <div class="card stat ch" style="display:flex;flex-direction:column;justify-content:space-between;height:100%;cursor:pointer" onclick="app.navigate('mess')">
+        <!-- Mess Expense Card (3 cols) -->
+        <div class="card stat ch" style="padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;min-height:180px;height:180px;cursor:pointer" onclick="app.navigate('mess')">
           <div>
-            <div class="stat-icon" style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);color:var(--p);margin-bottom:12px"><i class="fas fa-bowl-food"></i></div>
-            <div class="sv" id="d-mess-total">৳০</div>
-            <div class="sl i18n" data-key="mess_exp">এ মাসে মেস খরচ</div>
+            <div class="stat-icon stat-icon-blue" style="margin-bottom:12px"><i class="fas fa-bowl-food"></i></div>
+            <div class="sv" id="d-mess-total" style="font-size:22px;font-weight:700;color:var(--head);line-height:1.1;margin-bottom:4px">৳০</div>
+            <div class="sl i18n" data-key="mess_exp" style="font-size:12px;font-weight:500;color:var(--muted);text-transform:none;letter-spacing:normal">এ মাসে মেস খরচ</div>
           </div>
-          <span class="badge bp" id="d-mess-pp" style="align-self:flex-start;margin-top:12px">জন প্রতি ৳০</span>
+          <span class="badge badge-blue" id="d-mess-pp" style="align-self:flex-start">জন প্রতি ৳০</span>
         </div>
 
-        <div class="card stat ch" style="display:flex;flex-direction:column;justify-content:space-between;height:100%;cursor:pointer" onclick="app.navigate('debts')">
+        <!-- Debt Card (3 cols) -->
+        <div class="card stat ch" style="padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;min-height:180px;height:180px;cursor:pointer" onclick="app.navigate('debts')">
           <div>
-            <div class="stat-icon" style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--red);margin-bottom:12px"><i class="fas fa-handshake"></i></div>
-            <div class="sv" id="d-debt-total">৳০</div>
-            <div class="sl i18n" data-key="act_debt">বকেয়া ধার</div>
+            <div class="stat-icon stat-icon-amber" style="margin-bottom:12px"><i class="fas fa-handshake"></i></div>
+            <div class="sv" id="d-debt-total" style="font-size:22px;font-weight:700;color:var(--head);line-height:1.1;margin-bottom:4px">৳০</div>
+            <div class="sl i18n" data-key="act_debt" style="font-size:12px;font-weight:500;color:var(--muted);text-transform:none;letter-spacing:normal">বকেয়া ধার</div>
           </div>
-          <span class="badge br" id="d-debt-count" style="align-self:flex-start;margin-top:12px">০টি</span>
+          <span class="badge badge-amber" id="d-debt-count" style="align-self:flex-start">০টি</span>
         </div>
       </div>
 
-      <!-- Recent -->
-      <div style="margin-bottom:14px">
-        <div class="card" style="padding:18px">
+      <!-- Row 2: Recent Transactions (7 cols) + Expense Breakdown Donut Chart (5 cols) -->
+      <div class="dash-row-2" style="display:grid;grid-template-columns:7fr 5fr;gap:14px;margin-bottom:14px;align-items:stretch">
+        <div class="card" style="padding:18px;display:flex;flex-direction:column;min-width:0">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
             <div class="sec-title i18n" data-key="recent_tx" style="margin-bottom:0">সাম্প্রতিক লেনদেন</div>
-            <button class="btn btn-s bsm" onclick="app.navigate('transactions')"><span class="i18n" data-key="view_all">সব দেখুন</span></button>
+            <a href="javascript:void(0)" onclick="app.navigate('transactions')" style="font-size:13px;font-weight:700;color:var(--p);text-decoration:none;cursor:pointer;font-family:'Hind Siliguri',sans-serif;display:inline-flex;align-items:center;gap:4px"><span class="i18n" data-key="view_all">সব দেখুন</span> <i class="fas fa-arrow-right" style="font-size:11px"></i></a>
           </div>
-          <div id="recent-list"></div>
+          <div id="recent-list" style="flex:1"></div>
+        </div>
+
+        <div class="card" style="padding:18px;display:flex;flex-direction:column;min-width:0">
+          <div class="sec-title i18n" data-key="exp_breakdown" style="font-size:16px;font-weight:700;margin-bottom:2px">খরচের হিসাব</div>
+          <div class="sec-sub" id="d-chart-sub" style="font-size:12px;color:var(--muted);margin-bottom:12px">এ মাসে</div>
+          <div style="height:190px;position:relative;display:flex;align-items:center;justify-content:center;flex:1">
+            <canvas id="cat-chart"></canvas>
+            <div id="cat-empty" class="empty" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+              <i class="fas fa-chart-pie" style="font-size:32px;opacity:0.35"></i>
+              <p style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif" class="i18n" data-key="no_tx_data">কোনো তথ্য নেই</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Charts Row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px" id="dash-charts">
-        <div class="card" style="padding:18px">
-          <div class="sec-title i18n" data-key="exp_breakdown">খরচের হিসাব</div>
-          <div class="sec-sub" id="d-chart-sub">এ মাসে</div>
-          <div style="height:190px;position:relative"><canvas id="cat-chart"></canvas></div>
-        </div>
-        <div class="card" style="padding:18px">
-          <div class="sec-title i18n" data-key="trend_6m">৬ মাসের ট্রেন্ড</div>
-          <div class="sec-sub i18n" data-key="inc_vs_exp">আয় বনাম খরচ</div>
-          <div style="height:190px;position:relative">
+      <!-- Row 3: 6 Months Trend (Full 12 cols / 100% width) -->
+      <div class="dash-row-3" style="margin-bottom:14px">
+        <div class="card" style="padding:18px;min-width:0">
+          <div class="sec-title i18n" data-key="trend_6m" style="font-size:16px;font-weight:700;margin-bottom:2px">৬ মাসের ট্রেন্ড</div>
+          <div class="sec-sub i18n" data-key="inc_vs_exp" style="font-size:12px;color:var(--muted);margin-bottom:12px">আয় বনাম খরচ</div>
+          <div style="height:210px;position:relative;display:flex;align-items:center;justify-content:center">
             <canvas id="trend-chart"></canvas>
-            <div id="trend-empty" class="empty" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px"><i class="fas fa-chart-line" style="font-size:24px;opacity:0.4"></i><p style="font-size:11px;font-family:'Hind Siliguri',sans-serif" class="i18n" data-key="no_tx_data">কোনো লেনদেনের তথ্য নেই</p></div>
+            <div id="trend-empty" class="empty" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+              <i class="fas fa-chart-line" style="font-size:32px;opacity:0.35"></i>
+              <p style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif" class="i18n" data-key="no_tx_data">কোনো তথ্য নেই</p>
+            </div>
           </div>
         </div>
       </div>
@@ -643,7 +676,7 @@ tbody tr:last-child td{border-bottom:none}
                 <div style="text-align:center;padding:10px;background:var(--surface);border-radius:var(--rs)"><div class="sl i18n" data-key="total_expense">মোট খরচ</div><div class="sv" style="font-size:16px" id="mess-total">৳০</div></div>
                 <div style="text-align:center;padding:10px;background:var(--surface);border-radius:var(--rs)"><div class="sl i18n" data-key="mess_fund">মেস তহবিল</div><div class="sv" style="font-size:16px;color:var(--green)" id="mess-fund-bal">৳০</div></div>
                 <div style="text-align:center;padding:10px;background:var(--surface);border-radius:var(--rs)"><div class="sl i18n" data-key="members">সদস্য</div><div class="sv" style="font-size:16px" id="mess-member-count">০</div></div>
-                <div style="text-align:center;padding:10px;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);border-radius:var(--rs)"><div class="sl i18n" data-key="per_head">জন প্রতি</div><div class="sv" style="font-size:16px;color:var(--p)" id="mess-per-head">৳০</div></div>
+                <div style="text-align:center;padding:10px;background:var(--p-soft);border:1px solid var(--p);border-radius:var(--rs)"><div class="sl i18n" data-key="per_head">জন প্রতি</div><div class="sv" style="font-size:16px;color:var(--p)" id="mess-per-head">৳০</div></div>
               </div>
               <div id="mess-members-list"></div>
               <div id="mess-members-empty" class="empty" style="display:none;padding:20px"><i class="fas fa-users"></i><p class="i18n" data-key="no_members">কোনো সদস্য নেই। সদস্য যোগ করুন।</p></div>
@@ -843,18 +876,43 @@ tbody tr:last-child td{border-bottom:none}
   </div><!-- /main -->
 </div><!-- /app -->
 
-<!-- Mobile Nav -->
+<!-- Mobile Nav (5 tabs + 'আরও') -->
 <nav class="mobnav">
   <button class="mnbtn active" data-page="dashboard"><i class="fas fa-house"></i><span class="i18n" data-key="home">হোম</span></button>
   <button class="mnbtn" data-page="transactions"><i class="fas fa-list-ul"></i><span class="i18n" data-key="txs">লেনদেন</span></button>
-  <button class="mnbtn" data-page="accounts" style="display:none"><i class="fas fa-wallet"></i><span class="i18n" data-key="accs">একাউন্ট</span></button>
   <button class="mnbtn" data-page="mess"><i class="fas fa-bowl-food"></i><span class="i18n" data-key="mess">মেস</span></button>
   <button class="mnbtn" data-page="split"><i class="fas fa-users"></i><span class="i18n" data-key="split">ভাগ</span></button>
-  <button class="mnbtn" data-page="budget"><i class="fas fa-sliders"></i><span class="i18n" data-key="budget">বাজেট</span></button>
-  <button class="mnbtn" data-page="goals"><i class="fas fa-bullseye"></i><span class="i18n" data-key="goals">লক্ষ্য</span></button>
   <button class="mnbtn" data-page="debts"><i class="fas fa-handshake"></i><span class="i18n" data-key="debts">ধার</span></button>
-  <button class="mnbtn" data-page="reports"><i class="fas fa-chart-line"></i><span class="i18n" data-key="reports">রিপোর্ট</span></button>
+  <button class="mnbtn" id="mob-more-btn" onclick="app.toggleMoreMenu()"><i class="fas fa-ellipsis"></i><span>আরও</span></button>
 </nav>
+
+<!-- More Menu Sheet for Mobile -->
+<div class="mo" id="m-more-nav">
+  <div class="modal" style="max-width:380px;border-radius:20px 20px 0 0;padding:20px 16px">
+    <div class="mh" style="margin-bottom:14px">
+      <div class="mt" style="font-size:16px">অন্যান্য মেনু</div>
+      <button class="mc" data-close="m-more-nav"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button type="button" class="more-nav-item" onclick="app.navigateFromMore('budget')">
+        <i class="fas fa-sliders" style="color:var(--p)"></i>
+        <span>বাজেট</span>
+      </button>
+      <button type="button" class="more-nav-item" onclick="app.navigateFromMore('goals')">
+        <i class="fas fa-bullseye" style="color:var(--amber)"></i>
+        <span>লক্ষ্য</span>
+      </button>
+      <button type="button" class="more-nav-item" onclick="app.navigateFromMore('reports')">
+        <i class="fas fa-chart-line" style="color:var(--blue)"></i>
+        <span>রিপোর্ট</span>
+      </button>
+      <button type="button" class="more-nav-item" onclick="app.navigateFromMore('accounts')">
+        <i class="fas fa-wallet" style="color:var(--cyan)"></i>
+        <span>ওয়ালেট</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <div id="tw"></div>
 
@@ -1000,10 +1058,10 @@ tbody tr:last-child td{border-bottom:none}
     <i class="fas fa-calendar-alt"></i> <span id="dl-date-display"></span>
   </div>
   <div style="display:flex;flex-direction:column;gap:12px">
-    <button class="btn btn-p" style="border-radius:12px;padding:16px;font-size:15px;justify-content:space-between;background:#2563eb;box-shadow:none" id="btn-dl-daily"><span>দৈনিক ডাউনলোড</span><i class="fas fa-file-arrow-down" style="font-size:16px;opacity:0.8"></i></button>
-    <button class="btn btn-p" style="border-radius:12px;padding:16px;font-size:15px;justify-content:space-between;background:#2563eb;box-shadow:none" id="btn-dl-monthly"><span>মাসিক ডাউনলোড</span><i class="fas fa-file-arrow-down" style="font-size:16px;opacity:0.8"></i></button>
-    <button class="btn btn-p" style="border-radius:12px;padding:16px;font-size:15px;justify-content:space-between;background:#2563eb;box-shadow:none" id="btn-dl-yearly"><span>বাৎসরিক ডাউনলোড</span><i class="fas fa-file-arrow-down" style="font-size:16px;opacity:0.8"></i></button>
-    <button class="btn btn-p" style="border-radius:12px;padding:16px;font-size:15px;justify-content:space-between;background:#2563eb;box-shadow:none" id="btn-dl-custom"><span>কাস্টম ডাউনলোড</span><i class="fas fa-infinity" style="font-size:16px;opacity:0.8"></i></button>
+    <button class="btn btn-p" style="border-radius:12px;padding:16px;font-size:15px;justify-content:space-between;background:var(--p-grad);box-shadow:none" id="btn-dl-daily"><span>দৈনিক ডাউনলোড</span><i class="fas fa-file-arrow-down" style="font-size:16px;opacity:0.8"></i></button>
+    <button class="btn btn-p" style="border-radius:12px;padding:16px;font-size:15px;justify-content:space-between;background:var(--p-grad);box-shadow:none" id="btn-dl-monthly"><span>মাসিক ডাউনলোড</span><i class="fas fa-file-arrow-down" style="font-size:16px;opacity:0.8"></i></button>
+    <button class="btn btn-p" style="border-radius:12px;padding:16px;font-size:15px;justify-content:space-between;background:var(--p-grad);box-shadow:none" id="btn-dl-yearly"><span>বাৎসরিক ডাউনলোড</span><i class="fas fa-file-arrow-down" style="font-size:16px;opacity:0.8"></i></button>
+    <button class="btn btn-p" style="border-radius:12px;padding:16px;font-size:15px;justify-content:space-between;background:var(--p-grad);box-shadow:none" id="btn-dl-custom"><span>কাস্টম ডাউনলোড</span><i class="fas fa-infinity" style="font-size:16px;opacity:0.8"></i></button>
   </div>
   
   <div id="dl-custom-wrap" style="display:none;margin-top:16px;padding:16px;background:var(--bg);border-radius:12px">
@@ -1152,7 +1210,7 @@ tbody tr:last-child td{border-bottom:none}
 
     <!-- Sync Connected state UI -->
     <div id="p-sync-connected-ui" style="display:none;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surface2);border-radius:var(--rs);border:1px dashed rgba(56,189,248,0.4)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surface2);border-radius:var(--rs);border:1px dashed rgba(16,185,129,0.4)">
         <div><div style="font-size:10px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আপনার মেসের কোড:</div><div style="font-size:22px;font-weight:900;color:var(--p);letter-spacing:4px" id="p-sync-code-text">------</div></div>
         <button class="ib" id="p-sync-btn-copy" title="কপি করুন"><i class="fas fa-copy"></i></button>
       </div>
@@ -1201,7 +1259,7 @@ tbody tr:last-child td{border-bottom:none}
 
 <!-- Welcome / Name Onboarding Modal -->
 <div class="mo" id="m-welcome" style="z-index:99999"><div class="modal" style="max-width:340px;text-align:center;padding:24px 20px">
-  <div style="width:64px;height:64px;background:var(--p-grad);border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 20px rgba(56,189,248,0.35)">
+  <div style="width:64px;height:64px;background:var(--p-grad);border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 20px rgba(16,185,129,0.35)">
     👋
   </div>
   <div style="font-size:19px;font-weight:800;color:var(--head);font-family:'Hind Siliguri',sans-serif;margin-bottom:6px">স্বাগতম ব্যাচেলর খাতায়!</div>
