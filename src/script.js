@@ -3313,7 +3313,7 @@ class BachelorKhata {
     const pageHeader = g('mess-page-header');
     const monthBar = document.querySelector('.month-bar');
     
-    if (pageHeader) pageHeader.style.display = '';
+    if (pageHeader) pageHeader.style.display = 'flex';
     if (monthBar) monthBar.style.display = '';
 
     // Toggle active tabs
@@ -3321,7 +3321,14 @@ class BachelorKhata {
     if (g('mess-subtab-bazar')) g('mess-subtab-bazar').classList.toggle('active', tab === 'bazar');
 
     // Toggle action buttons
-    document.querySelectorAll('.mess-summary-action').forEach(b => b.style.display = tab === 'summary' ? '' : 'none');
+    document.querySelectorAll('.mess-summary-action').forEach(b => {
+      if (b.id === 'export-mess-pdf') {
+        const canShow = (this.data.mess.members.length > 0 || !!this.data.settings.syncId);
+        b.style.display = (tab === 'summary' && canShow) ? 'inline-flex' : 'none';
+      } else {
+        b.style.display = tab === 'summary' ? '' : 'none';
+      }
+    });
     document.querySelectorAll('.mess-bazar-action').forEach(b => b.style.display = tab === 'bazar' ? '' : 'none');
 
     // Update page headers

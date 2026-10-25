@@ -596,8 +596,95 @@ input:checked + .slider:before{transform:translateX(20px)}
 .btn-mess-deposit{height:48px;border-radius:14px;background:transparent;border:1.5px solid var(--p);color:var(--p);font-size:15px;font-weight:700;font-family:'Hind Siliguri',sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
 .btn-mess-deposit:hover{background:var(--p-soft);transform:translateY(-1px)}
 
-.mess-status-chip{background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:6px 14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'Hind Siliguri',sans-serif;color:var(--head);transition:all .2s}
-.mess-status-chip:hover{border-color:var(--p);background:var(--surface2)}
+/*── MESS HEADER: STATUS CHIP & PDF BUTTON ──*/
+#mess-page-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 16px !important;
+  gap: 12px !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#mess-top-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.mess-status-chip {
+  height: 38px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 99px !important;
+  padding: 0 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  font-family: 'Hind Siliguri', sans-serif !important;
+  color: var(--head) !important;
+  transition: all .2s var(--ease) !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+  user-select: none !important;
+}
+.mess-status-chip:hover {
+  border-color: var(--p) !important;
+  background: var(--surface2) !important;
+  transform: translateY(-1px) !important;
+}
+:root.light .mess-status-chip {
+  background: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.06) !important;
+}
+
+#export-mess-pdf {
+  height: 38px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 99px !important;
+  padding: 0 16px !important;
+  display: inline-flex;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  font-family: 'Hind Siliguri', sans-serif !important;
+  color: var(--head) !important;
+  cursor: pointer !important;
+  transition: all .2s var(--ease) !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+  white-space: nowrap !important;
+}
+#export-mess-pdf i {
+  color: #EF4444 !important;
+  font-size: 14px !important;
+}
+#export-mess-pdf:hover {
+  border-color: var(--p) !important;
+  background: var(--surface2) !important;
+  color: var(--p) !important;
+  transform: translateY(-1px) !important;
+}
+:root.light #export-mess-pdf {
+  background: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #1E293B !important;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.06) !important;
+}
+:root.light #export-mess-pdf:hover {
+  background: #F8FAFC !important;
+  border-color: var(--p) !important;
+  color: var(--p) !important;
+}
 .mess-live-dot{width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 6px rgba(16,185,129,0.8);display:inline-block}
 .mess-live-dot.offline{background:#94A3B8;box-shadow:none}
 
@@ -1200,7 +1287,7 @@ input:checked + .slider:before{transform:translateX(20px)}
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-shrink:0" id="mess-top-actions">
           <!-- Summary Action Buttons -->
-          <button class="btn btn-s bsm mess-summary-action" id="export-mess-pdf" title="PDF ডাউনলোড" style="display:none"><i class="fas fa-file-pdf"></i> PDF</button>
+          <button class="btn mess-summary-action" id="export-mess-pdf" title="PDF ডাউনলোড" style="display:none"><i class="fas fa-file-pdf"></i> <span>PDF রিপোর্ট</span></button>
           
           <!-- Bazar Action Buttons -->
           <button class="btn btn-s bsm mess-bazar-action" id="clear-done-btn" style="display:none"><i class="fas fa-broom"></i> সম্পন্ন মুছুন</button>
