@@ -41,8 +41,13 @@ class BachelorKhata {
       mess:         JSON.parse(localStorage.getItem('bk_mess') || '{"members":[],"entries":[]}'),
       bazar:        JSON.parse(localStorage.getItem('bk_bazar')|| '[]'),
       splits:       JSON.parse(localStorage.getItem('bk_split')|| '[]'),
-      settings:     JSON.parse(localStorage.getItem('bk_set')  || '{"initials":"","theme":"dark","hasSetProfile":false}')
+      settings:     JSON.parse(localStorage.getItem('bk_set')  || '{"initials":"","theme":"light","hasSetProfile":false}')
     };
+
+    if (!localStorage.getItem('bk_theme_user_set')) {
+      this.data.settings.theme = 'light';
+      this.save('settings');
+    }
 
     if (this.data.settings.initials === 'SA') {
       this.data.settings.initials = '';
@@ -1847,7 +1852,14 @@ class BachelorKhata {
 
   bindProfile() {
     g('profile-btn')?.addEventListener('click',()=>this.openModal('m-profile'));
-    [g('theme-toggle'),g('theme-toggle-mob')].forEach(btn=>{btn?.addEventListener('click',()=>{this.data.settings.theme=this.data.settings.theme==='dark'?'light':'dark';this.save('settings');this.applyTheme();this.render();this.toast(`${this.data.settings.theme==='dark'?'ডার্ক':'লাইট'} মোড চালু!`,'success');});});
+    [g('theme-toggle'),g('theme-toggle-mob')].forEach(btn=>{btn?.addEventListener('click',()=>{
+      this.data.settings.theme = this.data.settings.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('bk_theme_user_set', 'true');
+      this.save('settings');
+      this.applyTheme();
+      this.render();
+      this.toast(`${this.data.settings.theme==='dark'?'ডার্ক':'লাইট'} মোড চালু!`,'success');
+    });});
     
     g('p-initials')?.addEventListener('input', e => {
       const v = e.target.value.trim();

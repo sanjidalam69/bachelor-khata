@@ -1,10 +1,28 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="bn" class="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>ব্যাচেলর খাতা — হিসাব রাখো, টেনশন ভাগ করো</title>
 <meta name="description" content="ব্যাচেলরদের জন্য স্মার্ট আর্থিক ট্র্যাকার — মেস হিসাব, বাজার লিস্ট, খরচ ভাগ সহ।">
+<script>
+  (function(){
+    try {
+      var set = localStorage.getItem('bk_set');
+      var isUserSet = localStorage.getItem('bk_theme_user_set') === 'true';
+      var theme = 'light';
+      if (set && isUserSet) {
+        var parsed = JSON.parse(set);
+        if (parsed.theme) theme = parsed.theme;
+      }
+      if (theme === 'dark') {
+        document.documentElement.classList.remove('light');
+      } else {
+        document.documentElement.classList.add('light');
+      }
+    } catch(e){}
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
