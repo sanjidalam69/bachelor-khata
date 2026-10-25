@@ -138,6 +138,7 @@ class BachelorKhata {
     this.applyTheme();
     this.applyProfile();
     this.bindNav();
+    this.setupPullToRefresh();
     this.bindMonthTabs();
     this.bindForms();
     this.bindModals();
@@ -173,6 +174,70 @@ class BachelorKhata {
   }
 
   // ── NAVIGATION ────────────────────────────────────────────────
+  setupPullToRefresh() {
+    let startY = 0;
+    let distY = 0;
+    let pulling = false;
+    let ptr = document.getElementById('ptr-indicator');
+    if (!ptr) {
+      ptr = document.createElement('div');
+      ptr.id = 'ptr-indicator';
+      ptr.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-60px);z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:6px 14px;box-shadow:0 4px 16px rgba(0,0,0,0.12);display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--head);font-family:Hind Siliguri,sans-serif;pointer-events:none;transition:transform .2s ease-out,opacity .2s;opacity:0';
+      ptr.innerHTML = '<i class="fas fa-rotate-right ptr-spin" style="color:var(--p);font-size:13px"></i> <span>টেনে রিফ্রেশ করুন</span>';
+      document.body.appendChild(ptr);
+    }
+
+    window.addEventListener('touchstart', e => {
+      if (window.scrollY <= 0 && document.documentElement.scrollTop <= 0) {
+        startY = e.touches[0].clientY;
+        pulling = true;
+      } else {
+        pulling = false;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', e => {
+      if (!pulling) return;
+      const curY = e.touches[0].clientY;
+      distY = curY - startY;
+      if (distY > 0 && distY < 160) {
+        const pullProgress = Math.min(distY, 70);
+        ptr.style.transform = `translateX(-50%) translateY(${pullProgress - 50}px)`;
+        ptr.style.opacity = String(Math.min(distY / 50, 1));
+        const spin = ptr.querySelector('.ptr-spin');
+        if (spin) spin.style.transform = `rotate(${distY * 2.5}deg)`;
+        const span = ptr.querySelector('span');
+        if (span) span.textContent = distY > 60 ? (this.lang === 'bn' ? 'ছেড়ে দিন' : 'Release') : (this.lang === 'bn' ? 'টেনে রিফ্রেশ করুন' : 'Pull to refresh');
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+      if (!pulling) return;
+      pulling = false;
+      if (distY > 60) {
+        ptr.style.transform = 'translateX(-50%) translateY(16px)';
+        const span = ptr.querySelector('span');
+        if (span) span.textContent = this.lang === 'bn' ? 'রিফ্রেশ হচ্ছে...' : 'Refreshing...';
+        const spin = ptr.querySelector('.ptr-spin');
+        if (spin) spin.classList.add('fa-spin');
+        setTimeout(() => {
+          this.render();
+          this.toast(this.lang === 'bn' ? 'রিফ্রেশ সম্পন্ন!' : 'Refreshed!', 'info');
+          ptr.style.transform = 'translateX(-50%) translateY(-60px)';
+          ptr.style.opacity = '0';
+          if (spin) {
+            spin.classList.remove('fa-spin');
+            spin.style.transform = 'none';
+          }
+        }, 450);
+      } else {
+        ptr.style.transform = 'translateX(-50%) translateY(-60px)';
+        ptr.style.opacity = '0';
+      }
+      distY = 0;
+    }, { passive: true });
+  }
+
   bindNav() {
     document.querySelectorAll('[data-page]').forEach(b => b.addEventListener('click', () => this.navigate(b.dataset.page)));
     g('quick-add-btn')?.addEventListener('click', () => this.openModal('m-quick'));
@@ -320,6 +385,27 @@ class BachelorKhata {
       return `${toBn(day)} ${month}, ${toBn(year)}`;
     }
     return `${toBn(day)} ${month}`;
+  }
+  fmtTxDateTimeBn(dateStr, timeStr) {
+    if (!dateStr) return '';
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const yDate = new Date(now);
+    yDate.setDate(now.getDate() - 1);
+    const yesterdayStr = `${yDate.getFullYear()}-${pad(yDate.getMonth() + 1)}-${pad(yDate.getDate())}`;
+
+    let dLabel;
+    if (dateStr === todayStr) {
+      dLabel = this.lang === 'bn' ? 'আজ' : 'Today';
+    } else if (dateStr === yesterdayStr) {
+      dLabel = this.lang === 'bn' ? 'গতকাল' : 'Yesterday';
+    } else {
+      dLabel = this.lang === 'bn' ? this.fmtDateBn(dateStr) : dateStr;
+    }
+
+    const tLabel = timeStr ? this.fmtTime(timeStr) : '';
+    return tLabel ? `${dLabel} · ${tLabel}` : dLabel;
   }
   toBnNum(n) {
     if (this.lang !== 'bn') return String(n);
@@ -1347,6 +1433,24 @@ class BachelorKhata {
   // ── RENDER: DASHBOARD ─────────────────────────────────────────
   renderDash() {
     this.ensureMessStructure();
+    const now = new Date();
+    const h = now.getHours();
+    let greet = 'শুভ দিন';
+    if (this.lang === 'bn') {
+      if (h >= 4 && h < 12) greet = 'শুভ সকাল';
+      else if (h >= 12 && h < 15) greet = 'শুভ দুপুর';
+      else if (h >= 15 && h < 18) greet = 'শুভ বিকাল';
+      else if (h >= 18 && h < 23) greet = 'শুভ সন্ধ্যা';
+      else greet = 'শুভ রাত';
+    } else {
+      if (h >= 4 && h < 12) greet = 'Good morning';
+      else if (h >= 12 && h < 17) greet = 'Good afternoon';
+      else if (h >= 17 && h < 22) greet = 'Good evening';
+      else greet = 'Good night';
+    }
+    const name = (this.data.settings.initials || '').trim();
+    const greetText = name ? `${greet}, ${name}` : greet;
+    setText('dash-greeting-text', greetText);
     const mTx=this.txForMonth();
     const income=mTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const expense=mTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -1535,25 +1639,59 @@ class BachelorKhata {
 
   renderRecent(mTx) {
     const txList = mTx || this.data.transactions;
-    const recent=[...txList].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+    const recent = [...txList].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
     const listEl = g('recent-list');
     if(!listEl) return;
     if(!recent.length){
       listEl.innerHTML=`
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 16px;text-align:center;gap:10px">
-          <i class="fas fa-receipt" style="font-size:48px;opacity:0.3;color:var(--muted)"></i>
-          <p style="font-size:14px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin:0">${this.t('no_tx') || 'কোনো লেনদেন নেই'}</p>
-          <button type="button" class="btn" onclick="app.openQuickModal('expense')" style="background:transparent;border:1px solid var(--p);color:var(--p);border-radius:20px;padding:7px 18px;font-size:13px;font-weight:700;font-family:'Hind Siliguri',sans-serif;cursor:pointer;margin-top:4px">
-            <i class="fas fa-plus" style="font-size:11px;margin-right:4px"></i> প্রথম লেনদেন যোগ করুন
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 16px;text-align:center;gap:10px;min-height:180px">
+          <i class="fas fa-receipt" style="font-size:44px;opacity:0.3;color:var(--muted)"></i>
+          <p style="font-size:13px;font-weight:600;color:var(--muted);font-family:'Hind Siliguri',sans-serif;margin:0">${this.t('no_tx') || 'কোনো লেনদেন নেই'}</p>
+          <button type="button" class="btn" onclick="app.openQuickModal('expense')" style="background:transparent;border:1px solid var(--p);color:var(--p);border-radius:20px;padding:6px 16px;font-size:12.5px;font-weight:700;font-family:'Hind Siliguri',sans-serif;cursor:pointer;margin-top:2px">
+            <i class="fas fa-plus" style="font-size:11px;margin-right:4px"></i> খরচ যোগ করুন
           </button>
         </div>`;
       return;
     }
-    listEl.innerHTML=recent.map(t=>{
-      const acc=this.getAcc(t.accountId); const isInc=t.type==='income'; const isTr=t.type==='transfer';
-      const color=isInc?'var(--green)':isTr?'var(--blue)':'var(--red)'; const sign=isInc?'+':isTr?'⇄':'-';
-      const timeDisplay=t.time ? ` · ${this.fmtTime(t.time)}` : '';
-      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="width:34px;height:34px;border-radius:9px;background:${color}1a;border:1px solid ${color}33;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${this.catEmoji(t.category)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--head);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Hind Siliguri',sans-serif">${t.title}</div><div style="font-size:10px;color:var(--muted)">${t.date}${timeDisplay}</div></div><div style="font-size:13px;font-weight:800;color:${color};white-space:nowrap">${sign}${this.fmt(t.amount)}</div></div>`;
+    listEl.innerHTML = recent.map((t, idx) => {
+      const isInc = t.type === 'income';
+      const isTr = t.type === 'transfer';
+      const color = isInc ? 'var(--green)' : isTr ? 'var(--blue)' : 'var(--red)';
+      const sign = isInc ? '+' : isTr ? '⇄' : '-';
+      const iconClass = isInc ? 'tx-icon-inc' : isTr ? 'tx-icon-tr' : 'tx-icon-exp';
+
+      let rawTitle = (t.title || '').trim();
+      const transCat = t.category ? this.tCat(t.category) : '';
+      let mainTitle = rawTitle;
+      const isGeneric = !rawTitle || rawTitle === 'খরচ' || rawTitle === 'আয়' || rawTitle === 'Expense' || rawTitle === 'Income';
+      if (isGeneric) {
+        mainTitle = transCat || (isInc ? 'আয়' : isTr ? 'স্থানান্তর' : 'খরচ');
+      }
+
+      const dateTimeBn = this.fmtTxDateTimeBn(t.date, t.time);
+      let subtitle = dateTimeBn;
+      if (transCat && transCat !== mainTitle) {
+        subtitle = `${transCat} · ${dateTimeBn}`;
+      } else if (t.notes && t.notes.trim()) {
+        subtitle = `${t.notes.trim()} · ${dateTimeBn}`;
+      }
+
+      const isLast = idx === recent.length - 1;
+      const borderStyle = isLast ? '' : 'border-bottom:1px solid var(--border);';
+
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${borderStyle}">
+          <div class="tx-icon-box ${iconClass}">
+            ${this.catEmoji(t.category)}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13.5px;font-weight:700;color:var(--head);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Hind Siliguri',sans-serif;line-height:1.25">${mainTitle}</div>
+            <div style="font-size:11px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px">${subtitle}</div>
+          </div>
+          <div style="font-size:14px;font-weight:800;color:${color};white-space:nowrap;font-family:'Hind Siliguri',sans-serif;letter-spacing:-.01em">
+            ${sign}${this.fmt(t.amount)}
+          </div>
+        </div>`;
     }).join('');
   }
 
@@ -2261,6 +2399,20 @@ class BachelorKhata {
     const icon = `<i class="fas fa-${isDark ? 'sun' : 'moon'}"></i>`;
     const tt = g('theme-toggle'); if (tt) tt.innerHTML = icon;
     const ttm = g('theme-toggle-mob'); if (ttm) ttm.innerHTML = icon;
+
+    // Update theme-color and native StatusBar
+    try {
+      const meta = document.getElementById('meta-theme-color') || document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', isDark ? '#0B1220' : '#FFFFFF');
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar) {
+        const StatusBar = window.Capacitor.Plugins.StatusBar;
+        StatusBar.setStyle({ style: isDark ? 'DARK' : 'LIGHT' });
+        StatusBar.setBackgroundColor({ color: isDark ? '#0B1220' : '#FFFFFF' });
+      }
+    } catch (e) {
+      console.warn('StatusBar update failed', e);
+    }
+
     Object.values(this.charts).forEach(c => { if (c) c.destroy(); });
     this.charts = {};
   }
@@ -3377,9 +3529,9 @@ class BachelorKhata {
         dashboard_title: "ড্যাশবোর্ড",
         transactions_title: "লেনদেন",
         accounts_title: "একাউন্ট",
-        mess_title: "🍛 মেস হিসাব",
+        mess_title: "মেস হিসাব",
         mess_sub: "সবার খরচ একসাথে হিসাব রাখুন",
-        chat_title: "💬 মেস চ্যাট",
+        chat_title: "মেস চ্যাট",
         split_title: "খরচ ভাগ",
         budget_title: "বাজেট",
         goals_title: "লক্ষ্য ও সঞ্চয়",
@@ -3387,8 +3539,8 @@ class BachelorKhata {
         reports_title: "রিপোর্ট",
         
         // Sub-tabs
-        tab_summary: "📊 মেস হিসাব",
-        tab_bazar: "🛒 বাজার লিস্ট",
+        tab_summary: "মেস হিসাব",
+        tab_bazar: "বাজার লিস্ট",
         tab_active_splits: "চলতি হিসাব",
         tab_settled_splits: "পরিশোধিত",
         tab_active_goals: "চলতি লক্ষ্য",
@@ -3584,9 +3736,9 @@ class BachelorKhata {
         dashboard_title: "Dashboard",
         transactions_title: "Transactions",
         accounts_title: "Accounts",
-        mess_title: "🍛 Mess Summary",
+        mess_title: "Mess Summary",
         mess_sub: "Keep track of all mess expenses",
-        chat_title: "💬 Mess Chat",
+        chat_title: "Mess Chat",
         split_title: "Split Bill",
         budget_title: "Budget",
         goals_title: "Goals & Savings",
@@ -3594,8 +3746,8 @@ class BachelorKhata {
         reports_title: "Reports",
         
         // Sub-tabs
-        tab_summary: "📊 Mess Summary",
-        tab_bazar: "🛒 Bazar List",
+        tab_summary: "Mess Summary",
+        tab_bazar: "Bazar List",
         tab_active_splits: "Active",
         tab_settled_splits: "Settled",
         tab_active_goals: "Active Goals",
