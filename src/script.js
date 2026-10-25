@@ -628,33 +628,116 @@ class BachelorKhata {
     g('q-amount').value=''; g('q-title').value=''; this.render();
   }
 
+  quickAddChip(val, targetId = 'q-amount') {
+    const el = g(targetId) || g('q-amount') || g('f-amount');
+    if (!el) return;
+    const cur = parseFloat(el.value) || 0;
+    el.value = (cur + val);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.focus();
+  }
+
+  clearTxFilter() {
+    this.txPeriod = 'month';
+    this.txFilterType = 'all';
+    const sInput = g('t-search');
+    if (sInput) sInput.value = '';
+    document.querySelectorAll('#t-period-tabs .tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.period === 'month');
+    });
+    document.querySelectorAll('#t-filter-tabs .tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.tfilter === 'all');
+    });
+    this.applyTxFilter();
+  }
+
   editTx(id) {
-    const t = this.data.transactions.find(tx=>tx.id===id); if(!t) return;
-    this.navigate('transactions');
-    setTimeout(()=>{
-      g('f-id').value=t.id; g('f-type').value=t.type; g('f-title').value=t.title; g('f-amount').value=t.amount; g('f-date').value=t.date; if(g('f-time')) g('f-time').value=t.time||new Date().toTimeString().slice(0,5); g('f-notes').value=t.notes||''; g('f-rec').checked=t.recurring||false;
-      if(t.recurring){g('f-rec-freq').style.display='';g('f-rec-freq').value=t.recFreq||'monthly';}
-      this.tags=t.tags||[]; this.renderTags(); g('f-tags').value=this.tags.join(',');
-      if(g('f-cat')) this.fillCat('f-cat',t.type); this.fillAcc('f-acc'); this.fillAcc('f-to-acc');
-      g('f-acc').value=t.accountId; if(g('f-cat')) g('f-cat').value=t.category;
-      if(t.toAccountId) g('f-to-acc').value=t.toAccountId;
-      document.querySelectorAll('[data-type]').forEach(b=>b.classList.toggle('active',b.dataset.type===t.type));
-      g('f-to-g').style.display=t.type==='transfer'?'':'none'; if(g('f-cat-g')) g('f-cat-g').style.display='none';
-      setText('form-title','আপডেট'); g('f-submit').textContent='আপডেট'; g('f-cancel').style.display='';
-      g('f-submit').style.background='#3b82f6';
-      
-      const formCard = g('tx-form')?.closest('.card');
+    const t = this.data.transactions.find(tx => tx.id === id);
+    if (!t) return;
+
+    if (this.page !== 'transactions') {
+      this.navigate('transactions');
+    }
+
+    const formCard = g('tx-form-card');
+    const chevron = g('tx-form-chevron');
+    if (formCard) {
+      formCard.classList.add('open');
+      if (chevron) chevron.style.transform = 'rotate(180deg)';
+    }
+
+    // Populate form fields
+    g('f-id').value = t.id;
+    g('f-type').value = t.type;
+    g('f-title').value = t.title || '';
+    g('f-amount').value = t.amount;
+    g('f-date').value = t.date;
+    if (g('f-time')) g('f-time').value = t.time || new Date().toTimeString().slice(0, 5);
+    if (g('f-notes')) g('f-notes').value = t.notes || '';
+
+    // Recurring
+    const isRec = !!t.recurring;
+    if (g('f-rec')) g('f-rec').checked = isRec;
+    const chipsWrap = g('f-rec-chips');
+    if (chipsWrap) {
+      chipsWrap.style.display = isRec ? 'flex' : 'none';
+      const freq = t.recFreq || 'monthly';
+      if (g('f-rec-freq')) g('f-rec-freq').value = freq;
+      chipsWrap.querySelectorAll('.rec-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.freq === freq);
+      });
+    }
+
+    // Accounts
+    this.fillAcc('f-acc');
+    this.fillAcc('f-to-acc');
+    if (g('f-acc')) g('f-acc').value = t.accountId || '';
+    if (g('f-to-acc') && t.toAccountId) g('f-to-acc').value = t.toAccountId;
+    if (g('f-to-g')) g('f-to-g').style.display = (t.type === 'transfer') ? '' : 'none';
+
+    // Type toggles in form
+    const formToggle = g('f-type-toggle');
+    if (formToggle) {
+      formToggle.querySelectorAll('.tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.type === t.type);
+      });
+    }
+    if (formCard) formCard.dataset.type = t.type;
+
+    // Currency symbol color
+    const sym = g('f-currency-symbol');
+    if (sym) {
+      sym.style.color = (t.type === 'income') ? '#16A34A' : (t.type === 'transfer' ? '#2563EB' : '#EF4444');
+    }
+
+    // Header & Submit button
+    const typeLabel = t.type === 'income' ? 'আয়' : (t.type === 'transfer' ? 'ট্রান্সফার' : 'ব্যয়');
+    setText('form-title', `${typeLabel} সম্পাদনা`);
+    const subBtn = g('f-submit');
+    if (subBtn) {
+      subBtn.textContent = 'হালনাগাদ করুন';
+    }
+    const cancelBtn = g('f-cancel');
+    if (cancelBtn) cancelBtn.style.display = '';
+
+    // Scroll form into view with a highlight pulse
+    setTimeout(() => {
       if (formCard) {
-        formCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        formCard.style.transition = 'all 0.3s ease';
-        formCard.style.outline = '2px solid #3b82f6';
-        formCard.style.boxShadow = '0 0 16px rgba(59, 130, 246, 0.4)';
+        formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        formCard.style.transition = 'box-shadow 0.3s ease, border-color 0.3s ease';
+        formCard.style.borderColor = 'var(--p)';
+        formCard.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.35)';
         setTimeout(() => {
-          formCard.style.outline = '';
+          formCard.style.borderColor = '';
           formCard.style.boxShadow = '';
-        }, 2000);
+        }, 1800);
       }
-    },100);
+      const amtInput = g('f-amount');
+      if (amtInput) {
+        amtInput.focus();
+        amtInput.select();
+      }
+    }, 120);
   }
 
   deleteTx(id) {
@@ -664,12 +747,42 @@ class BachelorKhata {
   }
 
   cancelEdit() {
-    g('f-id').value=''; g('tx-form').reset(); g('f-date').value=new Date().toISOString().split('T')[0]; if(g('f-time')) g('f-time').value=new Date().toTimeString().slice(0,5);
-    this.tags=[]; this.renderTags(); g('f-tags').value='';
-    setText('form-title','নতুন'); g('f-submit').textContent='অ্যাড'; g('f-submit').style.background=''; g('f-cancel').style.display='none';
-    g('f-rec-freq').style.display='none'; g('f-to-g').style.display='none'; if(g('f-cat-g')) g('f-cat-g').style.display='none';
-    document.querySelectorAll('[data-type]').forEach(b=>b.classList.toggle('active',b.dataset.type==='expense'));
-    g('f-type').value='expense'; if(g('f-cat')) this.fillCat('f-cat','expense');
+    g('f-id').value = '';
+    g('tx-form').reset();
+    g('f-date').value = new Date().toISOString().split('T')[0];
+    if (g('f-time')) g('f-time').value = new Date().toTimeString().slice(0, 5);
+    g('f-type').value = 'expense';
+    
+    const formCard = g('tx-form-card');
+    if (formCard) formCard.dataset.type = 'expense';
+
+    const formToggle = g('f-type-toggle');
+    if (formToggle) {
+      formToggle.querySelectorAll('.tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.type === 'expense');
+      });
+    }
+
+    const sym = g('f-currency-symbol');
+    if (sym) sym.style.color = '#EF4444';
+
+    const recWrap = g('f-rec-chips');
+    if (recWrap) recWrap.style.display = 'none';
+
+    setText('form-title', 'নতুন ব্যয়');
+    const subBtn = g('f-submit');
+    if (subBtn) {
+      subBtn.textContent = 'ব্যয় যোগ করুন';
+      subBtn.style.background = '';
+    }
+    const cancelBtn = g('f-cancel');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+
+    const chevron = g('tx-form-chevron');
+    if (window.innerWidth < 768 && formCard) {
+      formCard.classList.remove('open');
+      if (chevron) chevron.style.transform = '';
+    }
   }
 
   // ── ACCOUNTS ──────────────────────────────────────────────────
@@ -1339,7 +1452,7 @@ class BachelorKhata {
   applyTxFilter() {
     const period = this.txPeriod || 'month';
     const filterType = this.txFilterType || 'all';
-    const search = (g('t-search')?.value || '').toLowerCase();
+    const search = (g('t-search')?.value || '').toLowerCase().trim();
     const todayStr = new Date().toISOString().split('T')[0];
 
     // 1. Filter for Top Summary Box based on period
@@ -1356,14 +1469,14 @@ class BachelorKhata {
     const sumOut = summaryTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const sumBal = sumIn - sumOut;
 
-    setText('t-sum-in', `+${this.fmt(sumIn)}`);
-    setText('t-sum-out', `-${this.fmt(sumOut)}`);
-    setText('t-sum-bal', `${sumBal >= 0 ? '+' : ''}${this.fmt(sumBal)}`);
+    setText('t-sum-in', sumIn === 0 ? '৳০' : `+${this.fmt(sumIn)}`);
+    setText('t-sum-out', sumOut === 0 ? '৳০' : `-${this.fmt(sumOut)}`);
+    setText('t-sum-bal', sumBal === 0 ? '৳০' : (sumBal > 0 ? `+${this.fmt(sumBal)}` : `-${this.fmt(Math.abs(sumBal))}`));
 
     // 2. Filter for List based on period, filterType, and search
     let listTx = summaryTx.filter(t => {
       const matchType = filterType === 'all' || t.type === filterType;
-      const matchSearch = !search || t.title.toLowerCase().includes(search) || (t.notes || '').toLowerCase().includes(search);
+      const matchSearch = !search || (t.title || '').toLowerCase().includes(search) || (t.notes || '').toLowerCase().includes(search);
       return matchType && matchSearch;
     }).sort((a, b) => {
       if (b.date !== a.date) return new Date(b.date) - new Date(a.date);
@@ -1390,29 +1503,56 @@ class BachelorKhata {
     });
 
     container.innerHTML = Object.entries(groups).map(([dateStr, items]) => {
-      const dateLabel = this.fmtDateBn(dateStr);
+      let dateLabel = this.fmtDateBn(dateStr);
+      if (dateStr === todayStr) {
+        dateLabel = `আজ, ${dateLabel}`;
+      } else {
+        const yDate = new Date();
+        yDate.setDate(yDate.getDate() - 1);
+        const yStr = yDate.toISOString().split('T')[0];
+        if (dateStr === yStr) {
+          dateLabel = `গতকাল, ${dateLabel}`;
+        }
+      }
+
       const dayIn = items.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
       const dayOut = items.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
       const itemsHtml = items.map(t => {
         const isInc = t.type === 'income';
+        const isTrf = t.type === 'transfer';
         const timeLabel = t.time ? this.fmtTime(t.time) : '';
+        const iconClass = isInc ? 'tx-row-icon-income' : (isTrf ? 'tx-row-icon-transfer' : 'tx-row-icon-expense');
+        const iconFa = isInc ? 'arrow-down' : (isTrf ? 'arrow-right-arrow-left' : 'arrow-up');
+        const sign = isInc ? '+' : (isTrf ? '' : '-');
+        const amtColor = isInc ? '#16A34A' : (isTrf ? '#2563EB' : '#EF4444');
+        const acc = this.getAcc(t.accountId);
+        const accName = acc ? acc.name : '';
+
         return `
-          <div class="tx-item-card ${isInc ? 'tx-item-income' : 'tx-item-expense'}">
-            <div style="display:flex;align-items:center;gap:12px">
-              <div style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;background:${isInc ? 'rgba(34,197,94,.18)' : 'rgba(239,68,68,.18)'};color:${isInc ? '#10b981' : '#ef4444'}">
-                <i class="fas fa-${isInc ? 'plus' : 'minus'}"></i>
+          <div class="tx-row-card">
+            <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
+              <div class="tx-row-icon ${iconClass}">
+                <i class="fas fa-${iconFa}"></i>
               </div>
-              <div>
-                <div style="font-size:13.5px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif">${t.title}</div>
-                <div style="font-size:11px;color:var(--muted);font-weight:500">${timeLabel || t.date}</div>
+              <div style="min-width:0;flex:1">
+                <div style="font-size:15px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  ${t.title || (isInc ? 'আয়' : (isTrf ? 'ট্রান্সফার' : 'ব্যয়'))}
+                </div>
+                <div style="font-size:12px;color:var(--muted);font-weight:500;margin-top:2px;display:flex;align-items:center;gap:6px">
+                  ${timeLabel || t.date}
+                  ${accName ? `<span>•</span><span>${accName}</span>` : ''}
+                  ${t.recurring ? `<i class="fas fa-arrows-rotate" style="font-size:10px;color:var(--p)" title="পুনরাবৃত্তি"></i>` : ''}
+                </div>
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:12px">
-              <div style="font-size:15px;font-weight:800;color:${isInc ? '#10b981' : '#ef4444'};font-family:'Hind Siliguri',sans-serif">${isInc ? '+' : '-'}${this.fmt(t.amount)}</div>
-              <div style="display:flex;gap:4px">
-                <button onclick="app.editTx('${t.id}')" class="btn btn-s bsm bico" title="সম্পাদনা"><i class="fas fa-pen" style="font-size:10px"></i></button>
-                <button onclick="app.deleteTx('${t.id}')" class="btn btn-d bsm bico" title="মুছুন"><i class="fas fa-trash" style="font-size:10px"></i></button>
+            <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+              <div style="font-size:16px;font-weight:800;color:${amtColor};font-family:'Hind Siliguri',sans-serif;text-align:right">
+                ${sign}${this.fmt(t.amount)}
+              </div>
+              <div class="tx-actions">
+                <button type="button" onclick="app.editTx('${t.id}')" class="tx-act-btn tx-act-edit" title="সম্পাদনা"><i class="fas fa-pen"></i></button>
+                <button type="button" onclick="app.deleteTx('${t.id}')" class="tx-act-btn tx-act-del" title="মুছুন"><i class="fas fa-trash"></i></button>
               </div>
             </div>
           </div>
@@ -1420,13 +1560,14 @@ class BachelorKhata {
       }).join('');
 
       return `
-        <div style="margin-bottom:8px">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 4px 8px 4px;font-size:11px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;border-bottom:1px dashed var(--border);margin-bottom:8px">
-            <span style="font-weight:700">${dateLabel}</span>
-            <div style="display:flex;gap:8px">
-              <span>মোট</span>
-              ${dayIn > 0 ? `<span style="color:var(--green);font-weight:700">+${this.fmt(dayIn)}</span>` : ''}
-              ${dayOut > 0 ? `<span style="color:var(--red);font-weight:700">-${this.fmt(dayOut)}</span>` : ''}
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 4px 8px 4px;font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif;border-bottom:1px dashed var(--border);margin-bottom:10px">
+            <span style="font-weight:700;color:var(--head)">${dateLabel}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px">মোট</span>
+              ${dayIn > 0 ? `<span style="color:#16A34A;font-weight:700">+${this.fmt(dayIn)}</span>` : ''}
+              ${dayOut > 0 ? `<span style="color:#EF4444;font-weight:700">-${this.fmt(dayOut)}</span>` : ''}
+              ${dayIn === 0 && dayOut === 0 ? `<span style="font-weight:700">৳০</span>` : ''}
             </div>
           </div>
           ${itemsHtml}
@@ -3510,3 +3651,4 @@ function getMuted() { return getComputedStyle(document.documentElement).getPrope
 
 // ── LAUNCH ──────────────────────────────────────────────────────
 const app = new BachelorKhata();
+window.app = app;

@@ -400,8 +400,10 @@ tbody tr:last-child td{border-bottom:none}
 :root.light .q-tab.active[data-qtype="expense"]{background:#EF4444 !important;color:#FFFFFF !important;box-shadow:0 2px 8px rgba(239,68,68,0.25)}
 .q-tab.active[data-qtype="income"]{background:#4ADE80 !important;color:#052E16 !important;box-shadow:0 2px 8px rgba(74,222,128,0.25)}
 :root.light .q-tab.active[data-qtype="income"]{background:#16A34A !important;color:#FFFFFF !important;box-shadow:0 2px 8px rgba(22,163,74,0.25)}
-.q-chip{height:32px;padding:0 14px;border-radius:16px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:700;font-family:'Hind Siliguri',sans-serif;cursor:pointer;transition:all .2s}
+.q-chip{height:32px;padding:0 14px;border-radius:16px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:700;font-family:'Hind Siliguri',sans-serif;cursor:pointer;transition:all .2s;user-select:none;-webkit-tap-highlight-color:transparent}
+:root.light .q-chip{background:#EEF2F5;border-color:#E3E9EC;color:var(--head)}
 .q-chip:hover{border-color:var(--p);color:var(--head)}
+.q-chip:active{transform:scale(0.95);background:var(--p-soft);color:var(--p)}
 #m-quick[data-type="expense"] #q-submit,#m-quick:not([data-type]) #q-submit{background:#F87171 !important;color:#450A0A !important}
 :root.light #m-quick[data-type="expense"] #q-submit,:root.light #m-quick:not([data-type]) #q-submit{background:linear-gradient(135deg, #EF4444, #DC2626) !important;color:#FFFFFF !important}
 #m-quick[data-type="income"] #q-submit{background:#4ADE80 !important;color:#052E16 !important}
@@ -440,7 +442,9 @@ tbody tr:last-child td{border-bottom:none}
 :root.light .tx-pdf-btn{background:#FFFFFF;border-color:#E3E9EC}
 
 /* Transaction List Cards */
-.tx-row-card{min-height:64px;padding:12px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:all .2s}
+.tx-row-card{min-height:64px;padding:12px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,0.02)}
+:root.light .tx-row-card{background:#FFFFFF;border-color:#E3E9EC}
+.tx-row-card:hover{border-color:var(--border2);transform:translateY(-1px)}
 .tx-row-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .tx-row-icon-income{background:rgba(74,222,128,.14);color:#4ADE80}
 :root.light .tx-row-icon-income{background:#DCFCE7;color:#16A34A}
@@ -450,12 +454,21 @@ tbody tr:last-child td{border-bottom:none}
 :root.light .tx-row-icon-transfer{background:#DBEAFE;color:#2563EB}
 .tx-actions{display:flex;gap:8px;align-items:center}
 .tx-act-btn{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;border:none;cursor:pointer;transition:all .2s}
+.tx-act-btn:active{transform:scale(0.92)}
 .tx-act-edit{background:#0B1220;color:var(--head)}
 :root.light .tx-act-edit{background:#EEF2F5;color:var(--head)}
+.tx-act-edit:hover{background:var(--surface2)}
 .tx-act-del{background:rgba(248,113,113,.14);color:#F87171}
 :root.light .tx-act-del{background:#FEE2E2;color:#EF4444}
+.tx-act-del:hover{background:rgba(239,68,68,0.25)}
+@media(max-width:480px){
+  .tx-row-card{padding:10px 12px;gap:8px}
+  .tx-row-icon{width:40px;height:40px;font-size:16px}
+  .tx-actions{gap:6px}
+  .tx-act-btn{width:32px;height:32px;font-size:12px}
+}
 @media(hover:hover) and (pointer:fine){
-  .tx-actions{opacity:0.3;transition:opacity .2s}
+  .tx-actions{opacity:0.4;transition:opacity .2s}
   .tx-row-card:hover .tx-actions{opacity:1}
 }
 
@@ -943,6 +956,11 @@ input:checked + .slider:before{transform:translateX(20px)}
                 <div style="position:relative;display:flex;align-items:center">
                   <span id="f-currency-symbol" style="position:absolute;left:16px;font-size:22px;font-weight:700;color:#EF4444;pointer-events:none;font-family:'Hind Siliguri',sans-serif;transition:color 0.2s">৳</span>
                   <input type="number" inputmode="decimal" class="inp" id="f-amount" step="any" min="0" placeholder="০" required style="height:56px;padding-left:42px;font-size:24px;font-weight:700;font-family:'Hind Siliguri',sans-serif;border-radius:12px">
+                </div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <button type="button" class="q-chip" onclick="app.quickAddChip(50, 'f-amount')">+৫০</button>
+                  <button type="button" class="q-chip" onclick="app.quickAddChip(100, 'f-amount')">+১০০</button>
+                  <button type="button" class="q-chip" onclick="app.quickAddChip(500, 'f-amount')">+৫০০</button>
                 </div>
               </div>
 
