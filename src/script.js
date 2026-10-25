@@ -278,10 +278,20 @@ class BachelorKhata {
     return '৳' + Math.round(n||0).toLocaleString(loc);
   }
   fmtK(n) { return Math.abs(n)>=1000 ? '৳'+Math.round(n/1000)+'k' : this.fmt(n); }
-  fmtTime(tStr) {
+  fmtTime(tStr = new Date()) {
     if (!tStr) return '';
-    const [h, m] = tStr.split(':').map(Number);
-    if (isNaN(h) || isNaN(m)) return tStr;
+    let h, m;
+    if (tStr instanceof Date) {
+      h = tStr.getHours();
+      m = tStr.getMinutes();
+    } else if (typeof tStr === 'string' && tStr.includes(':')) {
+      const parts = tStr.split(':').map(Number);
+      h = parts[0];
+      m = parts[1];
+    } else {
+      return String(tStr);
+    }
+    if (isNaN(h) || isNaN(m)) return String(tStr);
     const h12 = h % 12 || 12;
     const mPad = m < 10 ? '0' + m : m;
     if (this.lang === 'en') {
