@@ -44,10 +44,11 @@ class BachelorKhata {
       settings:     JSON.parse(localStorage.getItem('bk_set')  || '{"initials":"","theme":"light","hasSetProfile":false}')
     };
 
-    if (!localStorage.getItem('bk_theme_user_set')) {
-      this.data.settings.theme = 'light';
-      this.save('settings');
-    }
+    const prefTheme = localStorage.getItem('bk_theme_pref');
+    const curTheme = (prefTheme === 'dark') ? 'dark' : 'light';
+    this.data.settings.theme = curTheme;
+    localStorage.setItem('bk_theme_pref', curTheme);
+    this.save('settings');
 
     if (this.data.settings.initials === 'SA') {
       this.data.settings.initials = '';
@@ -266,10 +267,20 @@ class BachelorKhata {
     if (!tStr) return '';
     const [h, m] = tStr.split(':').map(Number);
     if (isNaN(h) || isNaN(m)) return tStr;
-    const ampm = h >= 12 ? 'PM' : 'AM';
     const h12 = h % 12 || 12;
     const mPad = m < 10 ? '0' + m : m;
-    return `${h12}:${mPad} ${ampm}`;
+    if (this.lang === 'en') {
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      return `${h12}:${mPad} ${ampm}`;
+    }
+    let period = 'সকাল';
+    if (h >= 4 && h < 12) period = 'সকাল';
+    else if (h >= 12 && h < 15) period = 'দুপুর';
+    else if (h >= 15 && h < 18) period = 'বিকাল';
+    else if (h >= 18 && h < 20) period = 'সন্ধ্যা';
+    else period = 'রাত';
+    const toBn = s => String(s).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+    return `${period} ${toBn(h12)}:${toBn(mPad)}`;
   }
   fmtDateBn(dateStr) {
     if (!dateStr) return '';
@@ -324,15 +335,23 @@ class BachelorKhata {
 
   // ── FORMS ─────────────────────────────────────────────────────
   bindForms() {
-    // Type tabs in add form
-    document.querySelectorAll('[data-type]').forEach(btn => {
+    // Type tabs in main add form
+    document.querySelectorAll('#f-type-toggle .tab').forEach(btn => {
       btn.addEventListener('click', () => {
         const t = btn.dataset.type;
         g('f-type').value = t;
-        document.querySelectorAll('[data-type]').forEach(b => b.classList.remove('active'));
+        g('tx-form-card')?.setAttribute('data-type', t);
+        document.querySelectorAll('#f-type-toggle .tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const titles = { expense: 'নতুন ব্যয়', income: 'নতুন আয়', transfer: 'নতুন ট্রান্সফার' };
+        const btnLabels = { expense: 'ব্যয় যোগ করুন', income: 'আয় যোগ করুন', transfer: 'ট্রান্সফার যোগ করুন' };
+        const symColors = { expense: '#EF4444', income: '#16A34A', transfer: '#2563EB' };
+        setText('form-title', titles[t] || 'নতুন');
+        setText('f-submit', btnLabels[t] || 'যোগ করুন');
+        const sym = g('f-currency-symbol');
+        if (sym) sym.style.color = symColors[t] || 'var(--head)';
         if (g('f-cat')) this.fillCat('f-cat', t);
-        g('f-to-g').style.display = t==='transfer' ? '' : 'none';
+        g('f-to-g').style.display = t === 'transfer' ? '' : 'none';
         if (g('f-cat-g')) g('f-cat-g').style.display = 'none';
       });
     });
@@ -342,15 +361,41 @@ class BachelorKhata {
       btn.addEventListener('click', () => {
         const t = btn.dataset.qtype;
         g('q-type').value = t;
+        g('m-quick')?.setAttribute('data-type', t);
         document.querySelectorAll('[data-qtype]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const titles = { expense: 'নতুন ব্যয়', income: 'নতুন আয়' };
+        const btnLabels = { expense: 'ব্যয় যোগ করুন', income: 'আয় যোগ করুন' };
+        const symColors = { expense: '#EF4444', income: '#16A34A' };
+        setText('q-modal-title', titles[t] || 'নতুন');
+        setText('q-submit', btnLabels[t] || 'যোগ করুন');
+        const sym = g('q-currency-symbol');
+        if (sym) sym.style.color = symColors[t] || 'var(--head)';
         if (g('q-cat')) this.fillCat('q-cat', t);
       });
     });
 
-    // Recurring checkbox
+    // Recurring switch & chips
     g('f-rec')?.addEventListener('change', e => {
-      g('f-rec-freq').style.display = e.target.checked ? '' : 'none';
+      const chips = g('f-rec-chips');
+      if (chips) chips.style.display = e.target.checked ? 'flex' : 'none';
+    });
+    document.querySelectorAll('.rec-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.rec-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        if (g('f-rec-freq')) g('f-rec-freq').value = chip.dataset.freq;
+      });
+    });
+
+    // Mobile form accordion toggle
+    g('tx-form-toggle-btn')?.addEventListener('click', () => {
+      const card = g('tx-form-card');
+      const icon = g('tx-form-chevron');
+      if (card) {
+        card.classList.toggle('open');
+        if (icon) icon.style.transform = card.classList.contains('open') ? 'rotate(180deg)' : '';
+      }
     });
 
     // Main form
@@ -1798,13 +1843,19 @@ class BachelorKhata {
 
   // ── THEME & PROFILE ───────────────────────────────────────────
   applyTheme() {
-    if(this.data.settings.theme==='light')document.documentElement.classList.add('light');
-    else document.documentElement.classList.remove('light');
-    const icon=`<i class="fas fa-${this.data.settings.theme==='light'?'moon':'sun'}"></i>`;
-    const tt=g('theme-toggle'); if(tt)tt.innerHTML=icon;
-    const ttm=g('theme-toggle-mob'); if(ttm)ttm.innerHTML=icon;
-    Object.values(this.charts).forEach(c=>{if(c)c.destroy();});
-    this.charts={};
+    const isDark = (this.data.settings.theme === 'dark');
+    if (!isDark) {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+    }
+    const icon = `<i class="fas fa-${isDark ? 'sun' : 'moon'}"></i>`;
+    const tt = g('theme-toggle'); if (tt) tt.innerHTML = icon;
+    const ttm = g('theme-toggle-mob'); if (ttm) ttm.innerHTML = icon;
+    Object.values(this.charts).forEach(c => { if (c) c.destroy(); });
+    this.charts = {};
   }
 
   applyProfile() {
@@ -1853,12 +1904,13 @@ class BachelorKhata {
   bindProfile() {
     g('profile-btn')?.addEventListener('click',()=>this.openModal('m-profile'));
     [g('theme-toggle'),g('theme-toggle-mob')].forEach(btn=>{btn?.addEventListener('click',()=>{
-      this.data.settings.theme = this.data.settings.theme === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('bk_theme_user_set', 'true');
+      const nextTheme = this.data.settings.theme === 'dark' ? 'light' : 'dark';
+      this.data.settings.theme = nextTheme;
+      localStorage.setItem('bk_theme_pref', nextTheme);
       this.save('settings');
       this.applyTheme();
       this.render();
-      this.toast(`${this.data.settings.theme==='dark'?'ডার্ক':'লাইট'} মোড চালু!`,'success');
+      this.toast(`${nextTheme === 'dark' ? 'ডার্ক' : 'লাইট'} মোড চালু!`, 'success');
     });});
     
     g('p-initials')?.addEventListener('input', e => {

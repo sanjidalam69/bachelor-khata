@@ -3,22 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="color-scheme" content="light">
 <title>ব্যাচেলর খাতা — হিসাব রাখো, টেনশন ভাগ করো</title>
 <meta name="description" content="ব্যাচেলরদের জন্য স্মার্ট আর্থিক ট্র্যাকার — মেস হিসাব, বাজার লিস্ট, খরচ ভাগ সহ।">
 <script>
   (function(){
     try {
-      var set = localStorage.getItem('bk_set');
-      var isUserSet = localStorage.getItem('bk_theme_user_set') === 'true';
-      var theme = 'light';
-      if (set && isUserSet) {
-        var parsed = JSON.parse(set);
-        if (parsed.theme) theme = parsed.theme;
-      }
+      var pref = localStorage.getItem('bk_theme_pref');
+      var theme = (pref === 'dark') ? 'dark' : 'light';
       if (theme === 'dark') {
         document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
       }
     } catch(e){}
   })();
@@ -32,6 +30,31 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
+  /* ── BUILTIN DEFAULT: LIGHT THEME ── */
+  --bg:#F1F5F4;--bg2:#FFFFFF;
+  --surface:#FFFFFF;--surface2:#E8ECEB;
+  --border:#E3E9EC;--border2:#CBD5E1;
+  --text:#475569;--head:#0F172A;--muted:#64748B;
+  /* Primary Green */
+  --p:#10B981;--p2:#34D399;--p3:#059669;
+  --pg:#10B981;--p-light:rgba(16,185,129,.12);--p-soft:#D1FAE5;
+  /* Accent colors */
+  --green:#16A34A;--red:#EF4444;--amber:#F59E0B;
+  --blue:#2563EB;--cyan:#06B6D4;--pink:#EC4899;
+  /* Semantic */
+  --income:#16A34A;--expense:#EF4444;
+  --success-bg:rgba(22,163,74,.1);--success-bd:rgba(22,163,74,.2);
+  --danger-bg:rgba(239,68,68,.1);--danger-bd:rgba(239,68,68,.2);
+  --warn-bg:rgba(245,158,11,.1);--warn-bd:rgba(245,158,11,.2);
+  /* Radius */
+  --r:16px;--rs:12px;--rxs:8px;
+  --spring:cubic-bezier(.175,.885,.32,1.275);--ease:cubic-bezier(.16,1,.3,1);
+  --sw:88px;
+  --sidebar-bg:#FFFFFF;
+  --p-grad:linear-gradient(135deg, #10B981, #0D9488);
+  --btn-shadow:none;
+}
+:root.dark, :root:not(.light){
   /* ── DARK THEME ── */
   --bg:#0B1220;--bg2:#0F1626;
   --surface:#121A2B;--surface2:#182238;
@@ -48,16 +71,12 @@
   --success-bg:rgba(74,222,128,.12);--success-bd:rgba(74,222,128,.25);
   --danger-bg:rgba(248,113,113,.12);--danger-bd:rgba(248,113,113,.25);
   --warn-bg:rgba(251,191,36,.12);--warn-bd:rgba(251,191,36,.25);
-  /* Radius */
-  --r:16px;--rs:12px;--rxs:8px;
-  --spring:cubic-bezier(.175,.885,.32,1.275);--ease:cubic-bezier(.16,1,.3,1);
-  --sw:88px;
   --sidebar-bg:#0F1626;
   --p-grad:linear-gradient(135deg, #10B981, #0D9488);
   --btn-shadow:none;
 }
 :root.light{
-  /* ── LIGHT THEME ── */
+  /* ── LIGHT THEME (Explicit) ── */
   --bg:#F1F5F4;--bg2:#FFFFFF;
   --surface:#FFFFFF;--surface2:#E8ECEB;
   --border:#E3E9EC;--border2:#CBD5E1;
@@ -270,19 +289,25 @@ html,body{height:100%;min-height:100dvh;font-family:'Hind Siliguri','Inter',syst
 /*── TYPOGRAPHY ──*/
 .sec-title{font-size:14px;font-weight:800;color:var(--head);margin-bottom:3px;font-family:'Hind Siliguri',sans-serif}
 .sec-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
-.label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);display:block;margin-bottom:5px}
+.label{font-size:13px;font-weight:600;color:#8A97AD;font-family:'Hind Siliguri',sans-serif;display:block;margin-bottom:6px}
+:root.light .label{color:#64748B}
 
 /*── INPUTS ──*/
-.inp,.sel,.txa{width:100%;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.15);border-radius:var(--rs);color:var(--head);font-size:13px;font-family:'Hind Siliguri','Inter',sans-serif;padding:10px 14px;outline:none;transition:all .22s;-webkit-appearance:none;appearance:none}
-.sel option{background:#051016;color:#ededff}
-:root.light .inp,:root.light .sel,:root.light .txa{background:#ffffff;border-color:rgba(15,23,42,.18);color:#0f172a}
-:root.light .sel option{background:#ffffff;color:#003040}
-.inp:focus,.sel:focus,.txa:focus{border-color:rgba(56,189,248,.55);box-shadow:0 0 0 3px rgba(56,189,248,.12);background:rgba(56,189,248,.07)}
-.inp::placeholder,.txa::placeholder{color:var(--muted)}
+.inp,.sel,.txa{width:100%;background:#0F1626;border:1px solid #1F2A40;border-radius:12px;color:var(--head);font-size:14px;font-family:'Hind Siliguri','Inter',sans-serif;padding:10px 14px;outline:none;transition:all .22s;-webkit-appearance:none;appearance:none}
+.sel option{background:#0F1626;color:#ededff}
+:root.light .inp,:root.light .sel,:root.light .txa{background:#FFFFFF;border-color:#E3E9EC;color:#0F172A}
+:root.light .sel option{background:#FFFFFF;color:#0F172A}
+.inp:focus,.sel:focus,.txa:focus{border-color:#34D399;box-shadow:0 0 0 3px rgba(52,211,153,.2);background:#0F1626}
+:root.light .inp:focus,:root.light .sel:focus,:root.light .txa:focus{border-color:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,.18);background:#FFFFFF}
+.inp::placeholder,.txa::placeholder{color:#5B6882}
+:root.light .inp::placeholder,:root.light .txa::placeholder{color:#94A3B8}
+input[type="date"],input[type="time"]{color-scheme:light}
+:root:not(.light) input[type="date"],:root:not(.light) input[type="time"]{color-scheme:dark}
+:root:not(.light) input[type="date"]::-webkit-calendar-picker-indicator,:root:not(.light) input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(1)}
 .txa{resize:vertical;min-height:60px}
-.inp-icon{position:relative}.inp-icon .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;pointer-events:none}.inp-icon .inp{padding-left:33px}
+.inp-icon{position:relative}.inp-icon .ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}.inp-icon .inp{padding-left:36px}
 .ig{display:flex;flex-direction:column;gap:5px}
-.irow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.irow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
 /*── BUTTONS ──*/
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:var(--rs);font-size:12.5px;font-weight:700;border:none;cursor:pointer;font-family:'Hind Siliguri','Inter',sans-serif;transition:all .3s var(--spring);white-space:nowrap;line-height:1.2;position:relative;overflow:hidden;user-select:none}
@@ -323,18 +348,28 @@ tbody tr:last-child td{border-bottom:none}
 .nowrap{white-space:nowrap !important}
 
 /*── MODAL ──*/
-.mo{position:fixed;inset:0;background:rgba(2,4,14,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0;opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0;opacity:0;pointer-events:none;transition:opacity .2s var(--ease)}
+:root.light .mo{background:rgba(15,23,42,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .mo.open{opacity:1;pointer-events:all}
-.modal{background:linear-gradient(160deg,rgba(14,12,36,.99),rgba(10,8,26,.99));border:1px solid rgba(14,165,233,.22);border-radius:var(--r) var(--r) 0 0;padding:20px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .4s var(--spring);box-shadow:0 -6px 32px rgba(14,165,233,.12)}
+.modal{background:#121A2B;border:1px solid #1F2A40;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);box-shadow:none}
 .mo.open .modal{transform:translateY(0)}
-@media(min-width:641px){.mo{align-items:center;padding:16px}.modal{border-radius:var(--r);transform:scale(.9) translateY(20px);max-width:470px;transition:transform .4s var(--spring),opacity .3s var(--ease);opacity:0}.mo.open .modal{transform:scale(1) translateY(0);opacity:1}}
-:root.light .modal{background:#fafafa;border:1px solid rgba(15,23,42,.1);box-shadow:0 8px 32px rgba(15,23,42,.08)}
+@media(min-width:641px){
+  .mo{align-items:center;padding:16px}
+  .modal{border-radius:20px;transform:scale(.96);max-width:480px;transition:transform .2s var(--ease),opacity .2s var(--ease);opacity:0}
+  .mo.open .modal{transform:scale(1);opacity:1}
+}
+:root.light .modal{background:#FFFFFF;border:none;box-shadow:0 24px 60px rgba(15,23,42,.25)}
 .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.mt{font-size:14.5px;font-weight:800;color:var(--head);font-family:'Hind Siliguri',sans-serif;letter-spacing:-.01em}
-.mc{width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .3s var(--spring)}
-.mc:hover{color:var(--head);background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:var(--red);transform:scale(1.1) rotate(90deg)}
-.mc:active{transform:scale(0.9)}
-:root.light .mc{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08)}
+.mt{font-size:18px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;letter-spacing:-.01em}
+.mc{width:36px;height:36px;border-radius:50%;background:#0B1220;border:none;color:#E8EEF7;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s var(--ease)}
+:root.light .mc{background:#EEF2F5;color:#64748B}
+.mc:hover{transform:scale(1.08)}
+.mc:active{transform:scale(0.92)}
+.modal-drag-handle{display:none}
+@media(max-width:640px){
+  .modal-drag-handle{display:block;width:40px;height:4px;border-radius:99px;background:#2B3750;margin:0 auto 12px auto}
+  :root.light .modal-drag-handle{background:#CBD5E1}
+}
 .mf{display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
 
 /*── TOAST ──*/
@@ -353,16 +388,128 @@ tbody tr:last-child td{border-bottom:none}
 .tab:hover{color:var(--head);background:rgba(14,165,233,.08);transform:scale(1.02)}
 .tab:active{transform:scale(0.96)}
 .tab.active{background:var(--p-grad);color:#ffffff !important;box-shadow:0 4px 14px rgba(14,165,233,.35);transform:scale(1.03)}
-.tab[data-type="income"].active, .tab[data-qtype="income"].active { background: #22c55e !important; color: #ffffff !important; box-shadow: 0 4px 14px rgba(34,197,94,.35) !important; }
-.tab[data-type="expense"].active, .tab[data-qtype="expense"].active { background: #ef4444 !important; color: #ffffff !important; box-shadow: 0 4px 14px rgba(239,68,68,.35) !important; }
-.tab[data-type="transfer"].active { background: #3b82f6 !important; color: #ffffff !important; box-shadow: 0 4px 14px rgba(59,130,246,.35) !important; }
+/*── QUICK ADD MODAL (#m-quick) ──*/
+#m-quick .modal{max-width:480px;border-radius:20px;padding:24px}
+@media(max-width:640px){
+  #m-quick .modal{border-radius:24px 24px 0 0;padding:12px 16px calc(16px + env(safe-area-inset-bottom)) !important}
+}
+.q-toggle-wrap{height:48px;padding:4px;border-radius:14px;background:#0B1220;display:flex;gap:4px;margin-bottom:16px}
+:root.light .q-toggle-wrap{background:#EEF2F5}
+.q-tab{flex:1;height:40px;border-radius:10px;font-size:15px;font-weight:600;font-family:'Hind Siliguri',sans-serif;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.q-tab.active[data-qtype="expense"]{background:#F87171 !important;color:#450A0A !important;box-shadow:0 2px 8px rgba(248,113,113,0.25)}
+:root.light .q-tab.active[data-qtype="expense"]{background:#EF4444 !important;color:#FFFFFF !important;box-shadow:0 2px 8px rgba(239,68,68,0.25)}
+.q-tab.active[data-qtype="income"]{background:#4ADE80 !important;color:#052E16 !important;box-shadow:0 2px 8px rgba(74,222,128,0.25)}
+:root.light .q-tab.active[data-qtype="income"]{background:#16A34A !important;color:#FFFFFF !important;box-shadow:0 2px 8px rgba(22,163,74,0.25)}
+.q-chip{height:32px;padding:0 14px;border-radius:16px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:700;font-family:'Hind Siliguri',sans-serif;cursor:pointer;transition:all .2s}
+.q-chip:hover{border-color:var(--p);color:var(--head)}
+#m-quick[data-type="expense"] #q-submit,#m-quick:not([data-type]) #q-submit{background:#F87171 !important;color:#450A0A !important}
+:root.light #m-quick[data-type="expense"] #q-submit,:root.light #m-quick:not([data-type]) #q-submit{background:linear-gradient(135deg, #EF4444, #DC2626) !important;color:#FFFFFF !important}
+#m-quick[data-type="income"] #q-submit{background:#4ADE80 !important;color:#052E16 !important}
+:root.light #m-quick[data-type="income"] #q-submit{background:linear-gradient(135deg, #16A34A, #059669) !important;color:#FFFFFF !important}
 
-.tx-item-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 14px; margin-bottom: 8px; transition: transform 0.2s, box-shadow 0.2s; }
-.tx-item-card:hover { transform: translateY(-1px); }
-.tx-item-expense { background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.14); }
-:root.light .tx-item-expense { background: #fff5f5; border: 1px solid #fecdd3; }
-.tx-item-income { background: rgba(34, 197, 94, 0.06); border: 1px solid rgba(34, 197, 94, 0.14); }
-:root.light .tx-item-income { background: #f0fdf4; border: 1px solid #bbf7d0; }
+/*── TRANSACTIONS PAGE & LAYOUT ──*/
+.tx-layout{display:grid;grid-template-columns:1fr 400px;gap:20px;max-width:1200px;margin:0 auto;align-items:start}
+@media(max-width:1023px){.tx-layout{grid-template-columns:1fr;gap:16px}}
+.tx-stat-icon-sm{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.tx-stat-icon-inc{background:rgba(74,222,128,.14);color:#4ADE80}
+:root.light .tx-stat-icon-inc{background:#DCFCE7;color:#16A34A}
+.tx-stat-icon-exp{background:rgba(248,113,113,.14);color:#F87171}
+:root.light .tx-stat-icon-exp{background:#FEE2E2;color:#EF4444}
+.tx-stat-icon-bal{background:#0B1220;color:var(--head)}
+:root.light .tx-stat-icon-bal{background:#EEF2F5;color:var(--head)}
+
+/* Filter row */
+.tx-filter-container{display:flex;align-items:center;gap:12px;width:100%}
+.tx-filter-toggle{display:flex;height:40px;padding:4px;border-radius:12px;background:#0B1220;border:1px solid var(--border);margin:0;gap:4px}
+:root.light .tx-filter-toggle{background:#EEF2F5}
+.tx-filter-toggle .tab{height:32px;padding:0 16px;border-radius:8px;font-size:13.5px;font-weight:600;font-family:'Hind Siliguri',sans-serif;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center}
+.tx-filter-toggle .tab.active[data-tfilter="all"]{background:#34D399 !important;color:#06281F !important}
+:root.light .tx-filter-toggle .tab.active[data-tfilter="all"]{background:#059669 !important;color:#FFFFFF !important}
+.tx-filter-toggle .tab.active[data-tfilter="expense"]{background:#F87171 !important;color:#450A0A !important}
+:root.light .tx-filter-toggle .tab.active[data-tfilter="expense"]{background:#EF4444 !important;color:#FFFFFF !important}
+.tx-filter-toggle .tab.active[data-tfilter="income"]{background:#4ADE80 !important;color:#052E16 !important}
+:root.light .tx-filter-toggle .tab.active[data-tfilter="income"]{background:#16A34A !important;color:#FFFFFF !important}
+.tx-search-pdf-wrap{display:flex;align-items:center;gap:12px;flex:1}
+.tx-search-input-wrap{position:relative;flex:1;display:flex;align-items:center}
+.tx-search-icon{position:absolute;left:14px;color:var(--muted);font-size:14px;pointer-events:none}
+.tx-search-input{width:100%;height:40px;padding:0 14px 0 38px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);color:var(--head);font-size:14px;font-family:'Hind Siliguri',sans-serif;outline:none;transition:all .2s}
+:root.light .tx-search-input{background:#FFFFFF;border-color:#E3E9EC}
+.tx-search-input:focus{border-color:#34D399;box-shadow:0 0 0 3px rgba(52,211,153,.2)}
+:root.light .tx-search-input:focus{border-color:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,.18)}
+.tx-pdf-btn{width:40px;height:40px;border-radius:12px;padding:0;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid var(--border);background:var(--surface2);color:var(--head);cursor:pointer}
+:root.light .tx-pdf-btn{background:#FFFFFF;border-color:#E3E9EC}
+
+/* Transaction List Cards */
+.tx-row-card{min-height:64px;padding:12px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:all .2s}
+.tx-row-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.tx-row-icon-income{background:rgba(74,222,128,.14);color:#4ADE80}
+:root.light .tx-row-icon-income{background:#DCFCE7;color:#16A34A}
+.tx-row-icon-expense{background:rgba(248,113,113,.14);color:#F87171}
+:root.light .tx-row-icon-expense{background:#FEE2E2;color:#EF4444}
+.tx-row-icon-transfer{background:rgba(96,165,250,.14);color:#60A5FA}
+:root.light .tx-row-icon-transfer{background:#DBEAFE;color:#2563EB}
+.tx-actions{display:flex;gap:8px;align-items:center}
+.tx-act-btn{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;border:none;cursor:pointer;transition:all .2s}
+.tx-act-edit{background:#0B1220;color:var(--head)}
+:root.light .tx-act-edit{background:#EEF2F5;color:var(--head)}
+.tx-act-del{background:rgba(248,113,113,.14);color:#F87171}
+:root.light .tx-act-del{background:#FEE2E2;color:#EF4444}
+@media(hover:hover) and (pointer:fine){
+  .tx-actions{opacity:0.3;transition:opacity .2s}
+  .tx-row-card:hover .tx-actions{opacity:1}
+}
+
+/* Inline Form (Right Column) */
+.tx-form-sticky{position:sticky;top:76px}
+.tx-form-header-icon{width:44px;height:44px;border-radius:12px;background:rgba(52,211,153,.14);color:#34D399;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+:root.light .tx-form-header-icon{background:#D1FAE5;color:#059669}
+.tx-form-toggle{display:flex;height:48px;padding:4px;border-radius:14px;background:#0B1220;gap:4px}
+:root.light .tx-form-toggle{background:#EEF2F5}
+.tx-form-toggle .tab{flex:1;height:40px;border-radius:10px;font-size:14px;font-weight:600;font-family:'Hind Siliguri',sans-serif;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.tx-form-toggle .tab.active[data-type="expense"]{background:#F87171 !important;color:#450A0A !important;box-shadow:0 2px 8px rgba(248,113,113,0.25)}
+:root.light .tx-form-toggle .tab.active[data-type="expense"]{background:#EF4444 !important;color:#FFFFFF !important;box-shadow:0 2px 8px rgba(239,68,68,0.25)}
+.tx-form-toggle .tab.active[data-type="income"]{background:#4ADE80 !important;color:#052E16 !important;box-shadow:0 2px 8px rgba(74,222,128,0.25)}
+:root.light .tx-form-toggle .tab.active[data-type="income"]{background:#16A34A !important;color:#FFFFFF !important;box-shadow:0 2px 8px rgba(22,163,74,0.25)}
+.tx-form-toggle .tab.active[data-type="transfer"]{background:#60A5FA !important;color:#0B1220 !important;box-shadow:0 2px 8px rgba(96,165,250,0.25)}
+:root.light .tx-form-toggle .tab.active[data-type="transfer"]{background:#2563EB !important;color:#FFFFFF !important;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
+
+.tx-form-card[data-type="expense"] #f-submit,.tx-form-card:not([data-type]) #f-submit{background:#F87171 !important;color:#450A0A !important}
+:root.light .tx-form-card[data-type="expense"] #f-submit,:root.light .tx-form-card:not([data-type]) #f-submit{background:linear-gradient(135deg, #EF4444, #DC2626) !important;color:#FFFFFF !important}
+.tx-form-card[data-type="income"] #f-submit{background:#4ADE80 !important;color:#052E16 !important}
+:root.light .tx-form-card[data-type="income"] #f-submit{background:linear-gradient(135deg, #16A34A, #059669) !important;color:#FFFFFF !important}
+.tx-form-card[data-type="transfer"] #f-submit{background:#60A5FA !important;color:#0B1220 !important}
+:root.light .tx-form-card[data-type="transfer"] #f-submit{background:linear-gradient(135deg, #2563EB, #1D4ED8) !important;color:#FFFFFF !important}
+
+/* Recurring switch */
+.switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background-color:var(--border);transition:.3s;border-radius:24px}
+.slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background-color:white;transition:.3s;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+input:checked + .slider{background-color:#059669}
+:root:not(.light) input:checked + .slider{background-color:#34D399}
+input:checked + .slider:before{transform:translateX(20px)}
+.rec-chip{height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:13px;font-weight:600;font-family:'Hind Siliguri',sans-serif;cursor:pointer;transition:all .2s;flex:1}
+.rec-chip.active{background:#059669;color:#FFFFFF;border-color:#059669}
+:root:not(.light) .rec-chip.active{background:#34D399;color:#06281F;border-color:#34D399}
+
+/* Mobile Accordion Toggle Header */
+.tx-mobile-form-toggle{display:none;width:100%;padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--border);color:var(--head);font-family:'Hind Siliguri',sans-serif;font-size:14px;font-weight:700;cursor:pointer;align-items:center;justify-content:space-between;margin-top:12px}
+.tx-form-chevron{transition:transform .3s var(--spring)}
+
+@media(max-width:768px){
+  .tx-filter-container{flex-direction:column;gap:10px}
+  .tx-filter-toggle-wrap{width:100%}
+  .tx-filter-toggle{width:100%}
+  .tx-filter-toggle .tab{flex:1}
+  .tx-search-pdf-wrap{width:100%}
+  .tx-period-wrap{max-width:100% !important;width:100%}
+  .tx-period-tabs{width:100%}
+  .tx-period-tabs .tab{flex:1}
+  .tx-stat-val{font-size:20px !important}
+  .tx-mobile-form-toggle{display:flex}
+  .tx-form-card{display:none;margin-top:10px}
+  .tx-form-card.open{display:block !important}
+}
 
 /*── HEALTH ──*/
 .health-wrap{position:relative;display:flex;align-items:center;justify-content:center}
@@ -679,112 +826,175 @@ tbody tr:last-child td{border-bottom:none}
 
     <!-- ════════════════ PAGE: TRANSACTIONS ════════════════ -->
     <div class="page" id="page-transactions">
-      <div class="gmain">
-        <div style="display:flex;flex-direction:column;gap:14px">
-          <!-- Summary Card (Top Summary Box as in Image 1 & 2) -->
-          <div class="card" style="padding:16px;border-radius:18px">
-            <div class="tabs" style="max-width:320px;margin:0 auto 14px auto" id="t-period-tabs">
-              <button type="button" class="tab" data-period="today" id="tp-today">আজ</button>
-              <button type="button" class="tab active" data-period="month" id="tp-month">চলতি মাস</button>
-              <button type="button" class="tab" data-period="all" id="tp-all">মোট</button>
+      <div class="tx-layout">
+        <!-- Left Column: Summary, Filters, List -->
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+          
+          <!-- Summary Card (আজ / চলতি মাস / মোট) -->
+          <div class="card tx-summary-card" style="padding:20px;border-radius:16px">
+            <div class="tx-period-wrap" style="max-width:320px;margin:0 auto 16px auto">
+              <div class="tabs tx-period-tabs" id="t-period-tabs" style="height:40px;padding:4px;border-radius:12px;display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);margin:0">
+                <button type="button" class="tab" data-period="today" id="tp-today">আজ</button>
+                <button type="button" class="tab active" data-period="month" id="tp-month">চলতি মাস</button>
+                <button type="button" class="tab" data-period="all" id="tp-all">মোট</button>
+              </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;gap:8px;padding-top:4px">
-              <div>
-                <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:4px">আয়</div>
-                <div style="font-size:17px;font-weight:900;color:var(--green);font-family:'Hind Siliguri',sans-serif" id="t-sum-in">৳০</div>
+            <div class="tx-stats-grid" style="display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;align-items:center;gap:12px">
+              <!-- Income Stat -->
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div class="tx-stat-icon-sm tx-stat-icon-inc"><i class="fas fa-arrow-down"></i></div>
+                  <span style="font-size:13px;font-weight:600;color:var(--muted)">আয়</span>
+                </div>
+                <div class="tx-stat-val" style="font-size:24px;font-weight:700;color:var(--green);font-family:'Hind Siliguri',sans-serif;line-height:1.1" id="t-sum-in">৳০</div>
               </div>
-              <div>
-                <div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:4px">ব্যয়</div>
-                <div style="font-size:17px;font-weight:900;color:var(--red);font-family:'Hind Siliguri',sans-serif" id="t-sum-out">৳০</div>
+              <!-- Divider 1 -->
+              <div style="height:44px;background:var(--border);width:1px"></div>
+              <!-- Expense Stat -->
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div class="tx-stat-icon-sm tx-stat-icon-exp"><i class="fas fa-arrow-up"></i></div>
+                  <span style="font-size:13px;font-weight:600;color:var(--muted)">ব্যয়</span>
+                </div>
+                <div class="tx-stat-val" style="font-size:24px;font-weight:700;color:var(--red);font-family:'Hind Siliguri',sans-serif;line-height:1.1" id="t-sum-out">৳০</div>
               </div>
-              <div>
-                <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:4px">ব্যালেন্স</div>
-                <div style="font-size:17px;font-weight:900;color:var(--blue);font-family:'Hind Siliguri',sans-serif" id="t-sum-bal">৳০</div>
+              <!-- Divider 2 -->
+              <div style="height:44px;background:var(--border);width:1px"></div>
+              <!-- Balance Stat -->
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div class="tx-stat-icon-sm tx-stat-icon-bal"><i class="fas fa-wallet"></i></div>
+                  <span style="font-size:13px;font-weight:600;color:var(--muted)">ব্যালেন্স</span>
+                </div>
+                <div class="tx-stat-val" style="font-size:24px;font-weight:700;color:var(--head);font-family:'Hind Siliguri',sans-serif;line-height:1.1" id="t-sum-bal">৳০</div>
               </div>
             </div>
           </div>
 
-          <!-- Bachelor Khata Web App v2.5 - Updated 2026-07-28 -->
-          <div class="card" style="padding:12px 16px;border-radius:16px">
-            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
-              <div class="tabs" style="margin:0;gap:4px" id="t-filter-tabs">
-                <button type="button" class="tab active" data-tfilter="all" style="padding:6px 16px;border-radius:20px">সব</button>
-                <button type="button" class="tab" data-tfilter="income" style="padding:6px 16px;border-radius:20px">আয়</button>
-                <button type="button" class="tab" data-tfilter="expense" style="padding:6px 16px;border-radius:20px">ব্যয়</button>
+          <!-- Filter & Search Card -->
+          <div class="card tx-filter-card" style="padding:12px;border-radius:16px">
+            <div class="tx-filter-container">
+              <!-- Type Filter Toggle -->
+              <div class="tx-filter-toggle-wrap">
+                <div class="tabs tx-filter-toggle" id="t-filter-tabs">
+                  <button type="button" class="tab active" data-tfilter="all">সব</button>
+                  <button type="button" class="tab" data-tfilter="expense">ব্যয়</button>
+                  <button type="button" class="tab" data-tfilter="income">আয়</button>
+                </div>
               </div>
               <input type="hidden" id="t-type" value="all">
 
-              <div style="display:flex;align-items:center;gap:8px;flex:1;max-width:240px;min-width:140px">
-                <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:6px 10px;width:100%" id="search-bar-wrap">
-                  <i class="fas fa-search" style="color:var(--muted);font-size:11px"></i>
-                  <input type="text" id="t-search" placeholder="খুঁজুন..." style="background:none;border:none;outline:none;color:var(--head);font-size:12px;font-family:'Hind Siliguri',sans-serif;width:100%">
+              <!-- Search & PDF Wrap -->
+              <div class="tx-search-pdf-wrap">
+                <div class="tx-search-input-wrap">
+                  <i class="fas fa-search tx-search-icon"></i>
+                  <input type="text" id="t-search" placeholder="বিবরণ বা ক্যাটাগরি খুঁজুন" class="tx-search-input">
                 </div>
-                <button class="btn btn-s bsm" id="export-pdf" title="PDF ডাউনলোড"><i class="fas fa-file-pdf"></i></button>
+                <button class="btn tx-pdf-btn" id="export-pdf" title="PDF ডাউনলোড" aria-label="PDF ডাউনলোড">
+                  <i class="fas fa-file-pdf"></i>
+                </button>
               </div>
             </div>
           </div>
 
           <!-- Transaction List Container -->
-          <div style="display:flex;flex-direction:column;gap:12px" id="tx-cards-container"></div>
-          <div id="tx-empty" class="empty" style="display:none"><i class="fas fa-receipt"></i><p class="i18n" data-key="no_tx">কোনো লেনদেন নেই</p></div>
+          <div style="display:flex;flex-direction:column;gap:8px" id="tx-cards-container"></div>
+          <div id="tx-empty" class="empty" style="display:none">
+            <i class="fas fa-receipt" style="font-size:48px;opacity:0.35"></i>
+            <p class="i18n" data-key="no_tx" style="font-size:14px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">কোনো লেনদেন নেই</p>
+            <a href="javascript:void(0)" onclick="app.clearTxFilter()" style="font-size:13px;color:var(--p);font-weight:600;text-decoration:none;font-family:'Hind Siliguri',sans-serif;margin-top:4px">ফিল্টার মুছুন</a>
+          </div>
         </div>
 
-        <!-- Add Form -->
-        <div style="position:sticky;top:68px;align-self:start">
-          <div class="card" style="padding:20px">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-              <div style="width:36px;height:36px;border-radius:11px;background:var(--p-light);border:1px solid rgba(249,115,22,.25);display:flex;align-items:center;justify-content:center;color:var(--p)"><i class="fas fa-plus"></i></div>
-              <div><div class="sec-title" style="margin-bottom:0" id="form-title">নতুন</div><div class="i18n" data-key="tx_form_sub" style="font-size:10px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আয় বা খরচ লিখুন</div></div>
+        <!-- Right Column: Sticky Inline Form -->
+        <div class="tx-form-sticky" id="tx-inline-form-col">
+          <!-- Mobile Accordion Header -->
+          <button type="button" class="tx-mobile-form-toggle" id="tx-form-toggle-btn">
+            <div style="display:flex;align-items:center;gap:10px">
+              <i class="fas fa-plus-circle" style="color:var(--p);font-size:16px"></i>
+              <span>নতুন লেনদেন যোগ করুন</span>
             </div>
-            <form id="tx-form" style="display:flex;flex-direction:column;gap:12px">
-              <div class="tabs">
+            <i class="fas fa-chevron-down tx-form-chevron" id="tx-form-chevron"></i>
+          </button>
+
+          <!-- Form Card -->
+          <div class="card tx-form-card" id="tx-form-card" style="padding:20px;border-radius:16px" data-type="expense">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div class="tx-form-header-icon"><i class="fas fa-plus"></i></div>
+              <div>
+                <div class="sec-title" style="margin-bottom:2px;font-size:17px;font-weight:700" id="form-title">নতুন ব্যয়</div>
+                <div style="font-size:12px;color:var(--muted);font-family:'Hind Siliguri',sans-serif">আয়, ব্যয় বা ট্রান্সফার লিখুন</div>
+              </div>
+            </div>
+
+            <form id="tx-form" style="display:flex;flex-direction:column;gap:16px">
+              <!-- Type Toggle: ব্যয় | আয় | ট্রান্সফার -->
+              <div class="tx-form-toggle" id="f-type-toggle">
                 <button type="button" class="tab active" data-type="expense">ব্যয়</button>
                 <button type="button" class="tab" data-type="income">আয়</button>
                 <button type="button" class="tab" data-type="transfer">ট্রান্সফার</button>
               </div>
               <input type="hidden" id="f-type" value="expense">
               <input type="hidden" id="f-id" value="">
-              
-              <div class="irow">
-                <div class="ig" style="flex:1"><label class="label i18n" data-key="date">তারিখ</label><input type="date" class="inp" id="f-date" required></div>
-                <div class="ig" style="flex:1"><label class="label">সময়</label><input type="time" class="inp" id="f-time" required></div>
-                <div class="ig" style="flex:1;display:none"><label class="label i18n" data-key="account">একাউন্ট</label><select class="sel" id="f-acc"></select></div>
-                <div class="ig" id="f-to-g" style="display:none"><label class="label i18n" data-key="to_acc">প্রতি একাউন্ট</label><select class="sel" id="f-to-acc"></select></div>
-                <div class="ig" id="f-cat-g" style="display:none"><select class="sel" id="f-cat"></select></div>
-              </div>
 
+              <!-- 1. Amount (টাকার পরিমাণ) - moved above Date! -->
               <div class="ig">
                 <label class="label">টাকার পরিমাণ</label>
-                <div class="inp-icon">
-                  <span class="ic" style="font-size:14px;font-weight:900">৳</span>
-                  <input type="number" class="inp" id="f-amount" step="1" min="0" placeholder="টাকার পরিমাণ" required>
+                <div style="position:relative;display:flex;align-items:center">
+                  <span id="f-currency-symbol" style="position:absolute;left:16px;font-size:22px;font-weight:700;color:#EF4444;pointer-events:none;font-family:'Hind Siliguri',sans-serif;transition:color 0.2s">৳</span>
+                  <input type="number" inputmode="decimal" class="inp" id="f-amount" step="any" min="0" placeholder="০" required style="height:56px;padding-left:42px;font-size:24px;font-weight:700;font-family:'Hind Siliguri',sans-serif;border-radius:12px">
                 </div>
               </div>
 
+              <!-- 2. Date & Time -->
+              <div class="irow" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="ig" style="flex:1">
+                  <label class="label">তারিখ</label>
+                  <input type="date" class="inp" id="f-date" required style="height:48px;font-size:15px;border-radius:12px">
+                </div>
+                <div class="ig" style="flex:1">
+                  <label class="label">সময়</label>
+                  <input type="time" class="inp" id="f-time" required style="height:48px;font-size:15px;border-radius:12px">
+                </div>
+                <div class="ig" style="flex:1;display:none"><label class="label">একাউন্ট</label><select class="sel" id="f-acc"></select></div>
+                <div class="ig" id="f-to-g" style="display:none"><label class="label">প্রতি একাউন্ট</label><select class="sel" id="f-to-acc"></select></div>
+                <div class="ig" id="f-cat-g" style="display:none"><select class="sel" id="f-cat"></select></div>
+              </div>
+
+              <!-- 3. Description (বিবরণ) -->
               <div class="ig">
                 <label class="label">বিবরণ (ঐচ্ছিক)</label>
-                <input type="text" class="inp" id="f-title" placeholder="বিবরণ (অপশনাল)">
+                <input type="text" class="inp" id="f-title" placeholder="কিসের জন্য?" style="height:48px;font-size:14px;border-radius:12px">
               </div>
 
               <div class="ig" style="display:none">
-                <label class="label i18n" data-key="notes_lbl">নোট (ঐচ্ছিক)</label>
+                <label class="label">নোট (ঐচ্ছিক)</label>
                 <input type="text" class="inp" id="f-notes" placeholder="অতিরিক্ত বিবরণ...">
               </div>
-              
-              <div style="display:none">
-                <input type="hidden" id="f-tags" value="">
+              <div style="display:none"><input type="hidden" id="f-tags" value=""></div>
+
+              <!-- 4. Recurring Transaction (পুনরাবৃত্তি লেনদেন) switch & chips -->
+              <div class="rec-toggle-wrap" style="padding:12px 14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <label for="f-rec" style="font-size:13px;font-weight:600;color:var(--head);cursor:pointer;font-family:'Hind Siliguri',sans-serif">পুনরাবৃত্তি লেনদেন</label>
+                  <label class="switch">
+                    <input type="checkbox" id="f-rec">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div id="f-rec-chips" style="display:none;gap:8px;margin-top:12px">
+                  <button type="button" class="rec-chip active" data-freq="monthly">মাসিক</button>
+                  <button type="button" class="rec-chip" data-freq="weekly">সাপ্তাহিক</button>
+                  <button type="button" class="rec-chip" data-freq="yearly">বার্ষিক</button>
+                  <input type="hidden" id="f-rec-freq" value="monthly">
+                </div>
               </div>
 
-              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface);border-radius:var(--rxs);border:1px solid var(--border)">
-                <input type="checkbox" id="f-rec" style="accent-color:var(--p);width:14px;height:14px;cursor:pointer">
-                <label for="f-rec" style="font-size:12px;font-weight:600;color:var(--head);cursor:pointer;font-family:'Hind Siliguri',sans-serif" class="i18n" data-key="rec_tx">পুনরাবৃত্তি লেনদেন</label>
-                <select class="sel" id="f-rec-freq" style="display:none;margin-left:auto;width:auto;padding:4px 8px;font-size:11px">
-                  <option value="monthly" class="i18n" data-key="freq_monthly">মাসিক</option><option value="weekly" class="i18n" data-key="freq_weekly">সাপ্তাহিক</option><option value="yearly" class="i18n" data-key="freq_yearly">বার্ষিক</option>
-                </select>
+              <!-- 5. Submit Button -->
+              <div style="margin-top:4px;display:flex;flex-direction:column;gap:8px">
+                <button type="submit" class="btn bfull tx-form-submit-btn" id="f-submit" style="height:52px;border-radius:14px;font-size:16px;font-weight:600;font-family:'Hind Siliguri',sans-serif;border:none;cursor:pointer">ব্যয় যোগ করুন</button>
+                <button type="button" class="btn btn-s bfull" id="f-cancel" style="display:none;height:44px;border-radius:12px">বাতিল</button>
               </div>
-
-              <button type="submit" class="btn btn-p bfull" id="f-submit" style="font-size:15px;font-weight:700">অ্যাড</button>
-              <button type="button" class="btn btn-s bfull i18n" id="f-cancel" data-key="cancel" style="display:none">বাতিল</button>
             </form>
           </div>
         </div>
@@ -1071,33 +1281,61 @@ tbody tr:last-child td{border-bottom:none}
 <!-- ════ MODALS ════ -->
 
 <!-- Quick Add -->
-<div class="mo" id="m-quick"><div class="modal" style="max-width:400px">
-  <div class="mh"><div class="mt" id="q-modal-title">নতুন</div><button class="mc" data-close="m-quick"><i class="fas fa-xmark"></i></button></div>
-  <div class="tabs" style="margin-bottom:14px">
-    <button type="button" class="tab" data-qtype="income">আয়</button>
-    <button type="button" class="tab active" data-qtype="expense">ব্যয়</button>
+<div class="mo" id="m-quick" data-type="expense"><div class="modal">
+  <div class="modal-drag-handle"></div>
+  <div class="mh" style="margin-bottom:16px">
+    <div class="mt" id="q-modal-title">নতুন ব্যয়</div>
+    <button class="mc q-close-btn" data-close="m-quick" aria-label="বন্ধ করুন"><i class="fas fa-xmark"></i></button>
+  </div>
+
+  <!-- Toggle (ব্যয় | আয়) -->
+  <div class="q-toggle-wrap">
+    <button type="button" class="q-tab active" data-qtype="expense">ব্যয়</button>
+    <button type="button" class="q-tab" data-qtype="income">আয়</button>
   </div>
   <input type="hidden" id="q-type" value="expense">
-  <div style="display:flex;flex-direction:column;gap:12px">
-    <div class="irow">
-      <div class="ig" style="flex:1"><label class="label">তারিখ</label><input type="date" class="inp" id="q-date"></div>
-      <div class="ig" style="flex:1"><label class="label">সময়</label><input type="time" class="inp" id="q-time"></div>
-      <div class="ig" style="flex:1;display:none"><label class="label">একাউন্ট</label><select class="sel" id="q-acc"></select></div>
-      <select class="sel" id="q-cat" style="display:none"></select>
-    </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <!-- 1. টাকার পরিমাণ (Amount first) -->
     <div class="ig">
       <label class="label">টাকার পরিমাণ</label>
-      <div class="inp-icon">
-        <span class="ic" style="font-size:14px;font-weight:900">৳</span>
-        <input type="number" class="inp" id="q-amount" placeholder="টাকার পরিমাণ" step="1">
+      <div style="position:relative;display:flex;align-items:center">
+        <span id="q-currency-symbol" style="position:absolute;left:16px;font-size:22px;font-weight:700;color:#EF4444;pointer-events:none;font-family:'Hind Siliguri',sans-serif;transition:color 0.2s">৳</span>
+        <input type="number" inputmode="decimal" class="inp" id="q-amount" placeholder="০" step="any" style="height:56px;padding-left:42px;font-size:24px;font-weight:700;font-family:'Hind Siliguri',sans-serif;border-radius:12px">
+      </div>
+      <!-- Fast amount chips (+50, +100, +500) -->
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button type="button" class="q-chip" onclick="app.quickAddChip(50)">+৫০</button>
+        <button type="button" class="q-chip" onclick="app.quickAddChip(100)">+১০০</button>
+        <button type="button" class="q-chip" onclick="app.quickAddChip(500)">+৫০০</button>
       </div>
     </div>
+
+    <!-- 2. তারিখ ও সময় -->
+    <div class="irow" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="ig" style="flex:1">
+        <label class="label">তারিখ</label>
+        <input type="date" class="inp" id="q-date" style="height:48px;font-size:15px;border-radius:12px">
+      </div>
+      <div class="ig" style="flex:1">
+        <label class="label">সময়</label>
+        <input type="time" class="inp" id="q-time" style="height:48px;font-size:15px;border-radius:12px">
+      </div>
+      <select class="sel" id="q-acc" style="display:none"></select>
+      <select class="sel" id="q-cat" style="display:none"></select>
+    </div>
+
+    <!-- 3. বিবরণ -->
     <div class="ig">
       <label class="label">বিবরণ (ঐচ্ছিক)</label>
-      <input type="text" class="inp" id="q-title" placeholder="বিবরণ (অপশনাল)">
+      <input type="text" class="inp" id="q-title" placeholder="যেমন: বাজার, রিকশা ভাড়া" style="height:48px;font-size:14px;border-radius:12px">
     </div>
   </div>
-  <div class="mf" style="margin-top:16px"><button class="btn btn-p bfull" id="q-submit" style="font-size:15px;font-weight:700">অ্যাড</button></div>
+
+  <!-- Submit Button -->
+  <div style="margin-top:20px">
+    <button class="btn bfull" id="q-submit" style="height:52px;border-radius:14px;font-size:16px;font-weight:600;font-family:'Hind Siliguri',sans-serif;border:none;cursor:pointer">ব্যয় যোগ করুন</button>
+  </div>
 </div></div>
 
 <!-- Account Modal -->
